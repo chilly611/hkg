@@ -1,0 +1,25 @@
+# Secrets
+.env
+*.key
+
+# Large binary files (keep local, not in git)
+*.pdf
+*.m4a
+*.mp3
+*.mp4
+*.zip
+*.rtfd/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary data files
+*.json.bak
+*.csv.bak
+/tmp/
