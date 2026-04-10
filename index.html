@@ -800,7 +800,7 @@ function Graph3DSection() {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.15 });
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.05 });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -921,7 +921,7 @@ function Graph3DSection() {
           query("drugs", "limit=15&select=id,name,rxcui"),
           query("icd10_cm_codes", "limit=15&select=id,code,description"),
           query("ndc_codes", "limit=10&select=id,proprietary_name"),
-          query("clinical_trials", "limit=5&select=id,brief_title")
+          query("clinical_trials", "limit=5&select=id,title")
         ]);
 
         const counts = { providers: 0, drugs: 0, diagnoses: 0, ndc: 0, trials: 0 };
@@ -978,7 +978,7 @@ function Graph3DSection() {
         if (Array.isArray(trials)) {
           counts.trials = trials.length;
           trials.forEach(t => {
-            const idx = makeNode("trial", (t.brief_title || "Trial").substring(0, 25), scatter(4, 18));
+            const idx = makeNode("trial", (t.title || "Trial").substring(0, 25), scatter(4, 18));
             makeEdge(hubIndices[4], idx, 0xf97316, 0.06);
           });
         }
@@ -1122,18 +1122,21 @@ function Graph3DSection() {
       /*#__PURE__*/React.createElement("div", {
         ref: canvasWrapRef,
         style: {
-          width: "100%", borderRadius: 14, overflow: "hidden",
+          width: "100%", minHeight: visible ? 0 : 400, borderRadius: 14, overflow: "hidden",
           border: "1px solid rgba(255,255,255,.08)", background: "#06060b",
           position: "relative"
         }
       },
         !visible && /*#__PURE__*/React.createElement("div", {
           style: { height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.2)", fontSize: 14 }
-        }, "Scroll to activate graph...")
+        }, "Scroll to activate graph..."),
+        visible && !graphStats && /*#__PURE__*/React.createElement("div", {
+          style: { height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: AMETHYST, fontSize: 14 }
+        }, "\u23F3 Loading knowledge graph...")
       ),
       graphStats && /*#__PURE__*/React.createElement("div", { style: { marginTop: 16, textAlign: "center" } },
         /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "rgba(255,255,255,.25)", marginBottom: 10 } },
-          "Drag to rotate \u00B7 Scroll to zoom \u00B7 ", totalNodes, " entities \u00B7 ", allEdges ? "live connections" : ""
+          "Drag to rotate \u00B7 Scroll to zoom \u00B7 ", totalNodes, " entities \u00B7 live connections"
         ),
         /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
           Object.entries(typeColors).map(function(pair) {
