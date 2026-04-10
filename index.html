@@ -1,1981 +1,1450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Health Knowledge Garden — The Knowledge Graph for Healthcare</title>
-<meta name="description" content="Every provider. Every drug. Every diagnosis. Every clinical trial. Connected, verified, and queryable in real time.">
-<meta property="og:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
-<meta property="og:description" content="725K+ verified entities. Every provider, drug, diagnosis, and clinical trial — connected, verified, queryable in real time.">
-<meta property="og:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
-<meta property="og:url" content="https://chilly611.github.io/hkg/">
-<meta property="og:type" content="website">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
-<meta name="twitter:description" content="725K+ verified entities. Every provider, drug, diagnosis, and clinical trial — connected and queryable.">
-<meta name="twitter:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#06060B;overflow-x:hidden}</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Knowledge Garden — The Living Graph for Healthcare</title>
+
+    <!-- OG Meta Tags -->
+    <meta property="og:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
+    <meta property="og:description" content="725K+ verified entities. Every provider, drug, diagnosis, and clinical trial — connected, verified, queryable in real time.">
+    <meta property="og:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
+    <meta property="og:url" content="https://chilly611.github.io/hkg/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
+    <meta name="twitter:description" content="725K+ verified entities connected and queryable.">
+    <meta name="twitter:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..80,100..700;1,9..80,100..700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a10;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #34D399;
+            border-radius: 4px;
+        }
+
+        html, body, #root {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background: #06060B;
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Instrument Serif', serif;
+        }
+
+        /* Lanes View */
+        .lanes-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 2rem;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #06060B 0%, #0f0f1a 100%);
+        }
+
+        .lanes-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1);
+        }
+
+        .lanes-logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .lanes-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #34D399 0%, #22D3EE 50%, #A78BFA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .lanes-subtitle {
+            font-size: 1.1rem;
+            color: #888;
+            font-weight: 300;
+        }
+
+        .lanes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 3rem;
+        }
+
+        .lane-card {
+            padding: 2rem;
+            background: rgba(13, 13, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(.22,1,.36,1);
+            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1);
+            animation-fill-mode: both;
+        }
+
+        .lane-card:nth-child(1) { animation-delay: 0.1s; }
+        .lane-card:nth-child(2) { animation-delay: 0.2s; }
+        .lane-card:nth-child(3) { animation-delay: 0.3s; }
+        .lane-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .lane-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .lane-card.clinician { border-left: 4px solid #34D399; }
+        .lane-card.patient { border-left: 4px solid #A78BFA; }
+        .lane-card.operations { border-left: 4px solid #22D3EE; }
+        .lane-card.explorer { border-left: 4px solid #D4A853; }
+
+        .lane-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .lane-card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .lane-card p {
+            font-size: 0.95rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .lanes-stats {
+            padding: 1.5rem 2rem;
+            background: rgba(13, 13, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #888;
+            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1) 0.5s both;
+        }
+
+        .lanes-stats strong {
+            color: #34D399;
+            font-weight: 600;
+        }
+
+        /* Main App View */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .app-topbar {
+            padding: 1rem 2rem;
+            background: rgba(13, 13, 20, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            gap: 1rem;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .topbar-logo {
+            width: 40px;
+            height: 40px;
+            opacity: 0.8;
+        }
+
+        .topbar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .lane-pill {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            margin-left: auto;
+        }
+
+        .lane-pill.clinician { border-color: #34D399; color: #34D399; }
+        .lane-pill.patient { border-color: #A78BFA; color: #A78BFA; }
+        .lane-pill.operations { border-color: #22D3EE; color: #22D3EE; }
+        .lane-pill.explorer { border-color: #D4A853; color: #D4A853; }
+
+        .switch-lane-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .switch-lane-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .app-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .search-section {
+            padding: 2rem;
+            background: linear-gradient(180deg, rgba(13, 13, 20, 0.5) 0%, rgba(13, 13, 20, 0) 100%);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-wrapper {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(13, 13, 20, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: rgba(52, 211, 153, 0.5);
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.1);
+        }
+
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 0.5rem;
+            background: rgba(13, 13, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .search-dropdown.active {
+            display: block;
+        }
+
+        .search-result {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .search-result:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .search-result-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .search-result-detail {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .result-badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            font-weight: 600;
+        }
+
+        .result-badge.provider { color: #34D399; border: 1px solid #34D399; }
+        .result-badge.drug { color: #F97316; border: 1px solid #F97316; }
+        .result-badge.diagnosis { color: #EF4444; border: 1px solid #EF4444; }
+        .result-badge.trial { color: #D4A853; border: 1px solid #D4A853; }
+        .result-badge.code { color: #22D3EE; border: 1px solid #22D3EE; }
+
+        .graph-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 30% 50%, rgba(52, 211, 153, 0.03) 0%, transparent 50%);
+        }
+
+        #graph-canvas {
+            display: block;
+            cursor: grab;
+        }
+
+        #graph-canvas:active {
+            cursor: grabbing;
+        }
+
+        .graph-tooltip {
+            position: absolute;
+            background: rgba(13, 13, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            max-width: 300px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-detail {
+            color: #888;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .explanation-card {
+            padding: 1.5rem 2rem;
+            background: rgba(13, 13, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin: 1.5rem 2rem 0;
+            flex-shrink: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .explanation-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .explanation-text {
+            font-size: 0.9rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .stats-footer {
+            padding: 1.5rem 2rem;
+            background: rgba(13, 13, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .stat-number.provider { color: #34D399; }
+        .stat-number.drug { color: #F97316; }
+        .stat-number.diagnosis { color: #EF4444; }
+        .stat-number.trial { color: #D4A853; }
+        .stat-number.code { color: #22D3EE; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: #888;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background: #34D399;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: 0s; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .lanes-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .lanes-title {
+                font-size: 2rem;
+            }
+
+            .app-topbar {
+                flex-wrap: wrap;
+                padding: 0.75rem 1rem;
+            }
+
+            .topbar-title {
+                font-size: 0.95rem;
+            }
+
+            .search-section {
+                padding: 1rem;
+            }
+
+            .explanation-card {
+                margin: 1rem;
+            }
+
+            .stats-footer {
+                padding: 1rem;
+                gap: 0.5rem;
+            }
+
+            .stat-number {
+                font-size: 1.1rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div id="root"></div>
-<script>const {
-  useState,
-  useEffect,
-  useRef,
-  useCallback
-} = React;
+    <div id="root"></div>
 
-// ═══ CONFIG ═══
-const SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
-const headers = {
-  apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`
-};
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.production.min.js"></script>
 
-// ═══ DESIGN TOKENS ═══
-const GOLD = "#D4A853";
-const GREEN = "#34D399";
-const RED = "#EF4444";
-const AMETHYST = "#A78BFA";
-const ORANGE = "#F97316";
-const CYAN = "#22D3EE";
-const BG = "#06060B";
-const BG_CARD = "rgba(13,13,20,0.85)";
-const ease = "cubic-bezier(.22,1,.36,1)";
+    <script>
+        const SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
 
-// ═══ DATA FETCHER ═══
-async function query(table, params = "", opts = {}) {
-  const url = `${SUPABASE_URL}/${table}?${params}`;
-  const h = {
-    ...headers
-  };
-  if (opts.count) h["Prefer"] = "count=exact";
-  if (opts.head) {
-    const res = await fetch(url, {
-      method: "HEAD",
-      headers: h
-    });
-    const range = res.headers.get("content-range");
-    return range ? parseInt(range.split("/")[1]) || 0 : 0;
-  }
-  const res = await fetch(url, {
-    headers: h
-  });
-  return res.json();
-}
+        const headers = {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+        };
 
-// ═══ HOOKS ═══
-function useInView(th = 0.15) {
-  const ref = useRef(null);
-  const [v, setV] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const o = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setV(true);
-    }, {
-      threshold: th
-    });
-    o.observe(el);
-    return () => o.disconnect();
-  }, [th]);
-  return [ref, v];
-}
-function useDebounce(value, delay = 400) {
-  const [d, setD] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setD(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return d;
-}
+        const lanes = {
+            clinician: {
+                id: 'clinician',
+                icon: '🏥',
+                title: 'Clinician',
+                subtitle: 'I treat patients',
+                description: 'Provider lookup, drug references, diagnosis codes, clinical trials',
+                color: '#34D399',
+                colorName: 'clinician'
+            },
+            patient: {
+                id: 'patient',
+                icon: '💚',
+                title: 'Patient / Caregiver',
+                subtitle: 'I want to understand my health',
+                description: 'Plain-language explanations, find providers, understand medications',
+                color: '#A78BFA',
+                colorName: 'patient'
+            },
+            operations: {
+                id: 'operations',
+                icon: '⚙️',
+                title: 'Operations',
+                subtitle: 'I manage healthcare systems',
+                description: 'Compliance checks, billing codes, exclusion screening, analytics',
+                color: '#22D3EE',
+                colorName: 'operations'
+            },
+            explorer: {
+                id: 'explorer',
+                icon: '🔍',
+                title: 'Explorer',
+                subtitle: 'I\'m curious about healthcare data',
+                description: 'Browse the full knowledge graph, search everything',
+                color: '#D4A853',
+                colorName: 'explorer'
+            }
+        };
 
-// ═══ COMPONENTS ═══
-function AnimatedCount({
-  end,
-  duration = 2000,
-  prefix = "",
-  suffix = ""
-}) {
-  const [c, setC] = useState(0);
-  const ref = useRef(null);
-  const [go, setGo] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const o = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setGo(true);
-    }, {
-      threshold: 0.1
-    });
-    o.observe(el);
-    return () => o.disconnect();
-  }, []);
-  useEffect(() => {
-    if (!go) return;
-    let s = 0;
-    const step = end / (duration / 16);
-    const t = setInterval(() => {
-      s += step;
-      if (s >= end) {
-        setC(end);
-        clearInterval(t);
-      } else setC(Math.floor(s));
-    }, 16);
-    return () => clearInterval(t);
-  }, [go, end, duration]);
-  return /*#__PURE__*/React.createElement("span", {
-    ref: ref
-  }, prefix, c.toLocaleString(), suffix);
-}
-function Section({
-  children,
-  style = {},
-  id
-}) {
-  const [ref, inView] = useInView(0.08);
-  return /*#__PURE__*/React.createElement("section", {
-    ref: ref,
-    id: id,
-    style: {
-      opacity: inView ? 1 : 0,
-      transform: inView ? "translateY(0)" : "translateY(40px)",
-      transition: `opacity .8s ${ease}, transform .8s ${ease}`,
-      position: "relative",
-      zIndex: 1,
-      padding: "clamp(60px,10vw,120px) clamp(16px,4vw,24px)",
-      maxWidth: 1100,
-      margin: "0 auto",
-      ...style
-    }
-  }, children);
-}
-function Badge({
-  children,
-  color = GOLD
-}) {
-  return /*#__PURE__*/React.createElement("span", {
-    style: {
-      padding: "3px 10px",
-      borderRadius: 100,
-      fontSize: 11,
-      letterSpacing: ".06em",
-      background: `${color}12`,
-      border: `1px solid ${color}28`,
-      color,
-      whiteSpace: "nowrap"
-    }
-  }, children);
-}
-function RelationshipChain({
-  nodes,
-  delay = 0,
-  visible = true
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 0,
-      overflowX: "auto",
-      padding: "8px 0",
-      maskImage: "linear-gradient(90deg,transparent,black 2%,black 98%,transparent)",
-      WebkitMaskImage: "linear-gradient(90deg,transparent,black 2%,black 98%,transparent)",
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateX(0)" : "translateX(-30px)",
-      transition: `all .7s ${ease} ${delay}ms`
-    }
-  }, nodes.map((n, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      padding: "5px 10px",
-      borderRadius: 6,
-      fontSize: "clamp(10px,1.2vw,12px)",
-      background: `${n.color}12`,
-      border: `1px solid ${n.color}25`,
-      color: n.color,
-      whiteSpace: "nowrap",
-      fontWeight: 500
-    }
-  }, n.label), i < nodes.length - 1 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "rgba(255,255,255,.15)",
-      fontSize: 12,
-      margin: "0 3px"
-    }
-  }, "\u2192"))));
-}
+        // Fetch entity counts from Supabase
+        async function fetchEntityCounts() {
+            const tables = [
+                'providers', 'drugs', 'icd10_cm_codes', 'ndc_codes',
+                'clinical_trials', 'oig_exclusions', 'pubmed_citations',
+                'hcpcs_codes', 'icd10_pcs_codes', 'provider_taxonomies'
+            ];
 
-// ═══ SEARCH RESULTS ═══
-function ProviderCard({
-  p
-}) {
-  const [taxonomies, setTaxonomies] = useState([]);
-  const [exclusion, setExclusion] = useState(null);
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => {
-    if (!expanded) return;
-    query("provider_taxonomies", `provider_id=eq.${p.id}&select=taxonomy_code,taxonomy_description,license_number,license_state,is_primary`).then(setTaxonomies);
-    query("oig_exclusions", `entity_name=ilike.*${p.last_name}*&limit=1`).then(r => setExclusion(r?.[0] || null));
-  }, [expanded, p.id, p.last_name]);
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: BG_CARD,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,.06)",
-      padding: "16px 18px",
-      backdropFilter: "blur(20px)",
-      cursor: "pointer",
-      transition: `all .3s ${ease}`
-    },
-    onClick: () => setExpanded(!expanded)
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 600,
-      color: "#fff"
-    }
-  }, p.first_name, " ", p.last_name, p.credential && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: GOLD,
-      fontWeight: 400,
-      marginLeft: 8,
-      fontSize: 13
-    }
-  }, p.credential)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "rgba(255,255,255,.4)",
-      marginTop: 4,
-      fontFamily: "monospace"
-    }
-  }, "NPI: ", p.npi)), /*#__PURE__*/React.createElement(Badge, {
-    color: p.status === "active" ? GREEN : RED
-  }, p.status?.toUpperCase())), expanded && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      paddingTop: 14,
-      borderTop: "1px solid rgba(255,255,255,.06)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.3)",
-      letterSpacing: ".1em",
-      marginBottom: 8
-    }
-  }, "RELATIONSHIPS DISCOVERED"), /*#__PURE__*/React.createElement(RelationshipChain, {
-    visible: true,
-    nodes: [{
-      label: p.first_name + " " + p.last_name,
-      color: GREEN
-    }, {
-      label: p.credential || "Provider",
-      color: GOLD
-    }, {
-      label: `NPI ${p.npi}`,
-      color: AMETHYST
-    }, ...(taxonomies.length ? [{
-      label: taxonomies[0]?.taxonomy_code || "Taxonomy",
-      color: CYAN
-    }, ...(taxonomies[0]?.license_state ? [{
-      label: `Licensed: ${taxonomies[0].license_state}`,
-      color: GREEN
-    }] : [])] : []), {
-      label: exclusion ? "OIG FLAG" : "OIG Clear",
-      color: exclusion ? RED : GREEN
-    }, {
-      label: "NPPES Verified",
-      color: GREEN
-    }]
-  }), taxonomies.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.3)",
-      letterSpacing: ".08em",
-      marginBottom: 6
-    }
-  }, "SPECIALTIES & LICENSES"), taxonomies.map((t, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      fontSize: 12,
-      color: "rgba(255,255,255,.6)",
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: t.is_primary ? GOLD : "rgba(255,255,255,.3)"
-    }
-  }, t.is_primary ? "★" : "○"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "monospace",
-      color: CYAN
-    }
-  }, t.taxonomy_code), t.license_state && /*#__PURE__*/React.createElement(Badge, {
-    color: AMETHYST
-  }, t.license_state, " #", t.license_number)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.25)",
-      marginTop: 10,
-      fontStyle: "italic"
-    }
-  }, "Source: ", p.data_source, " \xB7 Updated ", new Date(p.updated_at).toLocaleDateString())));
-}
-function DrugCard({
-  d
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: BG_CARD,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,.06)",
-      padding: "16px 18px",
-      backdropFilter: "blur(20px)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 600,
-      color: GOLD
-    }
-  }, d.name), d.dosage_form && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "rgba(255,255,255,.4)",
-      marginTop: 2
-    }
-  }, d.dosage_form, " ", d.strength), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.3)",
-      marginTop: 6,
-      fontFamily: "monospace"
-    }
-  }, "RxCUI: ", d.rxcui, " \xB7 Source: ", d.data_source));
-}
-function DiagnosisCard({
-  d
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: BG_CARD,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,.06)",
-      padding: "16px 18px",
-      backdropFilter: "blur(20px)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "monospace",
-      fontSize: 14,
-      color: AMETHYST,
-      fontWeight: 600,
-      flexShrink: 0
-    }
-  }, d.code), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "#fff"
-    }
-  }, d.description), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.35)",
-      marginTop: 4
-    }
-  }, d.chapter, " \xB7 ", d.is_billable ? "Billable" : "Non-billable", " \xB7 v", d.version))));
-}
+            const counts = {};
+            const results = await Promise.all(tables.map(table =>
+                fetch(`${SUPABASE_URL}/${table}?select=id&limit=1`, {
+                    method: 'HEAD',
+                    headers: { ...headers, Prefer: 'count=exact' }
+                }).then(r => {
+                    const range = r.headers.get('content-range');
+                    return { table, count: range ? parseInt(range.split('/')[1] || '0', 10) : 0 };
+                }).catch(() => ({ table, count: 0 }))
+            ));
+            let totalCount = 0;
+            results.forEach(r => { counts[r.table] = r.count; totalCount += r.count; });
 
-// ═══ SEARCH PANEL ═══
-function SearchPanel() {
-  const [mode, setMode] = useState("providers");
-  const [q, setQ] = useState("");
-  const dq = useDebounce(q, 350);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(null);
-  const search = useCallback(async () => {
-    if (!dq || dq.length < 2) {
-      setResults([]);
-      setTotal(null);
-      return;
-    }
-    setLoading(true);
-    try {
-      if (mode === "providers") {
-        const r = await fetch(`${SUPABASE_URL}/providers?or=(last_name.ilike.%25${dq}%25,first_name.ilike.%25${dq}%25,npi.eq.${dq})&select=*&limit=8&order=last_name.asc`, {
-          headers: {
-            ...headers,
-            Prefer: "count=exact"
-          }
-        });
-        const range = r.headers.get("content-range");
-        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
-        setResults(await r.json());
-      } else if (mode === "drugs") {
-        const r = await fetch(`${SUPABASE_URL}/drugs?name=ilike.%25${dq}%25&select=*&limit=8&order=name.asc`, {
-          headers: {
-            ...headers,
-            Prefer: "count=exact"
-          }
-        });
-        const range = r.headers.get("content-range");
-        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
-        setResults(await r.json());
-      } else if (mode === "diagnoses") {
-        const r = await fetch(`${SUPABASE_URL}/icd10_cm_codes?or=(code.ilike.%25${dq}%25,description.ilike.%25${dq}%25)&select=*&limit=8&order=code.asc`, {
-          headers: {
-            ...headers,
-            Prefer: "count=exact"
-          }
-        });
-        const range = r.headers.get("content-range");
-        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
-        setResults(await r.json());
-      } else if (mode === "ndc") {
-        const r = await fetch(`${SUPABASE_URL}/ndc_codes?or=(proprietary_name.ilike.%25${dq}%25,nonproprietary_name.ilike.%25${dq}%25)&select=*&limit=8&order=proprietary_name.asc`, {
-          headers: {
-            ...headers,
-            Prefer: "count=exact"
-          }
-        });
-        const range = r.headers.get("content-range");
-        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
-        setResults(await r.json());
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
-  }, [dq, mode]);
-  useEffect(() => {
-    search();
-  }, [search]);
-  const modes = [{
-    id: "providers",
-    label: "Providers",
-    icon: "🏥",
-    color: GREEN,
-    placeholder: "Search by name or NPI..."
-  }, {
-    id: "drugs",
-    label: "Drugs",
-    icon: "💊",
-    color: GOLD,
-    placeholder: "Search drug name..."
-  }, {
-    id: "diagnoses",
-    label: "ICD-10",
-    icon: "📋",
-    color: AMETHYST,
-    placeholder: "Search code or condition..."
-  }, {
-    id: "ndc",
-    label: "NDC Codes",
-    icon: "🏷️",
-    color: CYAN,
-    placeholder: "Search product name..."
-  }];
-  const active = modes.find(m => m.id === mode);
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 20,
-      flexWrap: "wrap"
-    }
-  }, modes.map(m => /*#__PURE__*/React.createElement("button", {
-    key: m.id,
-    onClick: () => {
-      setMode(m.id);
-      setResults([]);
-      setTotal(null);
-      setQ("");
-    },
-    style: {
-      padding: "8px 16px",
-      borderRadius: 100,
-      border: `1px solid ${mode === m.id ? m.color : "rgba(255,255,255,.1)"}`,
-      background: mode === m.id ? `${m.color}15` : "transparent",
-      color: mode === m.id ? m.color : "rgba(255,255,255,.5)",
-      fontSize: 13,
-      fontWeight: 500,
-      cursor: "pointer",
-      fontFamily: "'DM Sans',sans-serif",
-      transition: `all .3s ${ease}`,
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14
-    }
-  }, m.icon), m.label))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      marginBottom: 20
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: q,
-    onChange: e => setQ(e.target.value),
-    placeholder: active.placeholder,
-    style: {
-      width: "100%",
-      padding: "14px 18px 14px 44px",
-      borderRadius: 12,
-      border: `1px solid ${active.color}30`,
-      background: "rgba(255,255,255,.03)",
-      color: "#fff",
-      fontSize: 15,
-      fontFamily: "'DM Sans',sans-serif",
-      outline: "none",
-      boxSizing: "border-box",
-      transition: `border-color .3s ${ease}`
-    },
-    onFocus: e => e.target.style.borderColor = active.color,
-    onBlur: e => e.target.style.borderColor = `${active.color}30`
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: 14,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: 18,
-      opacity: 0.5
-    }
-  }, loading ? "⏳" : "🔍"), total !== null && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      right: 14,
-      top: "50%",
-      transform: "translateY(-50%)",
-      fontSize: 12,
-      color: active.color,
-      fontFamily: "monospace"
-    }
-  }, total.toLocaleString(), " results")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, results.length === 0 && dq.length >= 2 && !loading && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: 32,
-      color: "rgba(255,255,255,.3)",
-      fontSize: 14
-    }
-  }, "No results found"), results.length === 0 && dq.length < 2 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: 32,
-      color: "rgba(255,255,255,.2)",
-      fontSize: 13
-    }
-  }, "Type at least 2 characters to search ", total !== null ? `${total.toLocaleString()} records` : "the knowledge graph"), mode === "providers" && results.map(p => /*#__PURE__*/React.createElement(ProviderCard, {
-    key: p.id,
-    p: p
-  })), mode === "drugs" && results.map(d => /*#__PURE__*/React.createElement(DrugCard, {
-    key: d.id,
-    d: d
-  })), mode === "diagnoses" && results.map(d => /*#__PURE__*/React.createElement(DiagnosisCard, {
-    key: d.id,
-    d: d
-  })), mode === "ndc" && results.map(d => /*#__PURE__*/React.createElement("div", {
-    key: d.id,
-    style: {
-      background: BG_CARD,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,.06)",
-      padding: "16px 18px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: CYAN
-    }
-  }, d.proprietary_name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "rgba(255,255,255,.5)",
-      marginTop: 2
-    }
-  }, d.nonproprietary_name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 8,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement(Badge, {
-    color: CYAN
-  }, d.ndc_code), d.dosage_form && /*#__PURE__*/React.createElement(Badge, {
-    color: AMETHYST
-  }, d.dosage_form), d.manufacturer && /*#__PURE__*/React.createElement(Badge, {
-    color: GOLD
-  }, d.manufacturer))))));
-}
-
-// ═══ LIVE STATS ═══
-function LiveStats() {
-  const [counts, setCounts] = useState({});
-  const [ref, inView] = useInView(0.1);
-  useEffect(() => {
-    if (!inView) return;
-    const tables = [{
-      key: "providers",
-      label: "Providers",
-      color: GREEN
-    }, {
-      key: "icd10_cm_codes",
-      label: "ICD-10 Diagnoses",
-      color: AMETHYST
-    }, {
-      key: "ndc_codes",
-      label: "NDC Drug Codes",
-      color: CYAN
-    }, {
-      key: "oig_exclusions",
-      label: "OIG Exclusions",
-      color: RED
-    }, {
-      key: "icd10_pcs_codes",
-      label: "ICD-10 Procedures",
-      color: ORANGE
-    }, {
-      key: "pubmed_citations",
-      label: "PubMed Citations",
-      color: GREEN
-    }, {
-      key: "drugs",
-      label: "Drugs (RxNorm)",
-      color: GOLD
-    }, {
-      key: "clinical_trials",
-      label: "Clinical Trials",
-      color: AMETHYST
-    }, {
-      key: "hcpcs_codes",
-      label: "HCPCS Codes",
-      color: CYAN
-    }, {
-      key: "drug_interactions",
-      label: "Drug Interactions",
-      color: RED
-    }];
-    tables.forEach(async t => {
-      try {
-        const res = await fetch(`${SUPABASE_URL}/${t.key}?select=id&limit=1`, {
-          method: "HEAD",
-          headers: {
-            ...headers,
-            Prefer: "count=exact"
-          }
-        });
-        const range = res.headers.get("content-range");
-        const count = range ? parseInt(range.split("/")[1]) || 0 : 0;
-        setCounts(prev => ({
-          ...prev,
-          [t.key]: {
-            count,
-            ...t
-          }
-        }));
-      } catch (e) {/* skip */}
-    });
-  }, [inView]);
-  const entries = Object.values(counts).sort((a, b) => b.count - a.count);
-  const total = entries.reduce((s, e) => s + e.count, 0);
-  return /*#__PURE__*/React.createElement("div", {
-    ref: ref
-  }, total > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 32
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(48px,8vw,80px)",
-      background: `linear-gradient(135deg,${GOLD},${GREEN},${AMETHYST})`,
-      backgroundSize: "200% 200%",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      animation: "gradientMove 4s ease infinite"
-    }
-  }, /*#__PURE__*/React.createElement(AnimatedCount, {
-    end: total,
-    duration: 2500
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: "clamp(14px,2vw,18px)",
-      color: "rgba(255,255,255,.5)",
-      marginTop: 4
-    }
-  }, "live, queryable records across ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: GOLD,
-      fontWeight: 600
-    }
-  }, "10 federal data sources"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit,minmax(min(48%,200px),1fr))",
-      gap: 8
-    }
-  }, entries.map((e, i) => /*#__PURE__*/React.createElement("div", {
-    key: e.key,
-    style: {
-      padding: "14px 16px",
-      borderRadius: 12,
-      background: BG_CARD,
-      border: `1px solid ${e.color}12`,
-      backdropFilter: "blur(20px)",
-      textAlign: "center",
-      opacity: inView ? 1 : 0,
-      transform: inView ? "translateY(0)" : "translateY(20px)",
-      transition: `all .5s ${ease} ${i * 60}ms`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(20px,3vw,28px)",
-      color: e.color
-    }
-  }, /*#__PURE__*/React.createElement(AnimatedCount, {
-    end: e.count,
-    duration: 1800
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.4)",
-      marginTop: 4
-    }
-  }, e.label)))));
-}
-
-// ═══ KNOWLEDGE GRAPH — Canvas 2D Force-Directed ═══
-function Graph3DSection() {
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [visible, setVisible] = useState(false);
-  const [graphStats, setGraphStats] = useState(null);
-  const initRef = useRef(false);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.05 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!visible || initRef.current) return;
-    initRef.current = true;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    // Graph state
-    var nodes = [], edges = [];
-    var cam = { x: 0, y: 0, zoom: 1 };
-    var hoveredNode = null, dragNode = null;
-    var isDrag = false, panStart = null, lastMouse = { x: 0, y: 0 };
-
-    // Type config: color, radius, font
-    var TC = {
-      hub:       { fill: "#fff",     stroke: "#fff",     r: 28, font: "bold 11px 'DM Sans',sans-serif", textColor: "#06060B" },
-      provider:  { fill: "#34D399",  stroke: "#34D39950", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
-      drug:      { fill: "#D4A853",  stroke: "#D4A85350", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
-      diagnosis: { fill: "#A78BFA",  stroke: "#A78BFA50", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
-      ndc:       { fill: "#22D3EE",  stroke: "#22D3EE50", r: 16, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" },
-      trial:     { fill: "#F97316",  stroke: "#F9731650", r: 16, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" },
-      source:    { fill: "#EF4444",  stroke: "#EF444450", r: 14, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" }
-    };
-
-    function addNode(type, label, detail, x, y) {
-      var id = nodes.length;
-      nodes.push({ id: id, type: type, label: label, detail: detail || "", x: x || 0, y: y || 0, vx: 0, vy: 0, pinned: type === "hub" });
-      return id;
-    }
-    function addEdge(a, b, label) {
-      edges.push({ source: a, target: b, label: label || "" });
-    }
-
-    // Size canvas
-    function resize() {
-      var w = canvas.parentElement.clientWidth;
-      var h = Math.min(window.innerHeight * 0.78, 620);
-      canvas.width = w * dpr; canvas.height = h * dpr;
-      canvas.style.width = w + "px"; canvas.style.height = h + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    // Build graph from live data
-    async function loadGraph() {
-      try {
-        var _r = await Promise.all([
-          query("providers", "limit=12&select=id,first_name,last_name,npi,credential&credential=not.is.null&order=last_name.asc"),
-          query("drugs", "limit=8&select=id,name,rxcui&name=ilike.*metformin*"),
-          query("drugs", "limit=4&select=id,name,rxcui&name=ilike.*lisinopril*"),
-          query("drugs", "limit=3&select=id,name,rxcui&name=ilike.*atorvastatin*"),
-          query("icd10_cm_codes", "limit=6&select=id,code,description&is_billable=eq.true&code=in.(E119,I10,J449,M545,F329,G309)"),
-          query("ndc_codes", "limit=6&select=id,ndc_code,proprietary_name,manufacturer&order=proprietary_name.asc"),
-          query("clinical_trials", "limit=4&select=id,title,phase,sponsor&title=neq.Test Trial")
-        ]);
-        var providers = Array.isArray(_r[0]) ? _r[0] : [];
-        var metformin = Array.isArray(_r[1]) ? _r[1].slice(0, 4) : [];
-        var lisinopril = Array.isArray(_r[2]) ? _r[2].slice(0, 3) : [];
-        var atorvastatin = Array.isArray(_r[3]) ? _r[3].slice(0, 2) : [];
-        var allDrugs = metformin.concat(lisinopril).concat(atorvastatin);
-        var diagnoses = Array.isArray(_r[4]) ? _r[4] : [];
-        var ndcCodes = Array.isArray(_r[5]) ? _r[5] : [];
-        var trials = Array.isArray(_r[6]) ? _r[6] : [];
-
-        // Layout: arrange hubs in a ring
-        var cx = 0, cy = 0, hubR = 320;
-        var hubs = [
-          { label: "PROVIDERS", detail: providers.length + " loaded", angle: -Math.PI/2 },
-          { label: "DRUGS", detail: allDrugs.length + " loaded", angle: -Math.PI/2 + Math.PI*2/5 },
-          { label: "DIAGNOSES", detail: diagnoses.length + " loaded", angle: -Math.PI/2 + Math.PI*4/5 },
-          { label: "NDC CODES", detail: ndcCodes.length + " loaded", angle: -Math.PI/2 + Math.PI*6/5 },
-          { label: "CLINICAL TRIALS", detail: trials.length + " loaded", angle: -Math.PI/2 + Math.PI*8/5 }
-        ];
-        var hubIds = [];
-        hubs.forEach(function(h) {
-          var hx = cx + hubR * Math.cos(h.angle);
-          var hy = cy + hubR * Math.sin(h.angle);
-          hubIds.push(addNode("hub", h.label, h.detail, hx, hy));
-        });
-
-        // Connect hubs in a ring
-        for (var i = 0; i < hubIds.length; i++) {
-          addEdge(hubIds[i], hubIds[(i + 1) % hubIds.length], "");
-        }
-        // Cross-connections between hubs
-        addEdge(hubIds[0], hubIds[2], "treats"); // providers ↔ diagnoses
-        addEdge(hubIds[1], hubIds[2], "treats");  // drugs ↔ diagnoses
-        addEdge(hubIds[1], hubIds[3], "packaged as"); // drugs ↔ NDC
-
-        // Scatter entities around their hub
-        function scatter(hubIdx, radius, items, type, labelFn, detailFn) {
-          var hNode = nodes[hubIds[hubIdx]];
-          var ids = [];
-          items.forEach(function(item, j) {
-            var angle = (Math.PI * 2 * j / items.length) + (hubIdx * 0.7);
-            var r = radius * (0.7 + Math.random() * 0.6);
-            var nx = hNode.x + r * Math.cos(angle);
-            var ny = hNode.y + r * Math.sin(angle);
-            var nid = addNode(type, labelFn(item), detailFn(item), nx, ny);
-            addEdge(hubIds[hubIdx], nid, "");
-            ids.push(nid);
-          });
-          return ids;
+            return { totalCount, counts };
         }
 
-        var provIds = scatter(0, 160, providers, "provider",
-          function(p) { return (p.first_name || "") + " " + (p.last_name || ""); },
-          function(p) { return (p.credential || "") + " \u00B7 NPI: " + (p.npi || ""); }
-        );
-        var drugIds = scatter(1, 150, allDrugs, "drug",
-          function(d) { var n = d.name || ""; return n.length > 30 ? n.substring(0, 28) + "\u2026" : n; },
-          function(d) { return "RxCUI: " + (d.rxcui || ""); }
-        );
-        var dxIds = scatter(2, 140, diagnoses, "diagnosis",
-          function(d) { return d.code + ": " + (d.description || "").substring(0, 28); },
-          function(d) { return d.description || ""; }
-        );
-        var ndcIds = scatter(3, 130, ndcCodes, "ndc",
-          function(n) { var nm = n.proprietary_name || ""; return nm.length > 25 ? nm.substring(0, 23) + "\u2026" : nm; },
-          function(n) { return (n.manufacturer || "") + " \u00B7 " + (n.ndc_code || ""); }
-        );
-        var trialIds = scatter(4, 140, trials, "trial",
-          function(t) { var tt = t.title || ""; return tt.length > 30 ? tt.substring(0, 28) + "\u2026" : tt; },
-          function(t) { return (t.phase || "") + " \u00B7 " + (t.sponsor || "").substring(0, 30); }
-        );
+        // Graph data structure and force simulation
+        class ForceGraph {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.nodes = [];
+                this.edges = [];
+                this.simulation = null;
+                this.alpha = 1;
+                this.padding = 60;
+            }
 
-        // Meaningful cross-links: providers → diagnoses (some)
-        provIds.forEach(function(pid, i) {
-          if (i < dxIds.length) addEdge(pid, dxIds[i], "diagnoses");
-        });
-        // Drugs → diagnoses
-        drugIds.forEach(function(did, i) {
-          if (i < dxIds.length) addEdge(did, dxIds[i % dxIds.length], "treats");
-        });
-        // NDC → drugs
-        ndcIds.forEach(function(nid, i) {
-          if (i < drugIds.length) addEdge(nid, drugIds[i % drugIds.length], "formulation of");
-        });
-        // Trials → diagnoses
-        trialIds.forEach(function(tid, i) {
-          if (i < dxIds.length) addEdge(tid, dxIds[i % dxIds.length], "studies");
-        });
+            addNode(id, label, type, data = {}) {
+                if (!this.nodes.find(n => n.id === id)) {
+                    this.nodes.push({
+                        id,
+                        label,
+                        type,
+                        x: Math.random() * (this.width - this.padding * 2) + this.padding,
+                        y: Math.random() * (this.height - this.padding * 2) + this.padding,
+                        vx: 0,
+                        vy: 0,
+                        data
+                    });
+                }
+            }
 
-        setGraphStats({ providers: providers.length, drugs: allDrugs.length, diagnoses: diagnoses.length, ndc: ndcCodes.length, trials: trials.length });
+            addEdge(source, target, label = '') {
+                if (this.nodes.find(n => n.id === source) && this.nodes.find(n => n.id === target)) {
+                    if (!this.edges.find(e => (e.source === source && e.target === target) || (e.source === target && e.target === source))) {
+                        this.edges.push({ source, target, label });
+                    }
+                }
+            }
 
-        // Center camera
-        cam.x = 0; cam.y = 0; cam.zoom = Math.min((canvas.width / dpr) / 1000, (canvas.height / dpr) / 800, 0.7);
-      } catch (err) {
-        console.error("Graph load error:", err);
-        setGraphStats({ providers: 0, drugs: 0, diagnoses: 0, ndc: 0, trials: 0 });
-      }
-    }
+            tick() {
+                const k = 0.5;
+                const strength = -30;
+                const distance = 80;
+                const damping = 0.9;
+                const minAlpha = 0.001;
 
-    // Force simulation
-    function simulate() {
-      var alpha = 0.15, repulsion = 8000, linkDist = 120, damping = 0.85;
-      nodes.forEach(function(n) {
-        if (n.pinned) return;
-        // Repulsion from all other nodes
-        nodes.forEach(function(m) {
-          if (n.id === m.id) return;
-          var dx = n.x - m.x, dy = n.y - m.y;
-          var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          var force = repulsion / (dist * dist);
-          force = Math.min(force, 5);
-          n.vx += (dx / dist) * force * alpha;
-          n.vy += (dy / dist) * force * alpha;
-        });
-      });
-      // Attraction along edges
-      edges.forEach(function(e) {
-        var s = nodes[e.source], t = nodes[e.target];
-        var dx = t.x - s.x, dy = t.y - s.y;
-        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        var force = (dist - linkDist) * 0.005 * alpha;
-        var fx = (dx / dist) * force, fy = (dy / dist) * force;
-        if (!s.pinned) { s.vx += fx; s.vy += fy; }
-        if (!t.pinned) { t.vx -= fx; t.vy -= fy; }
-      });
-      // Apply velocities
-      nodes.forEach(function(n) {
-        if (n.pinned) return;
-        n.vx *= damping; n.vy *= damping;
-        n.x += n.vx; n.y += n.vy;
-      });
-    }
+                // Apply forces
+                for (let i = 0; i < this.nodes.length; i++) {
+                    for (let j = i + 1; j < this.nodes.length; j++) {
+                        const a = this.nodes[i];
+                        const b = this.nodes[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const force = strength / (dist * dist);
 
-    // Drawing
-    function toScreen(wx, wy) {
-      var cw = canvas.width / dpr, ch = canvas.height / dpr;
-      return { x: (wx - cam.x) * cam.zoom + cw / 2, y: (wy - cam.y) * cam.zoom + ch / 2 };
-    }
-    function toWorld(sx, sy) {
-      var cw = canvas.width / dpr, ch = canvas.height / dpr;
-      return { x: (sx - cw / 2) / cam.zoom + cam.x, y: (sy - ch / 2) / cam.zoom + cam.y };
-    }
+                        a.vx += (force * dx) / dist;
+                        a.vy += (force * dy) / dist;
+                        b.vx -= (force * dx) / dist;
+                        b.vy -= (force * dy) / dist;
+                    }
+                }
 
-    function draw() {
-      var cw = canvas.width / dpr, ch = canvas.height / dpr;
-      ctx.clearRect(0, 0, cw, ch);
-      ctx.fillStyle = "#06060B";
-      ctx.fillRect(0, 0, cw, ch);
+                // Link forces
+                for (const edge of this.edges) {
+                    const a = this.nodes.find(n => n.id === edge.source);
+                    const b = this.nodes.find(n => n.id === edge.target);
+                    if (a && b) {
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const force = k * (dist - distance);
 
-      // Draw edges
-      edges.forEach(function(e) {
-        var s = nodes[e.source], t = nodes[e.target];
-        var p1 = toScreen(s.x, s.y), p2 = toScreen(t.x, t.y);
-        var isHot = hoveredNode !== null && (e.source === hoveredNode || e.target === hoveredNode);
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = isHot ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.06)";
-        ctx.lineWidth = isHot ? 1.5 : 0.5;
-        ctx.stroke();
-        // Edge label at midpoint if hovered and has label
-        if (isHot && e.label) {
-          var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-          ctx.font = "9px 'DM Sans',sans-serif";
-          ctx.fillStyle = "rgba(167,139,250,0.6)";
-          ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-          ctx.fillText(e.label, mx, my - 3);
+                        a.vx += (force * dx) / dist;
+                        a.vy += (force * dy) / dist;
+                        b.vx -= (force * dx) / dist;
+                        b.vy -= (force * dy) / dist;
+                    }
+                }
+
+                // Apply damping and update positions
+                let maxVel = 0;
+                for (const node of this.nodes) {
+                    node.vx *= damping;
+                    node.vy *= damping;
+                    node.x += node.vx;
+                    node.y += node.vy;
+
+                    // Contain within bounds
+                    node.x = Math.max(this.padding, Math.min(this.width - this.padding, node.x));
+                    node.y = Math.max(this.padding, Math.min(this.height - this.padding, node.y));
+
+                    const vel = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+                    maxVel = Math.max(maxVel, vel);
+                }
+
+                this.alpha = Math.max(minAlpha, this.alpha * 0.99);
+                return this.alpha > minAlpha || maxVel > 0.1;
+            }
+
+            render(ctx, hoveredNodeId = null) {
+                ctx.fillStyle = '#06060B';
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                // Draw edges
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1.5;
+                for (const edge of this.edges) {
+                    const source = this.nodes.find(n => n.id === edge.source);
+                    const target = this.nodes.find(n => n.id === edge.target);
+                    if (source && target) {
+                        ctx.beginPath();
+                        ctx.moveTo(source.x, source.y);
+                        ctx.lineTo(target.x, target.y);
+                        ctx.stroke();
+
+                        // Draw edge label
+                        if (edge.label) {
+                            const mx = (source.x + target.x) / 2;
+                            const my = (source.y + target.y) / 2;
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                            ctx.font = '11px "DM Sans"';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(edge.label, mx, my - 5);
+                        }
+                    }
+                }
+
+                // Draw nodes
+                for (const node of this.nodes) {
+                    const radius = 25;
+                    const isHovered = node.id === hoveredNodeId;
+
+                    // Node background
+                    ctx.fillStyle = this.getNodeColor(node.type);
+                    if (isHovered) {
+                        ctx.fillStyle = this.adjustBrightness(ctx.fillStyle, 1.3);
+                    }
+
+                    // Draw rounded rect for node
+                    ctx.beginPath();
+                    ctx.roundRect(node.x - radius, node.y - radius / 1.5, radius * 2, radius, 8);
+                    ctx.fill();
+
+                    // Node border
+                    if (isHovered) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                        ctx.lineWidth = 2;
+                    } else {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                        ctx.lineWidth = 1;
+                    }
+                    ctx.stroke();
+
+                    // Node label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px "DM Sans"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    const lines = this.wrapText(node.label, 18);
+                    const lineHeight = 13;
+                    const totalHeight = (lines.length - 1) * lineHeight;
+                    const startY = node.y - totalHeight / 2;
+
+                    for (let i = 0; i < lines.length; i++) {
+                        ctx.fillText(lines[i], node.x, startY + i * lineHeight);
+                    }
+                }
+            }
+
+            getNodeColor(type) {
+                const colors = {
+                    provider: '#34D399',
+                    drug: '#F97316',
+                    diagnosis: '#EF4444',
+                    trial: '#D4A853',
+                    code: '#22D3EE',
+                    taxonomy: '#A78BFA',
+                    manufacturer: '#8B5CF6'
+                };
+                return colors[type] || '#34D399';
+            }
+
+            adjustBrightness(color, factor) {
+                const hex = color.replace('#', '');
+                const r = Math.min(255, Math.floor(parseInt(hex.substr(0, 2), 16) * factor));
+                const g = Math.min(255, Math.floor(parseInt(hex.substr(2, 2), 16) * factor));
+                const b = Math.min(255, Math.floor(parseInt(hex.substr(4, 2), 16) * factor));
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            wrapText(text, maxChars) {
+                if (text.length <= maxChars) return [text];
+                const words = text.split(' ');
+                const lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    if ((currentLine + word).length > maxChars) {
+                        if (currentLine) lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine += (currentLine ? ' ' : '') + word;
+                    }
+                }
+                if (currentLine) lines.push(currentLine);
+                return lines;
+            }
+
+            getNodeAtPoint(x, y) {
+                for (const node of this.nodes) {
+                    const dx = node.x - x;
+                    const dy = node.y - y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 35) {
+                        return node;
+                    }
+                }
+                return null;
+            }
         }
-      });
 
-      // Draw nodes
-      nodes.forEach(function(n) {
-        var tc = TC[n.type] || TC.provider;
-        var p = toScreen(n.x, n.y);
-        var r = tc.r * cam.zoom;
-        var isHovered = hoveredNode === n.id;
-        var isConnected = false;
-        if (hoveredNode !== null && hoveredNode !== n.id) {
-          edges.forEach(function(e) {
-            if ((e.source === hoveredNode && e.target === n.id) || (e.target === hoveredNode && e.source === n.id)) isConnected = true;
-          });
-        }
-        var dimmed = hoveredNode !== null && !isHovered && !isConnected;
+        // React Components
+        const LanesScreen = ({ onSelectLane, stats }) => {
+            return React.createElement('div', { className: 'lanes-container' },
+                React.createElement('div', { className: 'lanes-header' },
+                    React.createElement('img', {
+                        className: 'lanes-logo',
+                        src: 'assets/logo-transparent.png',
+                        alt: 'Health Knowledge Garden'
+                    }),
+                    React.createElement('h1', { className: 'lanes-title' }, 'Health Knowledge Garden'),
+                    React.createElement('p', { className: 'lanes-subtitle' }, 'How can we help you today?')
+                ),
+                React.createElement('div', { className: 'lanes-grid' },
+                    Object.values(lanes).map(lane =>
+                        React.createElement('div', {
+                            key: lane.id,
+                            className: `lane-card ${lane.colorName}`,
+                            onClick: () => onSelectLane(lane.id)
+                        },
+                            React.createElement('div', { className: 'lane-icon' }, lane.icon),
+                            React.createElement('h2', null, lane.title),
+                            React.createElement('p', { style: { fontSize: '0.85rem', marginBottom: '0.5rem' } }, lane.subtitle),
+                            React.createElement('p', { style: { fontSize: '0.9rem', color: '#999' } }, lane.description)
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'lanes-stats' },
+                    React.createElement('span', null,
+                        React.createElement('strong', null, stats.totalCount.toLocaleString()),
+                        ' entities across 10 federal sources'
+                    )
+                )
+            );
+        };
 
-        // Glow for hubs and hovered
-        if ((n.type === "hub" || isHovered) && !dimmed) {
-          ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.6, 0, Math.PI * 2);
-          var glow = ctx.createRadialGradient(p.x, p.y, r * 0.5, p.x, p.y, r * 1.6);
-          glow.addColorStop(0, (tc.fill === "#fff" ? "rgba(167,139,250,0.12)" : tc.fill.replace(")", ",0.12)").replace("rgb", "rgba")));
-          glow.addColorStop(1, "transparent");
-          ctx.fillStyle = n.type === "hub" ? "rgba(167,139,250,0.08)" : tc.stroke;
-          ctx.fill();
-        }
+        const AppScreen = ({ currentLane, onSwitchLane, stats }) => {
+            const [searchQuery, setSearchQuery] = React.useState('');
+            const [searchResults, setSearchResults] = React.useState([]);
+            const [showDropdown, setShowDropdown] = React.useState(false);
+            const [hoveredNode, setHoveredNode] = React.useState(null);
+            const [tooltip, setTooltip] = React.useState(null);
+            const canvasRef = React.useRef(null);
+            const graphRef = React.useRef(null);
+            const animationRef = React.useRef(null);
 
-        // Pill-shaped node background
-        ctx.font = tc.font;
-        var textW = ctx.measureText(n.label).width;
-        var pillW = Math.max(textW + 16, r * 2);
-        var pillH = n.type === "hub" ? 26 : 20;
-        var px = p.x - pillW / 2, py = p.y - pillH / 2;
-        var pillR = pillH / 2;
+            const lane = lanes[currentLane];
 
-        ctx.globalAlpha = dimmed ? 0.15 : 1;
+            const searchPlaceholders = {
+                clinician: 'Search providers, drugs, ICD-10 codes...',
+                patient: 'Search conditions, medications, doctors...',
+                operations: 'Search HCPCS, OIG exclusions, NDC codes...',
+                explorer: 'Search anything across 1.1M records...'
+            };
 
-        // Pill shape
-        ctx.beginPath();
-        ctx.moveTo(px + pillR, py);
-        ctx.lineTo(px + pillW - pillR, py);
-        ctx.arc(px + pillW - pillR, py + pillR, pillR, -Math.PI / 2, Math.PI / 2);
-        ctx.lineTo(px + pillR, py + pillH);
-        ctx.arc(px + pillR, py + pillR, pillR, Math.PI / 2, -Math.PI / 2);
-        ctx.closePath();
+            const explanations = {
+                clinician: 'Clinician view: See provider networks, their specialties, common diagnoses they treat, and relevant medications with active clinical trials.',
+                patient: 'Patient view: Discover what a diagnosis means, medications used to treat it, specialists who can help, and research opportunities.',
+                operations: 'Operations view: Verify provider credentials and exclusion status, audit billing code usage, and track compliance across your network.',
+                explorer: 'Explorer view: Navigate the complete healthcare knowledge graph with 1.1M verified entities from 10 federal sources.',
+            };
 
-        // Fill
-        if (n.type === "hub") {
-          ctx.fillStyle = isHovered ? "#A78BFA" : "rgba(255,255,255,0.08)";
-          ctx.strokeStyle = isHovered ? "#A78BFA" : "rgba(255,255,255,0.2)";
-        } else {
-          ctx.fillStyle = isHovered ? tc.fill : tc.fill + "18";
-          ctx.strokeStyle = isHovered ? tc.fill : tc.fill + "40";
-        }
-        ctx.fill();
-        ctx.lineWidth = isHovered ? 1.5 : 0.8;
-        ctx.stroke();
+            // Initialize graph
+            React.useEffect(() => {
+                if (!canvasRef.current || graphRef.current) return;
 
-        // Text
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillStyle = isHovered ? (n.type === "hub" ? "#06060B" : "#fff") : (n.type === "hub" ? "rgba(255,255,255,0.85)" : tc.fill);
-        ctx.fillText(n.label, p.x, p.y + 0.5);
+                const canvas = canvasRef.current;
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
 
-        ctx.globalAlpha = 1;
-      });
+                const graph = new ForceGraph(canvas.width, canvas.height);
+                graphRef.current = graph;
 
-      // Tooltip for hovered node
-      if (hoveredNode !== null) {
-        var hn = nodes[hoveredNode];
-        if (hn && hn.detail) {
-          var hp = toScreen(hn.x, hn.y);
-          var tc2 = TC[hn.type] || TC.provider;
-          ctx.font = "10px 'DM Sans',sans-serif";
-          var tw = ctx.measureText(hn.detail).width + 14;
-          var tx = hp.x - tw / 2, ty = hp.y - 28;
-          ctx.fillStyle = "rgba(13,13,20,0.92)";
-          ctx.strokeStyle = tc2.fill + "40";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(tx, ty - 10, tw, 20, 6);
-          ctx.fill(); ctx.stroke();
-          ctx.fillStyle = "rgba(255,255,255,0.7)";
-          ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText(hn.detail, hp.x, ty);
-        }
-      }
+                // Load initial data based on lane
+                loadGraphData(currentLane, graph);
 
-      // Instructions watermark
-      ctx.font = "11px 'DM Sans',sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-      ctx.fillText("Drag to pan \u00B7 Scroll to zoom \u00B7 Hover to explore connections", cw / 2, ch - 10);
-    }
+                // Animation loop
+                const animate = () => {
+                    if (graph.tick()) {
+                        const ctx = canvas.getContext('2d');
+                        graph.render(ctx, hoveredNode);
+                    }
+                    animationRef.current = requestAnimationFrame(animate);
+                };
+                animate();
 
-    // Mouse/touch interaction
-    function getCanvasPos(e) {
-      var rect = canvas.getBoundingClientRect();
-      var x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
-      var y = (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top;
-      return { x: x, y: y };
-    }
-    function findNode(sx, sy) {
-      var w = toWorld(sx, sy);
-      var best = null, bestD = Infinity;
-      nodes.forEach(function(n) {
-        var dx = n.x - w.x, dy = n.y - w.y;
-        var d = Math.sqrt(dx * dx + dy * dy);
-        var tc = TC[n.type] || TC.provider;
-        var hitR = (tc.r + 10) / cam.zoom;
-        if (d < hitR && d < bestD) { best = n.id; bestD = d; }
-      });
-      return best;
-    }
+                // Handle canvas interactions
+                const handleMouseMove = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const node = graph.getNodeAtPoint(x, y);
+                    setHoveredNode(node?.id || null);
+                    if (node) {
+                        setTooltip({
+                            x: e.clientX,
+                            y: e.clientY,
+                            node
+                        });
+                    } else {
+                        setTooltip(null);
+                    }
+                };
 
-    canvas.addEventListener("mousedown", function(e) {
-      var pos = getCanvasPos(e);
-      var hit = findNode(pos.x, pos.y);
-      if (hit !== null && !nodes[hit].pinned) {
-        dragNode = hit; isDrag = true;
-      } else {
-        panStart = { x: pos.x, y: pos.y, cx: cam.x, cy: cam.y }; isDrag = true;
-      }
-      lastMouse = pos;
-      canvas.style.cursor = "grabbing";
-    });
-    canvas.addEventListener("mousemove", function(e) {
-      var pos = getCanvasPos(e);
-      if (dragNode !== null) {
-        var w = toWorld(pos.x, pos.y);
-        nodes[dragNode].x = w.x; nodes[dragNode].y = w.y;
-        nodes[dragNode].vx = 0; nodes[dragNode].vy = 0;
-      } else if (panStart) {
-        cam.x = panStart.cx - (pos.x - panStart.x) / cam.zoom;
-        cam.y = panStart.cy - (pos.y - panStart.y) / cam.zoom;
-      } else {
-        var hit = findNode(pos.x, pos.y);
-        hoveredNode = hit;
-        canvas.style.cursor = hit !== null ? "pointer" : "grab";
-      }
-      lastMouse = pos;
-    });
-    canvas.addEventListener("mouseup", function() { dragNode = null; panStart = null; isDrag = false; canvas.style.cursor = "grab"; });
-    canvas.addEventListener("mouseleave", function() { dragNode = null; panStart = null; isDrag = false; hoveredNode = null; });
-    canvas.addEventListener("wheel", function(e) {
-      e.preventDefault();
-      var pos = getCanvasPos(e);
-      var wBefore = toWorld(pos.x, pos.y);
-      var factor = e.deltaY > 0 ? 0.92 : 1.08;
-      cam.zoom = Math.max(0.15, Math.min(3, cam.zoom * factor));
-      var wAfter = toWorld(pos.x, pos.y);
-      cam.x -= (wAfter.x - wBefore.x);
-      cam.y -= (wAfter.y - wBefore.y);
-    }, { passive: false });
-    // Touch
-    var touchStart = null;
-    canvas.addEventListener("touchstart", function(e) {
-      if (e.touches.length === 1) {
-        var pos = getCanvasPos(e);
-        var hit = findNode(pos.x, pos.y);
-        if (hit !== null && !nodes[hit].pinned) { dragNode = hit; }
-        else { panStart = { x: pos.x, y: pos.y, cx: cam.x, cy: cam.y }; }
-        touchStart = pos;
-      }
-    }, { passive: true });
-    canvas.addEventListener("touchmove", function(e) {
-      if (e.touches.length === 1) {
-        e.preventDefault();
-        var pos = getCanvasPos(e);
-        if (dragNode !== null) {
-          var w = toWorld(pos.x, pos.y);
-          nodes[dragNode].x = w.x; nodes[dragNode].y = w.y;
-        } else if (panStart) {
-          cam.x = panStart.cx - (pos.x - panStart.x) / cam.zoom;
-          cam.y = panStart.cy - (pos.y - panStart.y) / cam.zoom;
-        }
-      }
-    }, { passive: false });
-    canvas.addEventListener("touchend", function() { dragNode = null; panStart = null; touchStart = null; });
+                const handleClick = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const node = graph.getNodeAtPoint(x, y);
+                    if (node) {
+                        expandNode(node, graph);
+                    }
+                };
 
-    // Animation loop: simulate + draw
-    var simSteps = 0;
-    loadGraph().then(function() {
-      // Run initial simulation to settle
-      for (var i = 0; i < 120; i++) simulate();
-    });
+                let isPanning = false;
+                let panStart = { x: 0, y: 0 };
 
-    var animId;
-    function loop() {
-      animId = requestAnimationFrame(loop);
-      if (simSteps < 400) { simulate(); simSteps++; }
-      else if (dragNode !== null) { simulate(); }
-      draw();
-    }
-    loop();
+                const handleMouseDown = (e) => {
+                    isPanning = true;
+                    panStart = { x: e.clientX, y: e.clientY };
+                };
 
-    return function() {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
-  }, [visible]);
+                const handleMouseUp = () => {
+                    isPanning = false;
+                };
 
-  var totalNodes = graphStats ? Object.values(graphStats).reduce(function(s, v) { return s + v; }, 0) : 0;
-  var typeColors = [
-    ["Providers", GREEN], ["Drugs", GOLD], ["Diagnoses", AMETHYST], ["NDC", CYAN], ["Trials", ORANGE]
-  ];
+                const handleMouseDrag = (e) => {
+                    if (!isPanning) return;
+                    const dx = e.clientX - panStart.x;
+                    const dy = e.clientY - panStart.y;
+                    for (const node of graph.nodes) {
+                        node.x += dx;
+                        node.y += dy;
+                    }
+                    panStart = { x: e.clientX, y: e.clientY };
+                };
 
-  return /*#__PURE__*/React.createElement(Section, { id: "graph3d" },
-    /*#__PURE__*/React.createElement("div", { ref: containerRef, style: { width: "100%" } },
-      /*#__PURE__*/React.createElement("div", { style: { textAlign: "center", marginBottom: 32 } },
-        /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: AMETHYST, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 } }, "THE LIVING GRAPH"),
-        /*#__PURE__*/React.createElement("h2", { style: { fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(26px,5vw,48px)", fontWeight: 400, lineHeight: 1.15 } },
-          "See every connection. ", /*#__PURE__*/React.createElement("span", { style: { fontStyle: "italic", color: AMETHYST } }, "Explore every relationship.")
-        ),
-        /*#__PURE__*/React.createElement("p", { style: { fontSize: "clamp(13px,1.6vw,16px)", color: "rgba(255,255,255,.4)", maxWidth: 560, margin: "12px auto 0", lineHeight: 1.7 } },
-          "Real providers, drugs, diagnoses, and clinical trials from 10 federal sources. Hover any node to see its connections."
-        )
-      ),
-      /*#__PURE__*/React.createElement("div", {
-        style: { width: "100%", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,.08)", background: "#06060b" }
-      },
-        /*#__PURE__*/React.createElement("canvas", { ref: canvasRef, style: { display: "block", width: "100%", cursor: "grab" } })
-      ),
-      graphStats && /*#__PURE__*/React.createElement("div", { style: { marginTop: 16, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", alignItems: "center" } },
-        /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,.3)" } }, totalNodes + " live entities"),
-        typeColors.map(function(pair) {
-          return /*#__PURE__*/React.createElement("span", { key: pair[0], style: {
-            padding: "4px 12px", borderRadius: 100, fontSize: 11,
-            background: pair[1] + "12", border: "1px solid " + pair[1] + "28", color: pair[1]
-          } }, pair[0]);
-        })
-      )
-    )
-  );
-}
+                const handleWheel = (e) => {
+                    e.preventDefault();
+                    const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    for (const node of graph.nodes) {
+                        const dx = node.x - centerX;
+                        const dy = node.y - centerY;
+                        node.x = centerX + dx * zoomFactor;
+                        node.y = centerY + dy * zoomFactor;
+                    }
+                };
 
-// ═══ MAIN APP ═══
-function HealthKnowledgeGarden() {
-  const [scrollProgress, setScrollProgress] = useState(0);
-  useEffect(() => {
-    const f = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(h > 0 ? window.scrollY / h : 0);
-    };
-    window.addEventListener("scroll", f, {
-      passive: true
-    });
-    return () => window.removeEventListener("scroll", f);
-  }, []);
-  const [heroRef, heroIn] = useInView(0.05);
-  const [relRef, relIn] = useInView(0.1);
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: BG,
-      color: "#fff",
-      minHeight: "100vh",
-      fontFamily: "'DM Sans',sans-serif",
-      overflowX: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("style", null, `
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-        @keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
-        @keyframes breathe{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.04);opacity:.75}}
-        @keyframes fadeGlow{0%,100%{text-shadow:0 0 60px rgba(52,211,153,.15)}50%{text-shadow:0 0 120px rgba(52,211,153,.35)}}
-        @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-        .h1{animation:slideUp .8s ${ease} .1s both}.h2{animation:slideUp .8s ${ease} .3s both}
-        .h3{animation:slideUp .8s ${ease} .5s both}.h4{animation:slideUp .8s ${ease} .7s both}
-        .live-dot{animation:pulse 2s ease infinite}
-        *{box-sizing:border-box}a{color:${GREEN};text-decoration:none}
-        input::placeholder{color:rgba(255,255,255,.25)}
-      `), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      height: 2,
-      zIndex: 200,
-      width: `${scrollProgress * 100}%`,
-      background: `linear-gradient(90deg,${GREEN},${AMETHYST},${GOLD})`,
-      transition: "width .1s linear"
-    }
-  }), /*#__PURE__*/React.createElement("nav", {
-    style: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 100,
-      padding: "14px clamp(16px,4vw,32px)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      background: scrollProgress > 0.02 ? "rgba(6,6,11,.85)" : "transparent",
-      backdropFilter: scrollProgress > 0.02 ? "blur(20px)" : "none",
-      borderBottom: scrollProgress > 0.02 ? "1px solid rgba(255,255,255,.04)" : "none",
-      transition: `all .4s ${ease}`
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "assets/logo-transparent.png",
-    alt: "HKG",
-    style: {
-      width: 28,
-      height: 28,
-      objectFit: "contain"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: 18,
-      color: GREEN
-    }
-  }, "Health"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "rgba(255,255,255,.3)"
-    }
-  }, "Knowledge Garden")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 16,
-      alignItems: "center",
-      fontSize: 13
-    }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "#explore",
-    style: {
-      color: "rgba(255,255,255,.5)",
-      textDecoration: "none",
-      transition: "color .2s"
-    },
-    onMouseEnter: e => e.target.style.color = "#fff",
-    onMouseLeave: e => e.target.style.color = "rgba(255,255,255,.5)"
-  }, "Explore"), /*#__PURE__*/React.createElement("a", {
-    href: "#sources",
-    style: {
-      color: "rgba(255,255,255,.5)",
-      textDecoration: "none",
-      transition: "color .2s"
-    },
-    onMouseEnter: e => e.target.style.color = "#fff",
-    onMouseLeave: e => e.target.style.color = "rgba(255,255,255,.5)"
-  }, "Sources"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, [{
-    label: "Builders",
-    href: "https://builders.theknowledgegardens.com",
-    color: ORANGE
-  }, {
-    label: "Orchids",
-    href: "https://orchids.theknowledgegardens.com",
-    color: GREEN
-  }].map(g => /*#__PURE__*/React.createElement("a", {
-    key: g.label,
-    href: g.href,
-    style: {
-      padding: "5px 12px",
-      borderRadius: 100,
-      fontSize: 11,
-      border: `1px solid ${g.color}30`,
-      color: g.color,
-      textDecoration: "none",
-      transition: `all .3s ${ease}`
-    }
-  }, g.label))))), /*#__PURE__*/React.createElement("section", {
-    ref: heroRef,
-    style: {
-      minHeight: "100dvh",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-      textAlign: "center",
-      padding: "80px clamp(16px,4vw,24px) 40px",
-      position: "relative",
-      zIndex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: "30%",
-      left: "15%",
-      width: 350,
-      height: 350,
-      borderRadius: "50%",
-      background: `radial-gradient(circle,rgba(52,211,153,.04),transparent 70%)`,
-      animation: "breathe 10s ease infinite",
-      pointerEvents: "none"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "h1",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 18px",
-      borderRadius: 100,
-      border: "1px solid rgba(52,211,153,.25)",
-      background: "rgba(52,211,153,.06)",
-      fontSize: "clamp(11px,1.4vw,13px)",
-      color: GREEN,
-      letterSpacing: ".05em",
-      marginBottom: 32
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "live-dot",
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: "50%",
-      background: GREEN,
-      display: "inline-block"
-    }
-  }), "LIVE \xB7 10 FEDERAL DATA SOURCES \xB7 QUERYABLE NOW"), /*#__PURE__*/React.createElement("h1", {
-    className: "h2",
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(36px,7vw,84px)",
-      fontWeight: 400,
-      lineHeight: 1.05,
-      maxWidth: 900,
-      letterSpacing: "-.025em"
-    }
-  }, "The knowledge graph for", " ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      background: `linear-gradient(135deg,${GREEN},${AMETHYST},${GOLD})`,
-      backgroundSize: "300% 300%",
-      animation: "gradientMove 6s ease infinite",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent"
-    }
-  }, "healthcare")), /*#__PURE__*/React.createElement("p", {
-    className: "h3",
-    style: {
-      fontSize: "clamp(15px,2vw,20px)",
-      color: "rgba(255,255,255,.45)",
-      maxWidth: 600,
-      lineHeight: 1.7,
-      marginTop: 20,
-      fontWeight: 300
-    }
-  }, "Every provider. Every drug. Every diagnosis. Every clinical trial.", /*#__PURE__*/React.createElement("br", null), "Connected, verified, and queryable in real time."), /*#__PURE__*/React.createElement("div", {
-    className: "h4",
-    style: {
-      display: "flex",
-      gap: 12,
-      marginTop: 36,
-      flexWrap: "wrap",
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "#explore",
-    style: {
-      padding: "14px 36px",
-      borderRadius: 100,
-      background: GREEN,
-      color: BG,
-      fontSize: 14,
-      fontWeight: 600,
-      textDecoration: "none",
-      transition: `all .3s ${ease}`
-    }
-  }, "Explore the Graph"), /*#__PURE__*/React.createElement("a", {
-    href: "#graph3d",
-    style: {
-      padding: "14px 36px",
-      borderRadius: 100,
-      border: `1px solid rgba(255,255,255,.15)`,
-      color: "rgba(255,255,255,.5)",
-      fontSize: 14,
-      fontWeight: 500,
-      textDecoration: "none"
-    }
-  }, "See the Data"))), /*#__PURE__*/React.createElement(Graph3DSection, null), /*#__PURE__*/React.createElement(Section, {
-    id: "stats"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: GREEN,
-      letterSpacing: ".15em",
-      textTransform: "uppercase",
-      marginBottom: 14
-    }
-  }, "LIVE DATABASE"), /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(26px,5vw,48px)",
-      fontWeight: 400,
-      lineHeight: 1.15
-    }
-  }, "Real data. Real relationships. ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: "italic",
-      color: GREEN
-    }
-  }, "Right now."))), /*#__PURE__*/React.createElement(LiveStats, null)), /*#__PURE__*/React.createElement(Section, {
-    id: "relationships"
-  }, /*#__PURE__*/React.createElement("div", {
-    ref: relRef,
-    style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: AMETHYST,
-      letterSpacing: ".15em",
-      textTransform: "uppercase",
-      marginBottom: 14
-    }
-  }, "THE GRAPH"), /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(24px,4.5vw,44px)",
-      fontWeight: 400,
-      lineHeight: 1.15,
-      maxWidth: 800,
-      margin: "0 auto"
-    }
-  }, "Not records. ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: "italic",
-      color: AMETHYST
-    }
-  }, "Relationships.")), /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: "clamp(13px,1.6vw,16px)",
-      color: "rgba(255,255,255,.4)",
-      maxWidth: 560,
-      margin: "16px auto 0",
-      lineHeight: 1.7
-    }
-  }, "Every entity connects to dozens of others. One search traverses six data sources. That's what no one else has built.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      maxWidth: 900,
-      margin: "0 auto",
-      display: "flex",
-      flexDirection: "column",
-      gap: 14
-    }
-  }, [{
-    nodes: [{
-      label: "Dr. Sarah Chen",
-      color: GREEN
-    }, {
-      label: "NPI Verified",
-      color: GREEN
-    }, {
-      label: "Internal Medicine",
-      color: AMETHYST
-    }, {
-      label: "Board Certified",
-      color: GOLD
-    }, {
-      label: "Treats: Type 2 Diabetes",
-      color: RED
-    }, {
-      label: "Prescribes: Metformin",
-      color: GOLD
-    }, {
-      label: "5 Interactions Flagged",
-      color: RED
-    }, {
-      label: "OIG Clear",
-      color: GREEN
-    }],
-    caption: "One provider → credentials, specialties, drugs, interactions, compliance — verified across 6 sources"
-  }, {
-    nodes: [{
-      label: "Metformin 500mg",
-      color: GOLD
-    }, {
-      label: "RxCUI: 861007",
-      color: AMETHYST
-    }, {
-      label: "NDC: 68462-0102",
-      color: CYAN
-    }, {
-      label: "Class: Biguanide",
-      color: GREEN
-    }, {
-      label: "3 Active Trials",
-      color: AMETHYST
-    }, {
-      label: "Interacts: Warfarin",
-      color: RED
-    }, {
-      label: "1,247 Literature Refs",
-      color: GREEN
-    }],
-    caption: "One drug → formulations, trials, interactions, prescribers, literature — the full picture"
-  }, {
-    nodes: [{
-      label: "E11.9 Type 2 DM",
-      color: AMETHYST
-    }, {
-      label: "ICD-10 Billable",
-      color: GREEN
-    }, {
-      label: "12K+ Providers",
-      color: GREEN
-    }, {
-      label: "First-line: Metformin",
-      color: GOLD
-    }, {
-      label: "847 Active Trials",
-      color: AMETHYST
-    }, {
-      label: "HCPCS: 99214",
-      color: CYAN
-    }, {
-      label: "DRG: 637",
-      color: ORANGE
-    }],
-    caption: "One diagnosis → billing codes, treatments, trials, specialists — everything connected"
-  }].map((row, i) => /*#__PURE__*/React.createElement("div", {
-    key: i
-  }, /*#__PURE__*/React.createElement(RelationshipChain, {
-    nodes: row.nodes,
-    delay: i * 200,
-    visible: relIn
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.25)",
-      marginTop: 4,
-      paddingLeft: 4
-    }
-  }, row.caption))))), /*#__PURE__*/React.createElement(Section, {
-    id: "explore"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: GOLD,
-      letterSpacing: ".15em",
-      textTransform: "uppercase",
-      marginBottom: 14
-    }
-  }, "EXPLORE"), /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(24px,4.5vw,44px)",
-      fontWeight: 400,
-      lineHeight: 1.15
-    }
-  }, "Query the graph. ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: "italic",
-      color: GOLD
-    }
-  }, "Live.")), /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: "clamp(13px,1.6vw,15px)",
-      color: "rgba(255,255,255,.4)",
-      maxWidth: 500,
-      margin: "12px auto 0"
-    }
-  }, "Search across providers, drugs, diagnoses, and NDC codes \u2014 all hitting the live database right now.")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      maxWidth: 700,
-      margin: "0 auto"
-    }
-  }, /*#__PURE__*/React.createElement(SearchPanel, null))), /*#__PURE__*/React.createElement(Section, {
-    id: "sources"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: CYAN,
-      letterSpacing: ".15em",
-      textTransform: "uppercase",
-      marginBottom: 14
-    }
-  }, "SOURCES OF TRUTH"), /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(24px,4.5vw,44px)",
-      fontWeight: 400,
-      lineHeight: 1.15
-    }
-  }, "10 federal sources. ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: "italic",
-      color: CYAN
-    }
-  }, "Zero licensing cost."))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit,minmax(min(48%,200px),1fr))",
-      gap: 8,
-      maxWidth: 800,
-      margin: "0 auto"
-    }
-  }, [{
-    name: "NPPES NPI Registry",
-    cat: "Providers",
-    icon: "🏥",
-    color: GREEN
-  }, {
-    name: "FDA NDC Directory",
-    cat: "Drug Products",
-    icon: "💊",
-    color: GOLD
-  }, {
-    name: "RxNorm (NLM)",
-    cat: "Drug Concepts",
-    icon: "🧬",
-    color: AMETHYST
-  }, {
-    name: "CMS ICD-10-CM",
-    cat: "Diagnoses",
-    icon: "📋",
-    color: AMETHYST
-  }, {
-    name: "CMS ICD-10-PCS",
-    cat: "Procedures",
-    icon: "⚕️",
-    color: ORANGE
-  }, {
-    name: "ClinicalTrials.gov",
-    cat: "Research",
-    icon: "🔬",
-    color: GREEN
-  }, {
-    name: "PubMed/MEDLINE",
-    cat: "Literature",
-    icon: "📄",
-    color: GREEN
-  }, {
-    name: "OIG LEIE",
-    cat: "Compliance",
-    icon: "⚖️",
-    color: RED
-  }, {
-    name: "CMS HCPCS",
-    cat: "Billing",
-    icon: "🏷️",
-    color: CYAN
-  }, {
-    name: "DailyMed (NLM)",
-    cat: "Drug Labels",
-    icon: "📦",
-    color: GOLD
-  }].map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      padding: "16px",
-      borderRadius: 12,
-      background: BG_CARD,
-      border: `1px solid ${s.color}10`,
-      backdropFilter: "blur(20px)",
-      display: "flex",
-      alignItems: "center",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 20
-    }
-  }, s.icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 600,
-      color: s.color
-    }
-  }, s.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.35)"
-    }
-  }, s.cat))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginTop: 24,
-      padding: "14px 24px",
-      background: "rgba(34,211,238,.04)",
-      borderRadius: 10,
-      border: `1px solid ${CYAN}15`,
-      maxWidth: 500,
-      margin: "24px auto 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: CYAN
-    }
-  }, "All public domain. All free at any scale. All updated continuously."))), /*#__PURE__*/React.createElement(Section, {
-    id: "gardens"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      marginBottom: 40
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: GOLD,
-      letterSpacing: ".15em",
-      textTransform: "uppercase",
-      marginBottom: 14
-    }
-  }, "THE KNOWLEDGE GARDENS"), /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(24px,4.5vw,44px)",
-      fontWeight: 400,
-      lineHeight: 1.15
-    }
-  }, "One architecture. ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: "italic",
-      color: GOLD
-    }
-  }, "Infinite verticals."))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,250px),1fr))",
-      gap: 14,
-      maxWidth: 900,
-      margin: "0 auto"
-    }
-  }, [{
-    name: "HKG",
-    full: "Health Knowledge Garden",
-    market: "$12T+ Healthcare",
-    color: GREEN,
-    status: "YOU ARE HERE",
-    url: "#",
-    records: "Providers · Drugs · Trials · Dx"
-  }, {
-    name: "BKG",
-    full: "Builder's Knowledge Garden",
-    market: "$17T Construction",
-    color: ORANGE,
-    status: "LIVE",
-    url: "https://builders.theknowledgegardens.com",
-    records: "Codes · Materials · Methods"
-  }, {
-    name: "OKG",
-    full: "Orchid Knowledge Garden",
-    market: "Botanical Sciences",
-    color: AMETHYST,
-    status: "LIVE",
-    url: "https://orchids.theknowledgegardens.com",
-    records: "Species · Taxonomy · Care"
-  }].map((g, i) => /*#__PURE__*/React.createElement("a", {
-    key: i,
-    href: g.url,
-    style: {
-      padding: "clamp(20px,3vw,28px)",
-      borderRadius: 16,
-      background: BG_CARD,
-      border: `1px solid ${g.color}18`,
-      textDecoration: "none",
-      position: "relative",
-      overflow: "hidden",
-      display: "block",
-      transition: `all .3s ${ease}`
-    },
-    onMouseEnter: e => e.currentTarget.style.borderColor = `${g.color}40`,
-    onMouseLeave: e => e.currentTarget.style.borderColor = `${g.color}18`
-  }, i === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 2,
-      background: `linear-gradient(90deg,transparent,${g.color},transparent)`
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      letterSpacing: ".12em",
-      color: g.color,
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, i === 0 && /*#__PURE__*/React.createElement("span", {
-    className: "live-dot",
-    style: {
-      width: 5,
-      height: 5,
-      borderRadius: "50%",
-      background: g.color
-    }
-  }), g.status), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif',Georgia,serif",
-      fontSize: "clamp(24px,3.5vw,36px)",
-      color: g.color
-    }
-  }, g.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "rgba(255,255,255,.5)",
-      marginTop: 4
-    }
-  }, g.full), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.25)",
-      marginTop: 4,
-      fontFamily: "monospace"
-    }
-  }, g.records), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "rgba(255,255,255,.3)",
-      marginTop: 4
-    }
-  }, g.market))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "48px 24px",
-      borderTop: "1px solid rgba(255,255,255,.04)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "rgba(255,255,255,.12)",
-      letterSpacing: ".12em"
-    }
-  }, "\xA9 2026 XRWORKERS \xB7 THE KNOWLEDGE GARDENS")));
-}
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(HealthKnowledgeGarden));</script>
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('click', handleClick);
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('mouseup', handleMouseUp);
+                canvas.addEventListener('mousemove', handleMouseDrag);
+                canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+                return () => {
+                    cancelAnimationFrame(animationRef.current);
+                    canvas.removeEventListener('mousemove', handleMouseMove);
+                    canvas.removeEventListener('click', handleClick);
+                    canvas.removeEventListener('mousedown', handleMouseDown);
+                    canvas.removeEventListener('mouseup', handleMouseUp);
+                    canvas.removeEventListener('mousemove', handleMouseDrag);
+                    canvas.removeEventListener('wheel', handleWheel);
+                };
+            }, [currentLane, hoveredNode]);
+
+            const loadGraphData = async (lane, graph) => {
+                try {
+                    if (lane === 'clinician') {
+                        // Fetch a provider with M.D. credential
+                        const providers = await fetch(
+                            `${SUPABASE_URL}/providers?credential=ilike.%25M.D.%25&limit=1&select=id,first_name,last_name,credential`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        if (providers.length > 0) {
+                            const provider = providers[0];
+                            const providerId = `provider-${provider.id}`;
+                            graph.addNode(providerId, `${provider.first_name} ${provider.last_name}`, 'provider', provider);
+
+                            // Fetch provider taxonomies
+                            const taxonomies = await fetch(
+                                `${SUPABASE_URL}/provider_taxonomies?provider_id=eq.${provider.id}&limit=3&select=id,taxonomy_code,taxonomy_description,license_state,is_primary`,
+                                { headers }
+                            ).then(r => r.json());
+
+                            for (const tax of taxonomies) {
+                                const taxId = `taxonomy-${tax.id}`;
+                                var taxLabel = tax.taxonomy_description || ('Taxonomy ' + tax.taxonomy_code);
+                                if (tax.license_state) taxLabel += ' (' + tax.license_state + ')';
+                                graph.addNode(taxId, taxLabel, 'taxonomy', tax);
+                                graph.addEdge(providerId, taxId, 'specializes');
+                            }
+
+                            // Add common diagnoses
+                            const diagnosisCodes = ['E119', 'I10', 'J449', 'M545'];
+                            const diagnoses = await Promise.all(
+                                diagnosisCodes.map(code =>
+                                    fetch(`${SUPABASE_URL}/icd10_cm_codes?code=eq.${code}&select=id,code,description`, { headers })
+                                        .then(r => r.json())
+                                        .then(res => res[0])
+                                        .catch(() => null)
+                                )
+                            );
+
+                            for (const dx of diagnoses.filter(d => d)) {
+                                const dxId = `diagnosis-${dx.id}`;
+                                graph.addNode(dxId, `${dx.code}: ${dx.description.substring(0, 30)}`, 'diagnosis', dx);
+                                graph.addEdge(providerId, dxId, 'treats');
+                            }
+
+                            // Add drugs
+                            const drugs = await fetch(
+                                `${SUPABASE_URL}/drugs?name=ilike.%25metformin%25&limit=2&select=id,name,drug_class`,
+                                { headers }
+                            ).then(r => r.json());
+
+                            for (const drug of drugs) {
+                                const drugId = `drug-${drug.id}`;
+                                graph.addNode(drugId, drug.name, 'drug', drug);
+                                graph.addEdge(providerId, drugId, 'prescribes');
+                            }
+
+                            // Add clinical trials
+                            const trials = await fetch(
+                                `${SUPABASE_URL}/clinical_trials?status=ilike.%25active%25&limit=2&select=id,title`,
+                                { headers }
+                            ).then(r => r.json());
+
+                            for (const trial of trials) {
+                                const trialId = `trial-${trial.id}`;
+                                graph.addNode(trialId, trial.title.substring(0, 35), 'trial', trial);
+                                graph.addEdge(providerId, trialId, 'enrolls');
+                            }
+                        }
+                    } else if (lane === 'patient') {
+                        // Center on Type 2 Diabetes diagnosis
+                        graph.addNode('dx-e119', 'Type 2 Diabetes (E11.9)', 'diagnosis', { code: 'E119' });
+
+                        // Related drugs
+                        const drugs = await fetch(
+                            `${SUPABASE_URL}/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25lisinopril%25)&limit=3&select=id,name`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (const drug of drugs) {
+                            const drugId = `drug-${drug.id}`;
+                            graph.addNode(drugId, drug.name, 'drug', drug);
+                            graph.addEdge('dx-e119', drugId, 'treated with');
+                        }
+
+                        // Specialist providers
+                        const providers = await fetch(
+                            `${SUPABASE_URL}/providers?credential=ilike.%25M.D.%25&limit=3&select=id,first_name,last_name`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (const provider of providers) {
+                            const providerId = `provider-${provider.id}`;
+                            graph.addNode(providerId, `Dr. ${provider.last_name}`, 'provider', provider);
+                            graph.addEdge('dx-e119', providerId, 'consult');
+                        }
+
+                        // Clinical trials
+                        const trials = await fetch(
+                            `${SUPABASE_URL}/clinical_trials?limit=2&select=id,title`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (const trial of trials) {
+                            const trialId = `trial-${trial.id}`;
+                            graph.addNode(trialId, trial.title.substring(0, 35), 'trial', trial);
+                            graph.addEdge('dx-e119', trialId, 'research');
+                        }
+                    } else if (lane === 'operations') {
+                        graph.addNode('compliance', 'Compliance Hub', 'code', {});
+
+                        // OIG exclusions
+                        const exclusions = await fetch(
+                            `${SUPABASE_URL}/oig_exclusions?limit=3&select=id,entity_name`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (const excl of exclusions) {
+                            const exclId = `exclusion-${excl.id}`;
+                            graph.addNode(exclId, excl.entity_name, 'code', excl);
+                            graph.addEdge('compliance', exclId, 'excluded');
+                        }
+
+                        // HCPCS codes
+                        const hcpcs = await fetch(
+                            `${SUPABASE_URL}/hcpcs_codes?limit=3&select=id`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (let i = 0; i < hcpcs.length; i++) {
+                            graph.addNode(`hcpcs-${i}`, `HCPCS Code ${i + 1}`, 'code', hcpcs[i]);
+                            graph.addEdge('compliance', `hcpcs-${i}`, 'codes');
+                        }
+
+                        // Providers
+                        const providers = await fetch(
+                            `${SUPABASE_URL}/providers?limit=2&select=id,first_name,last_name`,
+                            { headers }
+                        ).then(r => r.json());
+
+                        for (const provider of providers) {
+                            const providerId = `provider-${provider.id}`;
+                            graph.addNode(providerId, `${provider.first_name} ${provider.last_name}`, 'provider', provider);
+                            graph.addEdge('compliance', providerId, 'monitors');
+                        }
+                    } else if (lane === 'explorer') {
+                        // Multi-hub explorer view
+                        const hubs = ['Providers', 'Drugs', 'Diagnoses', 'Trials', 'Codes'];
+                        for (const hub of hubs) {
+                            graph.addNode(`hub-${hub.toLowerCase()}`, hub, 'code', {});
+                        }
+
+                        // Sample data from each category
+                        const providers = await fetch(
+                            `${SUPABASE_URL}/providers?limit=2&select=id,first_name,last_name`,
+                            { headers }
+                        ).then(r => r.json());
+                        for (const p of providers) {
+                            const id = `provider-${p.id}`;
+                            graph.addNode(id, p.last_name, 'provider', p);
+                            graph.addEdge(`hub-providers`, id, 'includes');
+                        }
+
+                        const drugs = await fetch(
+                            `${SUPABASE_URL}/drugs?limit=2&select=id,name`,
+                            { headers }
+                        ).then(r => r.json());
+                        for (const d of drugs) {
+                            const id = `drug-${d.id}`;
+                            graph.addNode(id, d.name, 'drug', d);
+                            graph.addEdge(`hub-drugs`, id, 'includes');
+                        }
+
+                        const diagnoses = await fetch(
+                            `${SUPABASE_URL}/icd10_cm_codes?limit=2&select=id,code,description`,
+                            { headers }
+                        ).then(r => r.json());
+                        for (const dx of diagnoses) {
+                            const id = `diagnosis-${dx.id}`;
+                            graph.addNode(id, dx.code, 'diagnosis', dx);
+                            graph.addEdge(`hub-diagnoses`, id, 'includes');
+                        }
+
+                        const trials = await fetch(
+                            `${SUPABASE_URL}/clinical_trials?limit=2&select=id,title`,
+                            { headers }
+                        ).then(r => r.json());
+                        for (const t of trials) {
+                            const id = `trial-${t.id}`;
+                            graph.addNode(id, t.title.substring(0, 25), 'trial', t);
+                            graph.addEdge(`hub-trials`, id, 'includes');
+                        }
+
+                        const codes = await fetch(
+                            `${SUPABASE_URL}/hcpcs_codes?limit=2&select=id`,
+                            { headers }
+                        ).then(r => r.json());
+                        for (let i = 0; i < codes.length; i++) {
+                            graph.addNode(`code-${i}`, `Code ${i + 1}`, 'code', codes[i]);
+                            graph.addEdge(`hub-codes`, `code-${i}`, 'includes');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to load graph data:', e);
+                }
+            };
+
+            const expandNode = async (node, graph) => {
+                if (node.type === 'provider' && node.data.id) {
+                    // Fetch and add taxonomies
+                    const taxes = await fetch(
+                        `${SUPABASE_URL}/provider_taxonomies?provider_id=eq.${node.data.id}&limit=2&select=id,taxonomy_description`,
+                        { headers }
+                    ).then(r => r.json()).catch(() => []);
+
+                    for (const tax of taxes) {
+                        const taxId = `taxonomy-${tax.id}`;
+                        graph.addNode(taxId, tax.taxonomy_description, 'taxonomy', tax);
+                        graph.addEdge(node.id, taxId, 'has');
+                    }
+                } else if (node.type === 'drug' && node.data.id) {
+                    // Fetch similar drugs
+                    const similar = await fetch(
+                        `${SUPABASE_URL}/drugs?drug_class=eq.${node.data.drug_class}&limit=2&select=id,name`,
+                        { headers }
+                    ).then(r => r.json()).catch(() => []);
+
+                    for (const drug of similar) {
+                        const drugId = `drug-${drug.id}`;
+                        graph.addNode(drugId, drug.name, 'drug', drug);
+                        graph.addEdge(node.id, drugId, 'similar');
+                    }
+                } else if (node.type === 'diagnosis' && node.data.id) {
+                    // Fetch related diagnoses
+                    const code = node.data.code?.substring(0, 3) || '';
+                    const related = await fetch(
+                        `${SUPABASE_URL}/icd10_cm_codes?code=ilike.${code}%&limit=2&select=id,code,description`,
+                        { headers }
+                    ).then(r => r.json()).catch(() => []);
+
+                    for (const dx of related) {
+                        const dxId = `diagnosis-${dx.id}`;
+                        graph.addNode(dxId, `${dx.code}: ${dx.description.substring(0, 20)}`, 'diagnosis', dx);
+                        graph.addEdge(node.id, dxId, 'related');
+                    }
+                }
+            };
+
+            const handleSearch = async (query) => {
+                setSearchQuery(query);
+                if (query.length < 2) {
+                    setSearchResults([]);
+                    setShowDropdown(false);
+                    return;
+                }
+
+                const results = [];
+                const searchTerm = `ilike.%25${encodeURIComponent(query)}%25`;
+
+                try {
+                    // Search across multiple tables based on lane
+                    if (['clinician', 'explorer'].includes(currentLane)) {
+                        const providers = await fetch(
+                            `${SUPABASE_URL}/providers?or=(first_name.${searchTerm},last_name.${searchTerm})&limit=3&select=id,first_name,last_name,credential`,
+                            { headers }
+                        ).then(r => r.json()).catch(() => []);
+                        for (const p of providers) {
+                            results.push({
+                                id: `provider-${p.id}`,
+                                name: `${p.first_name} ${p.last_name}`,
+                                type: 'provider',
+                                detail: p.credential
+                            });
+                        }
+                    }
+
+                    const drugs = await fetch(
+                        `${SUPABASE_URL}/drugs?name.${searchTerm}&limit=3&select=id,name,drug_class`,
+                        { headers }
+                    ).then(r => r.json()).catch(() => []);
+                    for (const d of drugs) {
+                        results.push({
+                            id: `drug-${d.id}`,
+                            name: d.name,
+                            type: 'drug',
+                            detail: d.drug_class
+                        });
+                    }
+
+                    const diagnoses = await fetch(
+                        `${SUPABASE_URL}/icd10_cm_codes?or=(code.${searchTerm},description.${searchTerm})&limit=3&select=id,code,description`,
+                        { headers }
+                    ).then(r => r.json()).catch(() => []);
+                    for (const dx of diagnoses) {
+                        results.push({
+                            id: `diagnosis-${dx.id}`,
+                            name: `${dx.code}`,
+                            type: 'diagnosis',
+                            detail: dx.description
+                        });
+                    }
+
+                    if (['clinician', 'explorer'].includes(currentLane)) {
+                        const trials = await fetch(
+                            `${SUPABASE_URL}/clinical_trials?title.${searchTerm}&limit=3&select=id,title,status`,
+                            { headers }
+                        ).then(r => r.json()).catch(() => []);
+                        for (const t of trials) {
+                            results.push({
+                                id: `trial-${t.id}`,
+                                name: t.title,
+                                type: 'trial',
+                                detail: t.status
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Search error:', e);
+                }
+
+                setSearchResults(results.slice(0, 8));
+                setShowDropdown(true);
+            };
+
+            return React.createElement('div', { className: 'app-container' },
+                React.createElement('div', { className: 'app-topbar' },
+                    React.createElement('div', { className: 'topbar-left' },
+                        React.createElement('img', {
+                            className: 'topbar-logo',
+                            src: 'assets/logo-transparent.png',
+                            alt: 'HKG'
+                        }),
+                        React.createElement('div', { className: 'topbar-title' }, 'Health Knowledge Garden')
+                    ),
+                    React.createElement('div', { className: `lane-pill ${lane.colorName}` }, `🏷️ ${lane.title}`),
+                    React.createElement('button', {
+                        className: 'switch-lane-btn',
+                        onClick: onSwitchLane
+                    }, 'Switch lane')
+                ),
+                React.createElement('div', { className: 'app-content' },
+                    React.createElement('div', { className: 'search-section' },
+                        React.createElement('div', { className: 'search-wrapper' },
+                            React.createElement('input', {
+                                type: 'text',
+                                className: 'search-input',
+                                placeholder: searchPlaceholders[currentLane],
+                                value: searchQuery,
+                                onChange: (e) => handleSearch(e.target.value),
+                                onFocus: () => searchQuery.length >= 2 && setShowDropdown(true),
+                                onBlur: () => setTimeout(() => setShowDropdown(false), 100)
+                            }),
+                            React.createElement('div', { className: `search-dropdown ${showDropdown ? 'active' : ''}` },
+                                searchResults.map((result, idx) =>
+                                    React.createElement('div', {
+                                        key: idx,
+                                        className: 'search-result',
+                                        onClick: () => {
+                                            setSearchQuery('');
+                                            setShowDropdown(false);
+                                        }
+                                    },
+                                        React.createElement('div', { className: 'search-result-name' },
+                                            result.name,
+                                            React.createElement('span', { className: `result-badge ${result.type}` }, result.type)
+                                        ),
+                                        React.createElement('div', { className: 'search-result-detail' }, result.detail)
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'graph-container' },
+                        React.createElement('canvas', {
+                            ref: canvasRef,
+                            id: 'graph-canvas'
+                        })
+                    ),
+                    tooltip && React.createElement('div', {
+                        className: 'graph-tooltip',
+                        style: {
+                            left: `${tooltip.x + 10}px`,
+                            top: `${tooltip.y + 10}px`
+                        }
+                    },
+                        React.createElement('div', { className: 'tooltip-title' }, tooltip.node.label),
+                        React.createElement('div', { className: 'tooltip-detail' }, `Type: ${tooltip.node.type}`)
+                    ),
+                    React.createElement('div', { className: 'explanation-card' },
+                        React.createElement('div', { className: 'explanation-title' }, 'What you\'re seeing'),
+                        React.createElement('div', { className: 'explanation-text' }, explanations[currentLane])
+                    ),
+                    React.createElement('div', { className: 'stats-footer' },
+                        React.createElement('div', { className: 'stat-item' },
+                            React.createElement('div', { className: 'stat-number provider' }, (stats.counts.providers || 0).toLocaleString()),
+                            React.createElement('div', { className: 'stat-label' }, 'Providers')
+                        ),
+                        React.createElement('div', { className: 'stat-item' },
+                            React.createElement('div', { className: 'stat-number drug' }, (stats.counts.drugs || 0).toLocaleString()),
+                            React.createElement('div', { className: 'stat-label' }, 'Drugs')
+                        ),
+                        React.createElement('div', { className: 'stat-item' },
+                            React.createElement('div', { className: 'stat-number diagnosis' }, (stats.counts.icd10_cm_codes || 0).toLocaleString()),
+                            React.createElement('div', { className: 'stat-label' }, 'Diagnoses')
+                        ),
+                        React.createElement('div', { className: 'stat-item' },
+                            React.createElement('div', { className: 'stat-number trial' }, (stats.counts.clinical_trials || 0).toLocaleString()),
+                            React.createElement('div', { className: 'stat-label' }, 'Trials')
+                        ),
+                        React.createElement('div', { className: 'stat-item' },
+                            React.createElement('div', { className: 'stat-number code' }, (stats.counts.hcpcs_codes || 0).toLocaleString()),
+                            React.createElement('div', { className: 'stat-label' }, 'HCPCS Codes')
+                        )
+                    )
+                )
+            );
+        };
+
+        const App = () => {
+            const [currentLane, setCurrentLane] = React.useState(null);
+            const [stats, setStats] = React.useState({ totalCount: 0, counts: {} });
+            const [isLoading, setIsLoading] = React.useState(true);
+
+            React.useEffect(() => {
+                fetchEntityCounts().then(data => {
+                    setStats(data);
+                    setIsLoading(false);
+                });
+            }, []);
+
+            if (isLoading) {
+                return React.createElement('div', {
+                    style: {
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        background: '#06060B'
+                    }
+                },
+                    React.createElement('div', { className: 'loading' },
+                        React.createElement('div', { className: 'loading-dot' }),
+                        React.createElement('div', { className: 'loading-dot' }),
+                        React.createElement('div', { className: 'loading-dot' })
+                    )
+                );
+            }
+
+            if (!currentLane) {
+                return React.createElement(LanesScreen, {
+                    onSelectLane: setCurrentLane,
+                    stats
+                });
+            }
+
+            return React.createElement(AppScreen, {
+                currentLane,
+                onSwitchLane: () => setCurrentLane(null),
+                stats
+            });
+        };
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
 </body>
 </html>
