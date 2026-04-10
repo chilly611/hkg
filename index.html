@@ -18,7 +18,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#06060B;overflow-x:hidden}</style>
 </head>
 <body>
@@ -789,13 +788,13 @@ function LiveStats() {
   }, e.label)))));
 }
 
-// ═══ 3D KNOWLEDGE GRAPH ═══
+// ═══ KNOWLEDGE GRAPH — Canvas 2D Force-Directed ═══
 function Graph3DSection() {
   const containerRef = useRef(null);
-  const canvasWrapRef = useRef(null);
+  const canvasRef = useRef(null);
   const [visible, setVisible] = useState(false);
   const [graphStats, setGraphStats] = useState(null);
-  const sceneInitRef = useRef(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -806,307 +805,432 @@ function Graph3DSection() {
   }, []);
 
   useEffect(() => {
-    if (!visible || sceneInitRef.current || typeof THREE === "undefined") return;
-    sceneInitRef.current = true;
-    const wrap = canvasWrapRef.current;
-    if (!wrap) return;
+    if (!visible || initRef.current) return;
+    initRef.current = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    const w = wrap.clientWidth;
-    const h = Math.min(window.innerHeight * 0.75, 560);
+    // Graph state
+    var nodes = [], edges = [];
+    var cam = { x: 0, y: 0, zoom: 1 };
+    var hoveredNode = null, dragNode = null;
+    var isDrag = false, panStart = null, lastMouse = { x: 0, y: 0 };
 
-    // Scene setup
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x06060b);
-    scene.fog = new THREE.FogExp2(0x06060b, 0.006);
-    const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
-    camera.position.set(0, 0, 120);
-    camera.lookAt(0, 0, 0);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    wrap.appendChild(renderer.domElement);
-    renderer.domElement.style.borderRadius = "14px";
-    renderer.domElement.style.cursor = "grab";
-
-    // Lights
-    const ambLight = new THREE.AmbientLight(0xffffff, 0.15);
-    scene.add(ambLight);
-    const ptLight1 = new THREE.PointLight(0x34d399, 0.8, 300);
-    ptLight1.position.set(60, 60, 60);
-    scene.add(ptLight1);
-    const ptLight2 = new THREE.PointLight(0xa78bfa, 0.5, 250);
-    ptLight2.position.set(-60, -40, 60);
-    scene.add(ptLight2);
-    const ptLight3 = new THREE.PointLight(0xd4a853, 0.4, 200);
-    ptLight3.position.set(0, 50, -50);
-    scene.add(ptLight3);
-
-    const typeConfigs = {
-      hub_providers: { color: 0x34d399, size: 5.5, emissive: 0.6 },
-      hub_drugs: { color: 0xd4a853, size: 5.5, emissive: 0.6 },
-      hub_diagnoses: { color: 0xa78bfa, size: 5.5, emissive: 0.6 },
-      hub_ndc: { color: 0x22d3ee, size: 4.5, emissive: 0.6 },
-      hub_trials: { color: 0xf97316, size: 4.5, emissive: 0.6 },
-      hub_interactions: { color: 0xef4444, size: 4, emissive: 0.6 },
-      hub_literature: { color: 0x34d399, size: 4, emissive: 0.6 },
-      provider: { color: 0x34d399, size: 1.8, emissive: 0.25 },
-      drug: { color: 0xd4a853, size: 2, emissive: 0.25 },
-      diagnosis: { color: 0xa78bfa, size: 1.8, emissive: 0.25 },
-      ndc: { color: 0x22d3ee, size: 1.5, emissive: 0.25 },
-      trial: { color: 0xf97316, size: 1.6, emissive: 0.25 }
+    // Type config: color, radius, font
+    var TC = {
+      hub:       { fill: "#fff",     stroke: "#fff",     r: 28, font: "bold 11px 'DM Sans',sans-serif", textColor: "#06060B" },
+      provider:  { fill: "#34D399",  stroke: "#34D39950", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
+      drug:      { fill: "#D4A853",  stroke: "#D4A85350", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
+      diagnosis: { fill: "#A78BFA",  stroke: "#A78BFA50", r: 18, font: "11px 'DM Sans',sans-serif",      textColor: "#fff" },
+      ndc:       { fill: "#22D3EE",  stroke: "#22D3EE50", r: 16, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" },
+      trial:     { fill: "#F97316",  stroke: "#F9731650", r: 16, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" },
+      source:    { fill: "#EF4444",  stroke: "#EF444450", r: 14, font: "10px 'DM Sans',sans-serif",      textColor: "#fff" }
     };
 
-    const allNodes = [];
-    const allEdges = [];
-
-    function makeNode(type, label, basePos) {
-      const cfg = typeConfigs[type] || typeConfigs.provider;
-      const geo = new THREE.IcosahedronGeometry(cfg.size, 2);
-      const mat = new THREE.MeshPhongMaterial({
-        color: cfg.color, emissive: cfg.color, emissiveIntensity: cfg.emissive,
-        transparent: true, opacity: 0.9, shininess: 80
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      // Start clustered at center for growth animation
-      mesh.position.set(0, 0, 0);
-      mesh.userData = { label: label, type: type, targetPos: basePos.clone() };
-      scene.add(mesh);
-
-      // Glow sprite
-      const spriteMat = new THREE.SpriteMaterial({
-        color: cfg.color, transparent: true, opacity: 0.12,
-        blending: THREE.AdditiveBlending
-      });
-      const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(cfg.size * 4, cfg.size * 4, 1);
-      mesh.add(sprite);
-
-      allNodes.push({ mesh: mesh, vx: 0, vy: 0, vz: 0 });
-      return allNodes.length - 1;
+    function addNode(type, label, detail, x, y) {
+      var id = nodes.length;
+      nodes.push({ id: id, type: type, label: label, detail: detail || "", x: x || 0, y: y || 0, vx: 0, vy: 0, pinned: type === "hub" });
+      return id;
+    }
+    function addEdge(a, b, label) {
+      edges.push({ source: a, target: b, label: label || "" });
     }
 
-    function makeEdge(i, j, color, opacity) {
-      allEdges.push({ i: i, j: j, color: color || 0x34d399, opacity: opacity || 0.08, line: null });
+    // Size canvas
+    function resize() {
+      var w = canvas.parentElement.clientWidth;
+      var h = Math.min(window.innerHeight * 0.78, 620);
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      canvas.style.width = w + "px"; canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
+    resize();
+    window.addEventListener("resize", resize);
 
-    // Hub nodes
-    const hubPositions = [
-      new THREE.Vector3(0, 35, 0),
-      new THREE.Vector3(30, -10, 20),
-      new THREE.Vector3(-30, -10, -20),
-      new THREE.Vector3(-20, 20, 30),
-      new THREE.Vector3(25, 15, -25),
-      new THREE.Vector3(-10, -30, 10),
-      new THREE.Vector3(15, -25, -15)
-    ];
-    const hubTypes = ["hub_providers", "hub_drugs", "hub_diagnoses", "hub_ndc", "hub_trials", "hub_interactions", "hub_literature"];
-    const hubLabels = ["Providers", "Drugs", "Diagnoses", "NDC Codes", "Clinical Trials", "Drug Interactions", "Literature"];
-    const hubIndices = [];
-    hubTypes.forEach((t, i) => {
-      hubIndices.push(makeNode(t, hubLabels[i], hubPositions[i]));
-    });
-
-    // Connect hubs to each other (neural backbone)
-    for (let i = 0; i < hubIndices.length; i++) {
-      for (let j = i + 1; j < hubIndices.length; j++) {
-        if (Math.random() > 0.4) makeEdge(hubIndices[i], hubIndices[j], 0xffffff, 0.03);
-      }
-    }
-
-    // Fetch live data and create entity nodes
-    async function loadData() {
+    // Build graph from live data
+    async function loadGraph() {
       try {
-        const [providers, drugs, diagnoses, ndcCodes, trials] = await Promise.all([
-          query("providers", "limit=20&select=id,first_name,last_name,npi"),
-          query("drugs", "limit=15&select=id,name,rxcui"),
-          query("icd10_cm_codes", "limit=15&select=id,code,description"),
-          query("ndc_codes", "limit=10&select=id,proprietary_name"),
-          query("clinical_trials", "limit=5&select=id,title")
+        var _r = await Promise.all([
+          query("providers", "limit=12&select=id,first_name,last_name,npi,credential&credential=not.is.null&order=last_name.asc"),
+          query("drugs", "limit=8&select=id,name,rxcui&name=ilike.*metformin*"),
+          query("drugs", "limit=4&select=id,name,rxcui&name=ilike.*lisinopril*"),
+          query("drugs", "limit=3&select=id,name,rxcui&name=ilike.*atorvastatin*"),
+          query("icd10_cm_codes", "limit=6&select=id,code,description&is_billable=eq.true&code=in.(E119,I10,J449,M545,F329,G309)"),
+          query("ndc_codes", "limit=6&select=id,ndc_code,proprietary_name,manufacturer&order=proprietary_name.asc"),
+          query("clinical_trials", "limit=4&select=id,title,phase,sponsor&title=neq.Test Trial")
         ]);
+        var providers = Array.isArray(_r[0]) ? _r[0] : [];
+        var metformin = Array.isArray(_r[1]) ? _r[1].slice(0, 4) : [];
+        var lisinopril = Array.isArray(_r[2]) ? _r[2].slice(0, 3) : [];
+        var atorvastatin = Array.isArray(_r[3]) ? _r[3].slice(0, 2) : [];
+        var allDrugs = metformin.concat(lisinopril).concat(atorvastatin);
+        var diagnoses = Array.isArray(_r[4]) ? _r[4] : [];
+        var ndcCodes = Array.isArray(_r[5]) ? _r[5] : [];
+        var trials = Array.isArray(_r[6]) ? _r[6] : [];
 
-        const counts = { providers: 0, drugs: 0, diagnoses: 0, ndc: 0, trials: 0 };
-
-        function scatter(hubIdx, radius) {
-          const hp = hubPositions[hubIdx];
-          const theta = Math.random() * Math.PI * 2;
-          const phi = Math.acos(2 * Math.random() - 1);
-          const r = radius * (0.5 + Math.random() * 0.5);
-          return new THREE.Vector3(
-            hp.x + r * Math.sin(phi) * Math.cos(theta),
-            hp.y + r * Math.sin(phi) * Math.sin(theta),
-            hp.z + r * Math.cos(phi)
-          );
-        }
-
-        if (Array.isArray(providers)) {
-          counts.providers = providers.length;
-          providers.forEach(p => {
-            const idx = makeNode("provider", (p.first_name || "") + " " + (p.last_name || ""), scatter(0, 22));
-            makeEdge(hubIndices[0], idx, 0x34d399, 0.06);
-            // Some providers connect to diagnoses
-            if (Math.random() > 0.6 && allNodes.length > 20) {
-              const target = hubIndices[2] + 1 + Math.floor(Math.random() * Math.min(5, counts.diagnoses || 1));
-              if (target < allNodes.length) makeEdge(idx, target, 0xa78bfa, 0.04);
-            }
-          });
-        }
-        if (Array.isArray(drugs)) {
-          counts.drugs = drugs.length;
-          drugs.forEach(d => {
-            const idx = makeNode("drug", d.name || "Drug", scatter(1, 20));
-            makeEdge(hubIndices[1], idx, 0xd4a853, 0.06);
-            // Some drugs connect to diagnoses
-            if (Math.random() > 0.5) makeEdge(idx, hubIndices[2], 0xef4444, 0.03);
-          });
-        }
-        if (Array.isArray(diagnoses)) {
-          counts.diagnoses = diagnoses.length;
-          diagnoses.forEach(dx => {
-            const idx = makeNode("diagnosis", dx.code + ": " + (dx.description || "").substring(0, 25), scatter(2, 22));
-            makeEdge(hubIndices[2], idx, 0xa78bfa, 0.06);
-          });
-        }
-        if (Array.isArray(ndcCodes)) {
-          counts.ndc = ndcCodes.length;
-          ndcCodes.forEach(n => {
-            const idx = makeNode("ndc", (n.proprietary_name || "NDC").substring(0, 20), scatter(3, 18));
-            makeEdge(hubIndices[3], idx, 0x22d3ee, 0.06);
-            // NDC connects to drugs hub
-            if (Math.random() > 0.5) makeEdge(idx, hubIndices[1], 0xd4a853, 0.03);
-          });
-        }
-        if (Array.isArray(trials)) {
-          counts.trials = trials.length;
-          trials.forEach(t => {
-            const idx = makeNode("trial", (t.title || "Trial").substring(0, 25), scatter(4, 18));
-            makeEdge(hubIndices[4], idx, 0xf97316, 0.06);
-          });
-        }
-
-        // Create edge lines
-        allEdges.forEach(e => {
-          const pts = [allNodes[e.i].mesh.position.clone(), allNodes[e.j].mesh.position.clone()];
-          const geo = new THREE.BufferGeometry().setFromPoints(pts);
-          const mat = new THREE.LineBasicMaterial({ color: e.color, transparent: true, opacity: 0, linewidth: 1 });
-          const line = new THREE.Line(geo, mat);
-          scene.add(line);
-          e.line = line;
+        // Layout: arrange hubs in a ring
+        var cx = 0, cy = 0, hubR = 320;
+        var hubs = [
+          { label: "PROVIDERS", detail: providers.length + " loaded", angle: -Math.PI/2 },
+          { label: "DRUGS", detail: allDrugs.length + " loaded", angle: -Math.PI/2 + Math.PI*2/5 },
+          { label: "DIAGNOSES", detail: diagnoses.length + " loaded", angle: -Math.PI/2 + Math.PI*4/5 },
+          { label: "NDC CODES", detail: ndcCodes.length + " loaded", angle: -Math.PI/2 + Math.PI*6/5 },
+          { label: "CLINICAL TRIALS", detail: trials.length + " loaded", angle: -Math.PI/2 + Math.PI*8/5 }
+        ];
+        var hubIds = [];
+        hubs.forEach(function(h) {
+          var hx = cx + hubR * Math.cos(h.angle);
+          var hy = cy + hubR * Math.sin(h.angle);
+          hubIds.push(addNode("hub", h.label, h.detail, hx, hy));
         });
 
-        setGraphStats(counts);
+        // Connect hubs in a ring
+        for (var i = 0; i < hubIds.length; i++) {
+          addEdge(hubIds[i], hubIds[(i + 1) % hubIds.length], "");
+        }
+        // Cross-connections between hubs
+        addEdge(hubIds[0], hubIds[2], "treats"); // providers ↔ diagnoses
+        addEdge(hubIds[1], hubIds[2], "treats");  // drugs ↔ diagnoses
+        addEdge(hubIds[1], hubIds[3], "packaged as"); // drugs ↔ NDC
 
-        // Animate nodes from center to target positions
-        let t = 0;
-        const growInterval = setInterval(() => {
-          t += 0.02;
-          if (t >= 1) { t = 1; clearInterval(growInterval); }
-          const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-          allNodes.forEach(n => {
-            const tp = n.mesh.userData.targetPos;
-            if (tp) {
-              n.mesh.position.lerpVectors(new THREE.Vector3(0,0,0), tp, eased);
-            }
+        // Scatter entities around their hub
+        function scatter(hubIdx, radius, items, type, labelFn, detailFn) {
+          var hNode = nodes[hubIds[hubIdx]];
+          var ids = [];
+          items.forEach(function(item, j) {
+            var angle = (Math.PI * 2 * j / items.length) + (hubIdx * 0.7);
+            var r = radius * (0.7 + Math.random() * 0.6);
+            var nx = hNode.x + r * Math.cos(angle);
+            var ny = hNode.y + r * Math.sin(angle);
+            var nid = addNode(type, labelFn(item), detailFn(item), nx, ny);
+            addEdge(hubIds[hubIdx], nid, "");
+            ids.push(nid);
           });
-          // Fade in edges after 40%
-          if (t > 0.4) {
-            const edgeProgress = (t - 0.4) / 0.6;
-            allEdges.forEach(e => {
-              if (e.line) {
-                e.line.material.opacity = e.opacity * edgeProgress;
-                // Update edge positions
-                const posArr = e.line.geometry.attributes.position.array;
-                const ni = allNodes[e.i].mesh.position;
-                const nj = allNodes[e.j].mesh.position;
-                posArr[0] = ni.x; posArr[1] = ni.y; posArr[2] = ni.z;
-                posArr[3] = nj.x; posArr[4] = nj.y; posArr[5] = nj.z;
-                e.line.geometry.attributes.position.needsUpdate = true;
-              }
-            });
-          }
-        }, 16);
+          return ids;
+        }
 
+        var provIds = scatter(0, 160, providers, "provider",
+          function(p) { return (p.first_name || "") + " " + (p.last_name || ""); },
+          function(p) { return (p.credential || "") + " \u00B7 NPI: " + (p.npi || ""); }
+        );
+        var drugIds = scatter(1, 150, allDrugs, "drug",
+          function(d) { var n = d.name || ""; return n.length > 30 ? n.substring(0, 28) + "\u2026" : n; },
+          function(d) { return "RxCUI: " + (d.rxcui || ""); }
+        );
+        var dxIds = scatter(2, 140, diagnoses, "diagnosis",
+          function(d) { return d.code + ": " + (d.description || "").substring(0, 28); },
+          function(d) { return d.description || ""; }
+        );
+        var ndcIds = scatter(3, 130, ndcCodes, "ndc",
+          function(n) { var nm = n.proprietary_name || ""; return nm.length > 25 ? nm.substring(0, 23) + "\u2026" : nm; },
+          function(n) { return (n.manufacturer || "") + " \u00B7 " + (n.ndc_code || ""); }
+        );
+        var trialIds = scatter(4, 140, trials, "trial",
+          function(t) { var tt = t.title || ""; return tt.length > 30 ? tt.substring(0, 28) + "\u2026" : tt; },
+          function(t) { return (t.phase || "") + " \u00B7 " + (t.sponsor || "").substring(0, 30); }
+        );
+
+        // Meaningful cross-links: providers → diagnoses (some)
+        provIds.forEach(function(pid, i) {
+          if (i < dxIds.length) addEdge(pid, dxIds[i], "diagnoses");
+        });
+        // Drugs → diagnoses
+        drugIds.forEach(function(did, i) {
+          if (i < dxIds.length) addEdge(did, dxIds[i % dxIds.length], "treats");
+        });
+        // NDC → drugs
+        ndcIds.forEach(function(nid, i) {
+          if (i < drugIds.length) addEdge(nid, drugIds[i % drugIds.length], "formulation of");
+        });
+        // Trials → diagnoses
+        trialIds.forEach(function(tid, i) {
+          if (i < dxIds.length) addEdge(tid, dxIds[i % dxIds.length], "studies");
+        });
+
+        setGraphStats({ providers: providers.length, drugs: allDrugs.length, diagnoses: diagnoses.length, ndc: ndcCodes.length, trials: trials.length });
+
+        // Center camera
+        cam.x = 0; cam.y = 0; cam.zoom = Math.min((canvas.width / dpr) / 1000, (canvas.height / dpr) / 800, 0.7);
       } catch (err) {
-        console.error("Graph data load error:", err);
+        console.error("Graph load error:", err);
         setGraphStats({ providers: 0, drugs: 0, diagnoses: 0, ndc: 0, trials: 0 });
       }
     }
-    loadData();
 
-    // Orbit controls (manual implementation)
-    let isDragging = false, prevX = 0, prevY = 0, rotX = 0.15, rotY = 0;
-    let camDist = 120, autoRotate = true;
-    const dom = renderer.domElement;
-    const onDown = (x, y) => { isDragging = true; prevX = x; prevY = y; autoRotate = false; dom.style.cursor = "grabbing"; };
-    const onMove = (x, y) => {
-      if (!isDragging) return;
-      rotY += (x - prevX) * 0.005;
-      rotX += (y - prevY) * 0.005;
-      rotX = Math.max(-1.2, Math.min(1.2, rotX));
-      prevX = x; prevY = y;
-    };
-    const onUp = () => { isDragging = false; dom.style.cursor = "grab"; setTimeout(() => { autoRotate = true; }, 4000); };
-    const onWheel = (e) => { e.preventDefault(); camDist = Math.max(40, Math.min(250, camDist + e.deltaY * 0.08)); };
-    dom.addEventListener("mousedown", e => onDown(e.clientX, e.clientY));
-    dom.addEventListener("mousemove", e => onMove(e.clientX, e.clientY));
-    dom.addEventListener("mouseup", onUp);
-    dom.addEventListener("mouseleave", onUp);
-    dom.addEventListener("touchstart", e => { if (e.touches.length === 1) onDown(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-    dom.addEventListener("touchmove", e => { if (e.touches.length === 1) { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
-    dom.addEventListener("touchend", onUp);
-    dom.addEventListener("wheel", onWheel, { passive: false });
-
-    // Resize
-    const handleResize = () => {
-      const nw = wrap.clientWidth;
-      const nh = Math.min(window.innerHeight * 0.75, 560);
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-      renderer.setSize(nw, nh);
-    };
-    window.addEventListener("resize", handleResize);
-
-    // Animation loop
-    let animId;
-    const animate = () => {
-      animId = requestAnimationFrame(animate);
-      if (autoRotate) rotY += 0.0008;
-      camera.position.x = camDist * Math.sin(rotY) * Math.cos(rotX);
-      camera.position.y = camDist * Math.sin(rotX);
-      camera.position.z = camDist * Math.cos(rotY) * Math.cos(rotX);
-      camera.lookAt(0, 0, 0);
-
-      // Gentle node breathing
-      allNodes.forEach((n, i) => {
-        const s = 1 + Math.sin(Date.now() * 0.001 + i * 0.5) * 0.04;
-        n.mesh.scale.set(s, s, s);
+    // Force simulation
+    function simulate() {
+      var alpha = 0.15, repulsion = 8000, linkDist = 120, damping = 0.85;
+      nodes.forEach(function(n) {
+        if (n.pinned) return;
+        // Repulsion from all other nodes
+        nodes.forEach(function(m) {
+          if (n.id === m.id) return;
+          var dx = n.x - m.x, dy = n.y - m.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          var force = repulsion / (dist * dist);
+          force = Math.min(force, 5);
+          n.vx += (dx / dist) * force * alpha;
+          n.vy += (dy / dist) * force * alpha;
+        });
       });
+      // Attraction along edges
+      edges.forEach(function(e) {
+        var s = nodes[e.source], t = nodes[e.target];
+        var dx = t.x - s.x, dy = t.y - s.y;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        var force = (dist - linkDist) * 0.005 * alpha;
+        var fx = (dx / dist) * force, fy = (dy / dist) * force;
+        if (!s.pinned) { s.vx += fx; s.vy += fy; }
+        if (!t.pinned) { t.vx -= fx; t.vy -= fy; }
+      });
+      // Apply velocities
+      nodes.forEach(function(n) {
+        if (n.pinned) return;
+        n.vx *= damping; n.vy *= damping;
+        n.x += n.vx; n.y += n.vy;
+      });
+    }
 
-      // Update edge positions to follow nodes
-      allEdges.forEach(e => {
-        if (e.line) {
-          const posArr = e.line.geometry.attributes.position.array;
-          const ni = allNodes[e.i].mesh.position;
-          const nj = allNodes[e.j].mesh.position;
-          posArr[0] = ni.x; posArr[1] = ni.y; posArr[2] = ni.z;
-          posArr[3] = nj.x; posArr[4] = nj.y; posArr[5] = nj.z;
-          e.line.geometry.attributes.position.needsUpdate = true;
+    // Drawing
+    function toScreen(wx, wy) {
+      var cw = canvas.width / dpr, ch = canvas.height / dpr;
+      return { x: (wx - cam.x) * cam.zoom + cw / 2, y: (wy - cam.y) * cam.zoom + ch / 2 };
+    }
+    function toWorld(sx, sy) {
+      var cw = canvas.width / dpr, ch = canvas.height / dpr;
+      return { x: (sx - cw / 2) / cam.zoom + cam.x, y: (sy - ch / 2) / cam.zoom + cam.y };
+    }
+
+    function draw() {
+      var cw = canvas.width / dpr, ch = canvas.height / dpr;
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.fillStyle = "#06060B";
+      ctx.fillRect(0, 0, cw, ch);
+
+      // Draw edges
+      edges.forEach(function(e) {
+        var s = nodes[e.source], t = nodes[e.target];
+        var p1 = toScreen(s.x, s.y), p2 = toScreen(t.x, t.y);
+        var isHot = hoveredNode !== null && (e.source === hoveredNode || e.target === hoveredNode);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = isHot ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.06)";
+        ctx.lineWidth = isHot ? 1.5 : 0.5;
+        ctx.stroke();
+        // Edge label at midpoint if hovered and has label
+        if (isHot && e.label) {
+          var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+          ctx.font = "9px 'DM Sans',sans-serif";
+          ctx.fillStyle = "rgba(167,139,250,0.6)";
+          ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+          ctx.fillText(e.label, mx, my - 3);
         }
       });
 
-      renderer.render(scene, camera);
-    };
-    animate();
+      // Draw nodes
+      nodes.forEach(function(n) {
+        var tc = TC[n.type] || TC.provider;
+        var p = toScreen(n.x, n.y);
+        var r = tc.r * cam.zoom;
+        var isHovered = hoveredNode === n.id;
+        var isConnected = false;
+        if (hoveredNode !== null && hoveredNode !== n.id) {
+          edges.forEach(function(e) {
+            if ((e.source === hoveredNode && e.target === n.id) || (e.target === hoveredNode && e.source === n.id)) isConnected = true;
+          });
+        }
+        var dimmed = hoveredNode !== null && !isHovered && !isConnected;
 
-    return () => {
+        // Glow for hubs and hovered
+        if ((n.type === "hub" || isHovered) && !dimmed) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.6, 0, Math.PI * 2);
+          var glow = ctx.createRadialGradient(p.x, p.y, r * 0.5, p.x, p.y, r * 1.6);
+          glow.addColorStop(0, (tc.fill === "#fff" ? "rgba(167,139,250,0.12)" : tc.fill.replace(")", ",0.12)").replace("rgb", "rgba")));
+          glow.addColorStop(1, "transparent");
+          ctx.fillStyle = n.type === "hub" ? "rgba(167,139,250,0.08)" : tc.stroke;
+          ctx.fill();
+        }
+
+        // Pill-shaped node background
+        ctx.font = tc.font;
+        var textW = ctx.measureText(n.label).width;
+        var pillW = Math.max(textW + 16, r * 2);
+        var pillH = n.type === "hub" ? 26 : 20;
+        var px = p.x - pillW / 2, py = p.y - pillH / 2;
+        var pillR = pillH / 2;
+
+        ctx.globalAlpha = dimmed ? 0.15 : 1;
+
+        // Pill shape
+        ctx.beginPath();
+        ctx.moveTo(px + pillR, py);
+        ctx.lineTo(px + pillW - pillR, py);
+        ctx.arc(px + pillW - pillR, py + pillR, pillR, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(px + pillR, py + pillH);
+        ctx.arc(px + pillR, py + pillR, pillR, Math.PI / 2, -Math.PI / 2);
+        ctx.closePath();
+
+        // Fill
+        if (n.type === "hub") {
+          ctx.fillStyle = isHovered ? "#A78BFA" : "rgba(255,255,255,0.08)";
+          ctx.strokeStyle = isHovered ? "#A78BFA" : "rgba(255,255,255,0.2)";
+        } else {
+          ctx.fillStyle = isHovered ? tc.fill : tc.fill + "18";
+          ctx.strokeStyle = isHovered ? tc.fill : tc.fill + "40";
+        }
+        ctx.fill();
+        ctx.lineWidth = isHovered ? 1.5 : 0.8;
+        ctx.stroke();
+
+        // Text
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = isHovered ? (n.type === "hub" ? "#06060B" : "#fff") : (n.type === "hub" ? "rgba(255,255,255,0.85)" : tc.fill);
+        ctx.fillText(n.label, p.x, p.y + 0.5);
+
+        ctx.globalAlpha = 1;
+      });
+
+      // Tooltip for hovered node
+      if (hoveredNode !== null) {
+        var hn = nodes[hoveredNode];
+        if (hn && hn.detail) {
+          var hp = toScreen(hn.x, hn.y);
+          var tc2 = TC[hn.type] || TC.provider;
+          ctx.font = "10px 'DM Sans',sans-serif";
+          var tw = ctx.measureText(hn.detail).width + 14;
+          var tx = hp.x - tw / 2, ty = hp.y - 28;
+          ctx.fillStyle = "rgba(13,13,20,0.92)";
+          ctx.strokeStyle = tc2.fill + "40";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(tx, ty - 10, tw, 20, 6);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(hn.detail, hp.x, ty);
+        }
+      }
+
+      // Instructions watermark
+      ctx.font = "11px 'DM Sans',sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillText("Drag to pan \u00B7 Scroll to zoom \u00B7 Hover to explore connections", cw / 2, ch - 10);
+    }
+
+    // Mouse/touch interaction
+    function getCanvasPos(e) {
+      var rect = canvas.getBoundingClientRect();
+      var x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
+      var y = (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top;
+      return { x: x, y: y };
+    }
+    function findNode(sx, sy) {
+      var w = toWorld(sx, sy);
+      var best = null, bestD = Infinity;
+      nodes.forEach(function(n) {
+        var dx = n.x - w.x, dy = n.y - w.y;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        var tc = TC[n.type] || TC.provider;
+        var hitR = (tc.r + 10) / cam.zoom;
+        if (d < hitR && d < bestD) { best = n.id; bestD = d; }
+      });
+      return best;
+    }
+
+    canvas.addEventListener("mousedown", function(e) {
+      var pos = getCanvasPos(e);
+      var hit = findNode(pos.x, pos.y);
+      if (hit !== null && !nodes[hit].pinned) {
+        dragNode = hit; isDrag = true;
+      } else {
+        panStart = { x: pos.x, y: pos.y, cx: cam.x, cy: cam.y }; isDrag = true;
+      }
+      lastMouse = pos;
+      canvas.style.cursor = "grabbing";
+    });
+    canvas.addEventListener("mousemove", function(e) {
+      var pos = getCanvasPos(e);
+      if (dragNode !== null) {
+        var w = toWorld(pos.x, pos.y);
+        nodes[dragNode].x = w.x; nodes[dragNode].y = w.y;
+        nodes[dragNode].vx = 0; nodes[dragNode].vy = 0;
+      } else if (panStart) {
+        cam.x = panStart.cx - (pos.x - panStart.x) / cam.zoom;
+        cam.y = panStart.cy - (pos.y - panStart.y) / cam.zoom;
+      } else {
+        var hit = findNode(pos.x, pos.y);
+        hoveredNode = hit;
+        canvas.style.cursor = hit !== null ? "pointer" : "grab";
+      }
+      lastMouse = pos;
+    });
+    canvas.addEventListener("mouseup", function() { dragNode = null; panStart = null; isDrag = false; canvas.style.cursor = "grab"; });
+    canvas.addEventListener("mouseleave", function() { dragNode = null; panStart = null; isDrag = false; hoveredNode = null; });
+    canvas.addEventListener("wheel", function(e) {
+      e.preventDefault();
+      var pos = getCanvasPos(e);
+      var wBefore = toWorld(pos.x, pos.y);
+      var factor = e.deltaY > 0 ? 0.92 : 1.08;
+      cam.zoom = Math.max(0.15, Math.min(3, cam.zoom * factor));
+      var wAfter = toWorld(pos.x, pos.y);
+      cam.x -= (wAfter.x - wBefore.x);
+      cam.y -= (wAfter.y - wBefore.y);
+    }, { passive: false });
+    // Touch
+    var touchStart = null;
+    canvas.addEventListener("touchstart", function(e) {
+      if (e.touches.length === 1) {
+        var pos = getCanvasPos(e);
+        var hit = findNode(pos.x, pos.y);
+        if (hit !== null && !nodes[hit].pinned) { dragNode = hit; }
+        else { panStart = { x: pos.x, y: pos.y, cx: cam.x, cy: cam.y }; }
+        touchStart = pos;
+      }
+    }, { passive: true });
+    canvas.addEventListener("touchmove", function(e) {
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        var pos = getCanvasPos(e);
+        if (dragNode !== null) {
+          var w = toWorld(pos.x, pos.y);
+          nodes[dragNode].x = w.x; nodes[dragNode].y = w.y;
+        } else if (panStart) {
+          cam.x = panStart.cx - (pos.x - panStart.x) / cam.zoom;
+          cam.y = panStart.cy - (pos.y - panStart.y) / cam.zoom;
+        }
+      }
+    }, { passive: false });
+    canvas.addEventListener("touchend", function() { dragNode = null; panStart = null; touchStart = null; });
+
+    // Animation loop: simulate + draw
+    var simSteps = 0;
+    loadGraph().then(function() {
+      // Run initial simulation to settle
+      for (var i = 0; i < 120; i++) simulate();
+    });
+
+    var animId;
+    function loop() {
+      animId = requestAnimationFrame(loop);
+      if (simSteps < 400) { simulate(); simSteps++; }
+      else if (dragNode !== null) { simulate(); }
+      draw();
+    }
+    loop();
+
+    return function() {
       cancelAnimationFrame(animId);
-      window.removeEventListener("resize", handleResize);
-      if (wrap.contains(renderer.domElement)) wrap.removeChild(renderer.domElement);
-      renderer.dispose();
+      window.removeEventListener("resize", resize);
     };
   }, [visible]);
 
-  const totalNodes = graphStats ? Object.values(graphStats).reduce((s, v) => s + v, 0) + 7 : 0;
-  const typeColors = { Providers: GREEN, Drugs: GOLD, Diagnoses: AMETHYST, "NDC Codes": CYAN, Trials: ORANGE };
+  var totalNodes = graphStats ? Object.values(graphStats).reduce(function(s, v) { return s + v; }, 0) : 0;
+  var typeColors = [
+    ["Providers", GREEN], ["Drugs", GOLD], ["Diagnoses", AMETHYST], ["NDC", CYAN], ["Trials", ORANGE]
+  ];
 
   return /*#__PURE__*/React.createElement(Section, { id: "graph3d" },
     /*#__PURE__*/React.createElement("div", { ref: containerRef, style: { width: "100%" } },
@@ -1116,36 +1240,22 @@ function Graph3DSection() {
           "See every connection. ", /*#__PURE__*/React.createElement("span", { style: { fontStyle: "italic", color: AMETHYST } }, "Explore every relationship.")
         ),
         /*#__PURE__*/React.createElement("p", { style: { fontSize: "clamp(13px,1.6vw,16px)", color: "rgba(255,255,255,.4)", maxWidth: 560, margin: "12px auto 0", lineHeight: 1.7 } },
-          "725K+ entities woven into a living knowledge graph. Real data from 10 federal sources, connected like neural pathways."
+          "Real providers, drugs, diagnoses, and clinical trials from 10 federal sources. Hover any node to see its connections."
         )
       ),
       /*#__PURE__*/React.createElement("div", {
-        ref: canvasWrapRef,
-        style: {
-          width: "100%", minHeight: visible ? 0 : 400, borderRadius: 14, overflow: "hidden",
-          border: "1px solid rgba(255,255,255,.08)", background: "#06060b",
-          position: "relative"
-        }
+        style: { width: "100%", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,.08)", background: "#06060b" }
       },
-        !visible && /*#__PURE__*/React.createElement("div", {
-          style: { height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,.2)", fontSize: 14 }
-        }, "Scroll to activate graph..."),
-        visible && !graphStats && /*#__PURE__*/React.createElement("div", {
-          style: { height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: AMETHYST, fontSize: 14 }
-        }, "\u23F3 Loading knowledge graph...")
+        /*#__PURE__*/React.createElement("canvas", { ref: canvasRef, style: { display: "block", width: "100%", cursor: "grab" } })
       ),
-      graphStats && /*#__PURE__*/React.createElement("div", { style: { marginTop: 16, textAlign: "center" } },
-        /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "rgba(255,255,255,.25)", marginBottom: 10 } },
-          "Drag to rotate \u00B7 Scroll to zoom \u00B7 ", totalNodes, " entities \u00B7 live connections"
-        ),
-        /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
-          Object.entries(typeColors).map(function(pair) {
-            return /*#__PURE__*/React.createElement("span", { key: pair[0], style: {
-              padding: "4px 12px", borderRadius: 100, fontSize: 11,
-              background: pair[1] + "12", border: "1px solid " + pair[1] + "28", color: pair[1]
-            } }, pair[0]);
-          })
-        )
+      graphStats && /*#__PURE__*/React.createElement("div", { style: { marginTop: 16, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", alignItems: "center" } },
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: "rgba(255,255,255,.3)" } }, totalNodes + " live entities"),
+        typeColors.map(function(pair) {
+          return /*#__PURE__*/React.createElement("span", { key: pair[0], style: {
+            padding: "4px 12px", borderRadius: 100, fontSize: 11,
+            background: pair[1] + "12", border: "1px solid " + pair[1] + "28", color: pair[1]
+          } }, pair[0]);
+        })
       )
     )
   );
