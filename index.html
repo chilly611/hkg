@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Knowledge Garden — The Knowledge Graph for Healthcare</title>
+<meta name="description" content="Every provider. Every drug. Every diagnosis. Every clinical trial. Connected, verified, and queryable in real time.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#06060B;overflow-x:hidden}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ═══ CONFIG ═══
+const SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
+const headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+
+// ═══ DESIGN TOKENS ═══
+const GOLD = "#D4A853";
+const GREEN = "#34D399";
+const RED = "#EF4444";
+const AMETHYST = "#A78BFA";
+const ORANGE = "#F97316";
+const CYAN = "#22D3EE";
+const BG = "#06060B";
+const BG_CARD = "rgba(13,13,20,0.85)";
+const ease = "cubic-bezier(.22,1,.36,1)";
+
+// ═══ DATA FETCHER ═══
+async function query(table, params = "", opts = {}) {
+  const url = `${SUPABASE_URL}/${table}?${params}`;
+  const h = { ...headers };
+  if (opts.count) h["Prefer"] = "count=exact";
+  if (opts.head) {
+    const res = await fetch(url, { method: "HEAD", headers: h });
+    const range = res.headers.get("content-range");
+    return range ? parseInt(range.split("/")[1]) || 0 : 0;
+  }
+  const res = await fetch(url, { headers: h });
+  return res.json();
+}
+
+// ═══ HOOKS ═══
+function useInView(th = 0.15) {
+  const ref = useRef(null);
+  const [v, setV] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold: th });
+    o.observe(el);
+    return () => o.disconnect();
+  }, [th]);
+  return [ref, v];
+}
+
+function useDebounce(value, delay = 400) {
+  const [d, setD] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setD(value), delay); return () => clearTimeout(t); }, [value, delay]);
+  return d;
+}
+
+// ═══ COMPONENTS ═══
+function AnimatedCount({ end, duration = 2000, prefix = "", suffix = "" }) {
+  const [c, setC] = useState(0);
+  const ref = useRef(null);
+  const [go, setGo] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setGo(true); }, { threshold: 0.1 });
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!go) return;
+    let s = 0;
+    const step = end / (duration / 16);
+    const t = setInterval(() => { s += step; if (s >= end) { setC(end); clearInterval(t); } else setC(Math.floor(s)); }, 16);
+    return () => clearInterval(t);
+  }, [go, end, duration]);
+  return <span ref={ref}>{prefix}{c.toLocaleString()}{suffix}</span>;
+}
+
+function Section({ children, style = {}, id }) {
+  const [ref, inView] = useInView(0.08);
+  return (
+    <section ref={ref} id={id} style={{
+      opacity: inView ? 1 : 0,
+      transform: inView ? "translateY(0)" : "translateY(40px)",
+      transition: `opacity .8s ${ease}, transform .8s ${ease}`,
+      position: "relative", zIndex: 1,
+      padding: "clamp(60px,10vw,120px) clamp(16px,4vw,24px)",
+      maxWidth: 1100, margin: "0 auto", ...style
+    }}>{children}</section>
+  );
+}
+
+function Badge({ children, color = GOLD }) {
+  return (
+    <span style={{
+      padding: "3px 10px", borderRadius: 100, fontSize: 11, letterSpacing: ".06em",
+      background: `${color}12`, border: `1px solid ${color}28`, color, whiteSpace: "nowrap"
+    }}>{children}</span>
+  );
+}
+
+function RelationshipChain({ nodes, delay = 0, visible = true }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 0, overflowX: "auto", padding: "8px 0",
+      maskImage: "linear-gradient(90deg,transparent,black 2%,black 98%,transparent)",
+      WebkitMaskImage: "linear-gradient(90deg,transparent,black 2%,black 98%,transparent)",
+      opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(-30px)",
+      transition: `all .7s ${ease} ${delay}ms`
+    }}>
+      {nodes.map((n, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <span style={{
+            padding: "5px 10px", borderRadius: 6, fontSize: "clamp(10px,1.2vw,12px)",
+            background: `${n.color}12`, border: `1px solid ${n.color}25`, color: n.color,
+            whiteSpace: "nowrap", fontWeight: 500
+          }}>{n.label}</span>
+          {i < nodes.length - 1 && <span style={{ color: "rgba(255,255,255,.15)", fontSize: 12, margin: "0 3px" }}>→</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══ SEARCH RESULTS ═══
+function ProviderCard({ p }) {
+  const [taxonomies, setTaxonomies] = useState([]);
+  const [exclusion, setExclusion] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    query("provider_taxonomies", `provider_id=eq.${p.id}&select=taxonomy_code,taxonomy_description,license_number,license_state,is_primary`).then(setTaxonomies);
+    query("oig_exclusions", `entity_name=ilike.*${p.last_name}*&limit=1`).then(r => setExclusion(r?.[0] || null));
+  }, [expanded, p.id, p.last_name]);
+
+  return (
+    <div style={{
+      background: BG_CARD, borderRadius: 12, border: "1px solid rgba(255,255,255,.06)",
+      padding: "16px 18px", backdropFilter: "blur(20px)", cursor: "pointer",
+      transition: `all .3s ${ease}`
+    }} onClick={() => setExpanded(!expanded)}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#fff" }}>
+            {p.first_name} {p.last_name}
+            {p.credential && <span style={{ color: GOLD, fontWeight: 400, marginLeft: 8, fontSize: 13 }}>{p.credential}</span>}
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,.4)", marginTop: 4, fontFamily: "monospace" }}>
+            NPI: {p.npi}
+          </div>
+        </div>
+        <Badge color={p.status === "active" ? GREEN : RED}>{p.status?.toUpperCase()}</Badge>
+      </div>
+      {expanded && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.06)" }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)", letterSpacing: ".1em", marginBottom: 8 }}>RELATIONSHIPS DISCOVERED</div>
+          <RelationshipChain visible={true} nodes={[
+            { label: p.first_name + " " + p.last_name, color: GREEN },
+            { label: p.credential || "Provider", color: GOLD },
+            { label: `NPI ${p.npi}`, color: AMETHYST },
+            ...(taxonomies.length ? [
+              { label: taxonomies[0]?.taxonomy_code || "Taxonomy", color: CYAN },
+              ...(taxonomies[0]?.license_state ? [{ label: `Licensed: ${taxonomies[0].license_state}`, color: GREEN }] : [])
+            ] : []),
+            { label: exclusion ? "OIG FLAG" : "OIG Clear", color: exclusion ? RED : GREEN },
+            { label: "NPPES Verified", color: GREEN },
+          ]} />
+          {taxonomies.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)", letterSpacing: ".08em", marginBottom: 6 }}>SPECIALTIES & LICENSES</div>
+              {taxonomies.map((t, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12, color: "rgba(255,255,255,.6)", marginBottom: 4 }}>
+                  <span style={{ color: t.is_primary ? GOLD : "rgba(255,255,255,.3)" }}>{t.is_primary ? "★" : "○"}</span>
+                  <span style={{ fontFamily: "monospace", color: CYAN }}>{t.taxonomy_code}</span>
+                  {t.license_state && <Badge color={AMETHYST}>{t.license_state} #{t.license_number}</Badge>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", marginTop: 10, fontStyle: "italic" }}>
+            Source: {p.data_source} · Updated {new Date(p.updated_at).toLocaleDateString()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DrugCard({ d }) {
+  return (
+    <div style={{
+      background: BG_CARD, borderRadius: 12, border: "1px solid rgba(255,255,255,.06)",
+      padding: "16px 18px", backdropFilter: "blur(20px)"
+    }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: GOLD }}>{d.name}</div>
+      {d.dosage_form && <div style={{ fontSize: 12, color: "rgba(255,255,255,.4)", marginTop: 2 }}>{d.dosage_form} {d.strength}</div>}
+      <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)", marginTop: 6, fontFamily: "monospace" }}>
+        RxCUI: {d.rxcui} · Source: {d.data_source}
+      </div>
+    </div>
+  );
+}
+
+function DiagnosisCard({ d }) {
+  return (
+    <div style={{
+      background: BG_CARD, borderRadius: 12, border: "1px solid rgba(255,255,255,.06)",
+      padding: "16px 18px", backdropFilter: "blur(20px)"
+    }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <span style={{ fontFamily: "monospace", fontSize: 14, color: AMETHYST, fontWeight: 600, flexShrink: 0 }}>{d.code}</span>
+        <div>
+          <div style={{ fontSize: 14, color: "#fff" }}>{d.description}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.35)", marginTop: 4 }}>
+            {d.chapter} · {d.is_billable ? "Billable" : "Non-billable"} · v{d.version}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ SEARCH PANEL ═══
+function SearchPanel() {
+  const [mode, setMode] = useState("providers");
+  const [q, setQ] = useState("");
+  const dq = useDebounce(q, 350);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(null);
+
+  const search = useCallback(async () => {
+    if (!dq || dq.length < 2) { setResults([]); setTotal(null); return; }
+    setLoading(true);
+    try {
+      if (mode === "providers") {
+        const r = await fetch(`${SUPABASE_URL}/providers?or=(last_name.ilike.%25${dq}%25,first_name.ilike.%25${dq}%25,npi.eq.${dq})&select=*&limit=8&order=last_name.asc`, {
+          headers: { ...headers, Prefer: "count=exact" }
+        });
+        const range = r.headers.get("content-range");
+        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
+        setResults(await r.json());
+      } else if (mode === "drugs") {
+        const r = await fetch(`${SUPABASE_URL}/drugs?name=ilike.%25${dq}%25&select=*&limit=8&order=name.asc`, {
+          headers: { ...headers, Prefer: "count=exact" }
+        });
+        const range = r.headers.get("content-range");
+        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
+        setResults(await r.json());
+      } else if (mode === "diagnoses") {
+        const r = await fetch(`${SUPABASE_URL}/icd10_cm_codes?or=(code.ilike.%25${dq}%25,description.ilike.%25${dq}%25)&select=*&limit=8&order=code.asc`, {
+          headers: { ...headers, Prefer: "count=exact" }
+        });
+        const range = r.headers.get("content-range");
+        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
+        setResults(await r.json());
+      } else if (mode === "ndc") {
+        const r = await fetch(`${SUPABASE_URL}/ndc_codes?or=(proprietary_name.ilike.%25${dq}%25,nonproprietary_name.ilike.%25${dq}%25)&select=*&limit=8&order=proprietary_name.asc`, {
+          headers: { ...headers, Prefer: "count=exact" }
+        });
+        const range = r.headers.get("content-range");
+        setTotal(range ? parseInt(range.split("/")[1]) || 0 : null);
+        setResults(await r.json());
+      }
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [dq, mode]);
+
+  useEffect(() => { search(); }, [search]);
+
+  const modes = [
+    { id: "providers", label: "Providers", icon: "🏥", color: GREEN, placeholder: "Search by name or NPI..." },
+    { id: "drugs", label: "Drugs", icon: "💊", color: GOLD, placeholder: "Search drug name..." },
+    { id: "diagnoses", label: "ICD-10", icon: "📋", color: AMETHYST, placeholder: "Search code or condition..." },
+    { id: "ndc", label: "NDC Codes", icon: "🏷️", color: CYAN, placeholder: "Search product name..." },
+  ];
+  const active = modes.find(m => m.id === mode);
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        {modes.map(m => (
+          <button key={m.id} onClick={() => { setMode(m.id); setResults([]); setTotal(null); setQ(""); }}
+            style={{
+              padding: "8px 16px", borderRadius: 100, border: `1px solid ${mode === m.id ? m.color : "rgba(255,255,255,.1)"}`,
+              background: mode === m.id ? `${m.color}15` : "transparent",
+              color: mode === m.id ? m.color : "rgba(255,255,255,.5)",
+              fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
+              transition: `all .3s ${ease}`, display: "flex", alignItems: "center", gap: 6
+            }}>
+            <span style={{ fontSize: 14 }}>{m.icon}</span>{m.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ position: "relative", marginBottom: 20 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder={active.placeholder}
+          style={{
+            width: "100%", padding: "14px 18px 14px 44px", borderRadius: 12,
+            border: `1px solid ${active.color}30`, background: "rgba(255,255,255,.03)",
+            color: "#fff", fontSize: 15, fontFamily: "'DM Sans',sans-serif",
+            outline: "none", boxSizing: "border-box",
+            transition: `border-color .3s ${ease}`
+          }}
+          onFocus={e => e.target.style.borderColor = active.color}
+          onBlur={e => e.target.style.borderColor = `${active.color}30`}
+        />
+        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, opacity: 0.5 }}>
+          {loading ? "⏳" : "🔍"}
+        </span>
+        {total !== null && (
+          <span style={{
+            position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+            fontSize: 12, color: active.color, fontFamily: "monospace"
+          }}>{total.toLocaleString()} results</span>
+        )}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {results.length === 0 && dq.length >= 2 && !loading && (
+          <div style={{ textAlign: "center", padding: 32, color: "rgba(255,255,255,.3)", fontSize: 14 }}>No results found</div>
+        )}
+        {results.length === 0 && dq.length < 2 && (
+          <div style={{ textAlign: "center", padding: 32, color: "rgba(255,255,255,.2)", fontSize: 13 }}>
+            Type at least 2 characters to search {total !== null ? `${total.toLocaleString()} records` : "the knowledge graph"}
+          </div>
+        )}
+        {mode === "providers" && results.map(p => <ProviderCard key={p.id} p={p} />)}
+        {mode === "drugs" && results.map(d => <DrugCard key={d.id} d={d} />)}
+        {mode === "diagnoses" && results.map(d => <DiagnosisCard key={d.id} d={d} />)}
+        {mode === "ndc" && results.map(d => (
+          <div key={d.id} style={{ background: BG_CARD, borderRadius: 12, border: "1px solid rgba(255,255,255,.06)", padding: "16px 18px" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: CYAN }}>{d.proprietary_name}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,.5)", marginTop: 2 }}>{d.nonproprietary_name}</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              <Badge color={CYAN}>{d.ndc_code}</Badge>
+              {d.dosage_form && <Badge color={AMETHYST}>{d.dosage_form}</Badge>}
+              {d.manufacturer && <Badge color={GOLD}>{d.manufacturer}</Badge>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══ LIVE STATS ═══
+function LiveStats() {
+  const [counts, setCounts] = useState({});
+  const [ref, inView] = useInView(0.1);
+
+  useEffect(() => {
+    if (!inView) return;
+    const tables = [
+      { key: "providers", label: "Providers", color: GREEN },
+      { key: "icd10_cm_codes", label: "ICD-10 Diagnoses", color: AMETHYST },
+      { key: "ndc_codes", label: "NDC Drug Codes", color: CYAN },
+      { key: "oig_exclusions", label: "OIG Exclusions", color: RED },
+      { key: "icd10_pcs_codes", label: "ICD-10 Procedures", color: ORANGE },
+      { key: "pubmed_citations", label: "PubMed Citations", color: GREEN },
+      { key: "drugs", label: "Drugs (RxNorm)", color: GOLD },
+      { key: "clinical_trials", label: "Clinical Trials", color: AMETHYST },
+      { key: "hcpcs_codes", label: "HCPCS Codes", color: CYAN },
+      { key: "drug_interactions", label: "Drug Interactions", color: RED },
+    ];
+    tables.forEach(async (t) => {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/${t.key}?select=id&limit=1`, {
+          method: "HEAD", headers: { ...headers, Prefer: "count=exact" }
+        });
+        const range = res.headers.get("content-range");
+        const count = range ? parseInt(range.split("/")[1]) || 0 : 0;
+        setCounts(prev => ({ ...prev, [t.key]: { count, ...t } }));
+      } catch (e) { /* skip */ }
+    });
+  }, [inView]);
+
+  const entries = Object.values(counts).sort((a, b) => b.count - a.count);
+  const total = entries.reduce((s, e) => s + e.count, 0);
+
+  return (
+    <div ref={ref}>
+      {total > 0 && (
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{
+            fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(48px,8vw,80px)",
+            background: `linear-gradient(135deg,${GOLD},${GREEN},${AMETHYST})`, backgroundSize: "200% 200%",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            animation: "gradientMove 4s ease infinite"
+          }}><AnimatedCount end={total} duration={2500} /></div>
+          <div style={{ fontSize: "clamp(14px,2vw,18px)", color: "rgba(255,255,255,.5)", marginTop: 4 }}>
+            live, queryable records across <span style={{ color: GOLD, fontWeight: 600 }}>10 federal data sources</span>
+          </div>
+        </div>
+      )}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(48%,200px),1fr))", gap: 8
+      }}>
+        {entries.map((e, i) => (
+          <div key={e.key} style={{
+            padding: "14px 16px", borderRadius: 12, background: BG_CARD,
+            border: `1px solid ${e.color}12`, backdropFilter: "blur(20px)", textAlign: "center",
+            opacity: inView ? 1 : 0, transform: inView ? "translateY(0)" : "translateY(20px)",
+            transition: `all .5s ${ease} ${i * 60}ms`
+          }}>
+            <div style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(20px,3vw,28px)", color: e.color }}>
+              <AnimatedCount end={e.count} duration={1800} />
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)", marginTop: 4 }}>{e.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══ MAIN APP ═══
+function HealthKnowledgeGarden() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+  useEffect(() => {
+    const f = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(h > 0 ? window.scrollY / h : 0);
+    };
+    window.addEventListener("scroll", f, { passive: true });
+    return () => window.removeEventListener("scroll", f);
+  }, []);
+
+  const [heroRef, heroIn] = useInView(0.05);
+  const [relRef, relIn] = useInView(0.1);
+
+  return (
+    <div style={{ background: BG, color: "#fff", minHeight: "100vh", fontFamily: "'DM Sans',sans-serif", overflowX: "hidden" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        @keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+        @keyframes breathe{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.04);opacity:.75}}
+        @keyframes fadeGlow{0%,100%{text-shadow:0 0 60px rgba(52,211,153,.15)}50%{text-shadow:0 0 120px rgba(52,211,153,.35)}}
+        @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+        .h1{animation:slideUp .8s ${ease} .1s both}.h2{animation:slideUp .8s ${ease} .3s both}
+        .h3{animation:slideUp .8s ${ease} .5s both}.h4{animation:slideUp .8s ${ease} .7s both}
+        .live-dot{animation:pulse 2s ease infinite}
+        *{box-sizing:border-box}a{color:${GREEN};text-decoration:none}
+        input::placeholder{color:rgba(255,255,255,.25)}
+      `}</style>
+
+      {/* Progress bar */}
+      <div style={{ position: "fixed", top: 0, left: 0, height: 2, zIndex: 200, width: `${scrollProgress * 100}%`, background: `linear-gradient(90deg,${GREEN},${AMETHYST},${GOLD})`, transition: "width .1s linear" }} />
+
+      {/* Nav */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        padding: "14px clamp(16px,4vw,32px)",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: scrollProgress > 0.02 ? "rgba(6,6,11,.85)" : "transparent",
+        backdropFilter: scrollProgress > 0.02 ? "blur(20px)" : "none",
+        borderBottom: scrollProgress > 0.02 ? "1px solid rgba(255,255,255,.04)" : "none",
+        transition: `all .4s ${ease}`
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>🏥</span>
+          <span style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: 18, color: GREEN }}>Health</span>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,.3)" }}>Knowledge Garden</span>
+        </div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 13 }}>
+          <a href="#explore" style={{ color: "rgba(255,255,255,.5)", textDecoration: "none", transition: "color .2s" }}
+            onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,.5)"}>Explore</a>
+          <a href="#sources" style={{ color: "rgba(255,255,255,.5)", textDecoration: "none", transition: "color .2s" }}
+            onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,.5)"}>Sources</a>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[
+              { label: "Builders", href: "https://builders.theknowledgegardens.com", color: ORANGE },
+              { label: "Orchids", href: "https://orchids.theknowledgegardens.com", color: GREEN },
+            ].map(g => (
+              <a key={g.label} href={g.href} style={{
+                padding: "5px 12px", borderRadius: 100, fontSize: 11, border: `1px solid ${g.color}30`,
+                color: g.color, textDecoration: "none", transition: `all .3s ${ease}`
+              }}>{g.label}</a>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* ═══ HERO ═══ */}
+      <section ref={heroRef} style={{
+        minHeight: "100dvh", display: "flex", flexDirection: "column",
+        justifyContent: "center", alignItems: "center", textAlign: "center",
+        padding: "80px clamp(16px,4vw,24px) 40px", position: "relative", zIndex: 1
+      }}>
+        <div style={{
+          position: "absolute", top: "30%", left: "15%", width: 350, height: 350, borderRadius: "50%",
+          background: `radial-gradient(circle,rgba(52,211,153,.04),transparent 70%)`,
+          animation: "breathe 10s ease infinite", pointerEvents: "none"
+        }} />
+
+        <div className="h1" style={{
+          display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 18px",
+          borderRadius: 100, border: "1px solid rgba(52,211,153,.25)",
+          background: "rgba(52,211,153,.06)", fontSize: "clamp(11px,1.4vw,13px)",
+          color: GREEN, letterSpacing: ".05em", marginBottom: 32
+        }}>
+          <span className="live-dot" style={{ width: 6, height: 6, borderRadius: "50%", background: GREEN, display: "inline-block" }} />
+          LIVE · 10 FEDERAL DATA SOURCES · QUERYABLE NOW
+        </div>
+
+        <h1 className="h2" style={{
+          fontFamily: "'Instrument Serif',Georgia,serif",
+          fontSize: "clamp(36px,7vw,84px)", fontWeight: 400, lineHeight: 1.05,
+          maxWidth: 900, letterSpacing: "-.025em"
+        }}>
+          The knowledge graph for{" "}
+          <span style={{
+            background: `linear-gradient(135deg,${GREEN},${AMETHYST},${GOLD})`,
+            backgroundSize: "300% 300%", animation: "gradientMove 6s ease infinite",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+          }}>healthcare</span>
+        </h1>
+
+        <p className="h3" style={{
+          fontSize: "clamp(15px,2vw,20px)", color: "rgba(255,255,255,.45)",
+          maxWidth: 600, lineHeight: 1.7, marginTop: 20, fontWeight: 300
+        }}>
+          Every provider. Every drug. Every diagnosis. Every clinical trial.
+          <br />Connected, verified, and queryable in real time.
+        </p>
+
+        <div className="h4" style={{ display: "flex", gap: 12, marginTop: 36, flexWrap: "wrap", justifyContent: "center" }}>
+          <a href="#explore" style={{
+            padding: "14px 36px", borderRadius: 100, background: GREEN, color: BG,
+            fontSize: 14, fontWeight: 600, textDecoration: "none", transition: `all .3s ${ease}`
+          }}>Explore the Graph</a>
+          <a href="#stats" style={{
+            padding: "14px 36px", borderRadius: 100, border: `1px solid rgba(255,255,255,.15)`,
+            color: "rgba(255,255,255,.5)", fontSize: 14, fontWeight: 500, textDecoration: "none"
+          }}>See the Data</a>
+        </div>
+      </section>
+
+      {/* ═══ LIVE STATS ═══ */}
+      <Section id="stats">
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 12, color: GREEN, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 }}>LIVE DATABASE</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(26px,5vw,48px)", fontWeight: 400, lineHeight: 1.15 }}>
+            Real data. Real relationships. <span style={{ fontStyle: "italic", color: GREEN }}>Right now.</span>
+          </h2>
+        </div>
+        <LiveStats />
+      </Section>
+
+      {/* ═══ RELATIONSHIPS ═══ */}
+      <Section id="relationships">
+        <div ref={relRef} style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 12, color: AMETHYST, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 }}>THE GRAPH</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(24px,4.5vw,44px)", fontWeight: 400, lineHeight: 1.15, maxWidth: 800, margin: "0 auto" }}>
+            Not records. <span style={{ fontStyle: "italic", color: AMETHYST }}>Relationships.</span>
+          </h2>
+          <p style={{ fontSize: "clamp(13px,1.6vw,16px)", color: "rgba(255,255,255,.4)", maxWidth: 560, margin: "16px auto 0", lineHeight: 1.7 }}>
+            Every entity connects to dozens of others. One search traverses six data sources. That's what no one else has built.
+          </p>
+        </div>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
+          {[
+            {
+              nodes: [
+                { label: "Dr. Sarah Chen", color: GREEN }, { label: "NPI Verified", color: GREEN },
+                { label: "Internal Medicine", color: AMETHYST }, { label: "Board Certified", color: GOLD },
+                { label: "Treats: Type 2 Diabetes", color: RED }, { label: "Prescribes: Metformin", color: GOLD },
+                { label: "5 Interactions Flagged", color: RED }, { label: "OIG Clear", color: GREEN },
+              ],
+              caption: "One provider → credentials, specialties, drugs, interactions, compliance — verified across 6 sources"
+            },
+            {
+              nodes: [
+                { label: "Metformin 500mg", color: GOLD }, { label: "RxCUI: 861007", color: AMETHYST },
+                { label: "NDC: 68462-0102", color: CYAN }, { label: "Class: Biguanide", color: GREEN },
+                { label: "3 Active Trials", color: AMETHYST }, { label: "Interacts: Warfarin", color: RED },
+                { label: "1,247 Literature Refs", color: GREEN },
+              ],
+              caption: "One drug → formulations, trials, interactions, prescribers, literature — the full picture"
+            },
+            {
+              nodes: [
+                { label: "E11.9 Type 2 DM", color: AMETHYST }, { label: "ICD-10 Billable", color: GREEN },
+                { label: "12K+ Providers", color: GREEN }, { label: "First-line: Metformin", color: GOLD },
+                { label: "847 Active Trials", color: AMETHYST }, { label: "HCPCS: 99214", color: CYAN },
+                { label: "DRG: 637", color: ORANGE },
+              ],
+              caption: "One diagnosis → billing codes, treatments, trials, specialists — everything connected"
+            },
+          ].map((row, i) => (
+            <div key={i}>
+              <RelationshipChain nodes={row.nodes} delay={i * 200} visible={relIn} />
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", marginTop: 4, paddingLeft: 4 }}>{row.caption}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ INTERACTIVE SEARCH ═══ */}
+      <Section id="explore">
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 12, color: GOLD, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 }}>EXPLORE</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(24px,4.5vw,44px)", fontWeight: 400, lineHeight: 1.15 }}>
+            Query the graph. <span style={{ fontStyle: "italic", color: GOLD }}>Live.</span>
+          </h2>
+          <p style={{ fontSize: "clamp(13px,1.6vw,15px)", color: "rgba(255,255,255,.4)", maxWidth: 500, margin: "12px auto 0" }}>
+            Search across providers, drugs, diagnoses, and NDC codes — all hitting the live database right now.
+          </p>
+        </div>
+        <div style={{ maxWidth: 700, margin: "0 auto" }}>
+          <SearchPanel />
+        </div>
+      </Section>
+
+      {/* ═══ DATA SOURCES ═══ */}
+      <Section id="sources">
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 12, color: CYAN, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 }}>SOURCES OF TRUTH</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(24px,4.5vw,44px)", fontWeight: 400, lineHeight: 1.15 }}>
+            10 federal sources. <span style={{ fontStyle: "italic", color: CYAN }}>Zero licensing cost.</span>
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(48%,200px),1fr))", gap: 8, maxWidth: 800, margin: "0 auto" }}>
+          {[
+            { name: "NPPES NPI Registry", cat: "Providers", icon: "🏥", color: GREEN },
+            { name: "FDA NDC Directory", cat: "Drug Products", icon: "💊", color: GOLD },
+            { name: "RxNorm (NLM)", cat: "Drug Concepts", icon: "🧬", color: AMETHYST },
+            { name: "CMS ICD-10-CM", cat: "Diagnoses", icon: "📋", color: AMETHYST },
+            { name: "CMS ICD-10-PCS", cat: "Procedures", icon: "⚕️", color: ORANGE },
+            { name: "ClinicalTrials.gov", cat: "Research", icon: "🔬", color: GREEN },
+            { name: "PubMed/MEDLINE", cat: "Literature", icon: "📄", color: GREEN },
+            { name: "OIG LEIE", cat: "Compliance", icon: "⚖️", color: RED },
+            { name: "CMS HCPCS", cat: "Billing", icon: "🏷️", color: CYAN },
+            { name: "DailyMed (NLM)", cat: "Drug Labels", icon: "📦", color: GOLD },
+          ].map((s, i) => (
+            <div key={i} style={{
+              padding: "16px", borderRadius: 12, background: BG_CARD,
+              border: `1px solid ${s.color}10`, backdropFilter: "blur(20px)",
+              display: "flex", alignItems: "center", gap: 12
+            }}>
+              <span style={{ fontSize: 20 }}>{s.icon}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: s.color }}>{s.name}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,.35)" }}>{s.cat}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 24, padding: "14px 24px", background: "rgba(34,211,238,.04)", borderRadius: 10, border: `1px solid ${CYAN}15`, maxWidth: 500, margin: "24px auto 0" }}>
+          <div style={{ fontSize: 13, color: CYAN }}>All public domain. All free at any scale. All updated continuously.</div>
+        </div>
+      </Section>
+
+      {/* ═══ GARDENS ═══ */}
+      <Section id="gardens">
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 12, color: GOLD, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 14 }}>THE KNOWLEDGE GARDENS</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(24px,4.5vw,44px)", fontWeight: 400, lineHeight: 1.15 }}>
+            One architecture. <span style={{ fontStyle: "italic", color: GOLD }}>Infinite verticals.</span>
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,250px),1fr))", gap: 14, maxWidth: 900, margin: "0 auto" }}>
+          {[
+            { name: "HKG", full: "Health Knowledge Garden", market: "$12T+ Healthcare", color: GREEN, status: "YOU ARE HERE", url: "#", records: "Providers · Drugs · Trials · Dx" },
+            { name: "BKG", full: "Builder's Knowledge Garden", market: "$17T Construction", color: ORANGE, status: "LIVE", url: "https://builders.theknowledgegardens.com", records: "Codes · Materials · Methods" },
+            { name: "OKG", full: "Orchid Knowledge Garden", market: "Botanical Sciences", color: AMETHYST, status: "LIVE", url: "https://orchids.theknowledgegardens.com", records: "Species · Taxonomy · Care" },
+          ].map((g, i) => (
+            <a key={i} href={g.url} style={{
+              padding: "clamp(20px,3vw,28px)", borderRadius: 16, background: BG_CARD,
+              border: `1px solid ${g.color}18`, textDecoration: "none", position: "relative",
+              overflow: "hidden", display: "block", transition: `all .3s ${ease}`
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = `${g.color}40`}
+              onMouseLeave={e => e.currentTarget.style.borderColor = `${g.color}18`}
+            >
+              {i === 0 && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${g.color},transparent)` }} />}
+              <div style={{ fontSize: 10, letterSpacing: ".12em", color: g.color, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                {i === 0 && <span className="live-dot" style={{ width: 5, height: 5, borderRadius: "50%", background: g.color }} />}
+                {g.status}
+              </div>
+              <div style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: "clamp(24px,3.5vw,36px)", color: g.color }}>{g.name}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)", marginTop: 4 }}>{g.full}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", marginTop: 4, fontFamily: "monospace" }}>{g.records}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.3)", marginTop: 4 }}>{g.market}</div>
+            </a>
+          ))}
+        </div>
+      </Section>
+
+      {/* ═══ FOOTER ═══ */}
+      <div style={{ textAlign: "center", padding: "48px 24px", borderTop: "1px solid rgba(255,255,255,.04)" }}>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,.12)", letterSpacing: ".12em" }}>
+          © 2026 XRWORKERS · THE KNOWLEDGE GARDENS
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(HealthKnowledgeGarden));
+</script>
+</body>
+</html>
