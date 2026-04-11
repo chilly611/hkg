@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Knowledge Garden — The Living Graph for Healthcare</title>
+    <title>Health Knowledge Garden</title>
     <meta property="og:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
-    <meta property="og:description" content="725K+ verified entities. Every provider, drug, diagnosis, and clinical trial — connected, verified, queryable in real time.">
+    <meta property="og:description" content="1M+ verified healthcare entities. Connected, verified, queryable in real time.">
     <meta property="og:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
     <meta property="og:url" content="https://health.theknowledgegardens.com/">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
-    <meta name="twitter:description" content="725K+ verified entities connected and queryable.">
+    <meta name="twitter:title" content="Health Knowledge Garden">
+    <meta name="twitter:description" content="1M+ verified healthcare entities connected and queryable.">
     <meta name="twitter:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
@@ -19,134 +19,71 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..80,100..700;1,9..80,100..700&display=swap" rel="stylesheet">
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        html, body, #root { width:100%; height:100%; }
-        body { background:#06060B; color:#fff; font-family:'DM Sans',sans-serif; overflow-x:hidden; }
-        h1,h2,h3,h4 { font-family:'Instrument Serif',serif; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-track { background:#0a0a10; }
-        ::-webkit-scrollbar-thumb { background:#34D399; border-radius:3px; }
-
-        /* Lanes Screen */
-        .lanes-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; background:linear-gradient(135deg,#06060B 0%,#0f0f1a 100%); }
-        .lanes-logo { width:80px; height:80px; margin-bottom:1.5rem; opacity:0.9; }
-        .lanes-title { font-size:2.5rem; font-weight:600; margin-bottom:0.5rem; background:linear-gradient(135deg,#34D399 0%,#22D3EE 50%,#A78BFA 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-align:center; }
-        .lanes-sub { font-size:1.1rem; color:#888; margin-bottom:2.5rem; text-align:center; }
-        .lanes-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem; width:100%; max-width:1100px; margin-bottom:2rem; }
-        .lane-card { padding:1.5rem; background:rgba(13,13,20,0.85); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius:12px; cursor:pointer; transition:all 0.3s ease; }
-        .lane-card:hover { border-color:rgba(255,255,255,0.3); transform:translateY(-6px); box-shadow:0 16px 32px rgba(0,0,0,0.4); }
-        .lane-card.clinician { border-left:4px solid #34D399; }
-        .lane-card.patient { border-left:4px solid #A78BFA; }
-        .lane-card.operations { border-left:4px solid #22D3EE; }
-        .lane-card.explorer { border-left:4px solid #D4A853; }
-        .lane-icon { font-size:2rem; margin-bottom:0.75rem; }
-        .lane-card h2 { font-size:1.3rem; margin-bottom:0.25rem; }
-        .lane-card p { font-size:0.9rem; color:#aaa; line-height:1.4; }
-        .lanes-stat { padding:1rem 2rem; background:rgba(13,13,20,0.85); border:1px solid rgba(255,255,255,0.1); border-radius:12px; text-align:center; font-size:0.95rem; color:#888; }
-        .lanes-stat strong { color:#34D399; }
-
-        /* App Layout */
-        .app { display:flex; flex-direction:column; min-height:100vh; }
-        .topbar { padding:0.75rem 1.5rem; background:rgba(13,13,20,0.95); border-bottom:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:1rem; flex-shrink:0; position:sticky; top:0; z-index:100; }
-        .topbar-logo { width:32px; height:32px; opacity:0.8; }
-        .topbar-brand { font-size:1rem; font-weight:600; flex:1; }
-        .pill { padding:0.35rem 0.75rem; border-radius:20px; font-size:0.8rem; border:1px solid; }
-        .pill.clinician { border-color:#34D399; color:#34D399; }
-        .pill.patient { border-color:#A78BFA; color:#A78BFA; }
-        .pill.operations { border-color:#22D3EE; color:#22D3EE; }
-        .pill.explorer { border-color:#D4A853; color:#D4A853; }
-        .btn { padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
-        .btn:hover { background:rgba(255,255,255,0.1); }
-
-        /* Search */
-        .search-bar { padding:1.5rem; background:linear-gradient(180deg,rgba(13,13,20,0.6) 0%,transparent 100%); }
-        .search-wrap { position:relative; max-width:600px; margin:0 auto; }
-        .search-input { width:100%; padding:0.85rem 1.25rem; background:rgba(13,13,20,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; font-size:0.95rem; font-family:'DM Sans',sans-serif; }
-        .search-input:focus { outline:none; border-color:rgba(52,211,153,0.5); box-shadow:0 0 16px rgba(52,211,153,0.1); }
-        .search-drop { position:absolute; top:100%; left:0; right:0; margin-top:0.4rem; background:rgba(13,13,20,0.97); border:1px solid rgba(255,255,255,0.12); border-radius:10px; max-height:350px; overflow-y:auto; z-index:200; display:none; }
-        .search-drop.open { display:block; }
-        .sr { padding:0.75rem 1rem; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.15s; }
-        .sr:hover { background:rgba(255,255,255,0.05); }
-        .sr:last-child { border-bottom:none; }
-        .sr-name { font-weight:600; font-size:0.9rem; }
-        .sr-detail { font-size:0.8rem; color:#888; margin-top:0.15rem; }
-        .badge { display:inline-block; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; margin-left:0.5rem; font-weight:600; }
-        .badge.provider { color:#34D399; border:1px solid #34D399; }
-        .badge.drug { color:#F97316; border:1px solid #F97316; }
-        .badge.diagnosis { color:#EF4444; border:1px solid #EF4444; }
-        .badge.trial { color:#D4A853; border:1px solid #D4A853; }
-        .badge.code { color:#22D3EE; border:1px solid #22D3EE; }
-        .badge.exclusion { color:#F472B6; border:1px solid #F472B6; }
-        .badge.taxonomy { color:#A78BFA; border:1px solid #A78BFA; }
-
-        /* Content Area */
-        .content { flex:1; padding:0 1.5rem 2rem; overflow-y:auto; }
-
-        /* Relationship Map */
-        .relationship-map { max-width:1000px; margin:0 auto; }
-        .hub-section { margin-bottom:2rem; }
-        .hub-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.08); }
-        .hub-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
-        .hub-header h3 { font-size:1.2rem; flex:1; }
-        .hub-count { font-size:0.85rem; color:#888; }
-
-        /* Entity Cards */
-        .entity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
-        .entity-card { padding:1rem 1.25rem; background:rgba(13,13,20,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:10px; transition:all 0.2s; cursor:pointer; position:relative; }
-        .entity-card:hover { border-color:rgba(255,255,255,0.2); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
-        .entity-card.expanded { grid-column:1/-1; }
-        .ec-name { font-weight:600; font-size:0.95rem; margin-bottom:0.3rem; display:flex; align-items:center; gap:0.5rem; }
-        .ec-detail { font-size:0.85rem; color:#999; line-height:1.4; }
-        .ec-meta { font-size:0.75rem; color:#666; margin-top:0.4rem; }
-
-        /* Relationship Lines */
-        .rel-section { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); }
-        .rel-tag { display:inline-block; padding:0.2rem 0.5rem; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.75rem; color:#aaa; margin:0.15rem 0.25rem 0.15rem 0; }
-        .rel-arrow { color:#555; margin:0 0.25rem; }
-
-        /* Stats Footer */
-        .stats-bar { padding:1rem 1.5rem; background:rgba(13,13,20,0.9); border-top:1px solid rgba(255,255,255,0.08); display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:0.75rem; text-align:center; flex-shrink:0; position:sticky; bottom:0; }
-        .stat-num { font-size:1.1rem; font-weight:600; }
-        .stat-num.provider { color:#34D399; }
-        .stat-num.drug { color:#F97316; }
-        .stat-num.diagnosis { color:#EF4444; }
-        .stat-num.trial { color:#D4A853; }
-        .stat-num.code { color:#22D3EE; }
-        .stat-lbl { font-size:0.75rem; color:#888; }
-
-        /* Loading */
-        .loading-row { display:flex; align-items:center; gap:0.5rem; color:#888; padding:1rem; }
-        .dot { width:6px; height:6px; background:#34D399; border-radius:50%; animation:pulse 1.2s ease-in-out infinite; }
-        .dot:nth-child(2) { animation-delay:0.2s; }
-        .dot:nth-child(3) { animation-delay:0.4s; }
-        @keyframes pulse { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
-
-        /* Expand panel */
-        .expand-panel { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); }
-        .expand-row { display:flex; align-items:flex-start; gap:0.5rem; margin-bottom:0.4rem; font-size:0.85rem; }
-        .expand-label { color:#888; min-width:80px; flex-shrink:0; }
-        .expand-val { color:#ccc; }
-
-        /* Connection viz */
-        .connections { margin-top:1rem; }
-        .conn-item { display:inline-flex; align-items:center; gap:0.4rem; padding:0.3rem 0.6rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:6px; font-size:0.8rem; margin:0.25rem; cursor:pointer; transition:all 0.15s; }
-        .conn-item:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15); }
-        .conn-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-
-        /* Intro card */
-        .intro-card { max-width:800px; margin:0 auto 2rem; padding:1.5rem 2rem; background:rgba(13,13,20,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:12px; text-align:center; }
-        .intro-card h3 { font-size:1.3rem; margin-bottom:0.5rem; }
-        .intro-card p { font-size:0.9rem; color:#aaa; line-height:1.5; }
-
-        @media(max-width:768px) {
-            .lanes-grid { grid-template-columns:1fr; }
-            .lanes-title { font-size:1.8rem; }
-            .entity-grid { grid-template-columns:1fr; }
-            .topbar { flex-wrap:wrap; }
-            .stats-bar { grid-template-columns:repeat(3,1fr); }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body,#root{width:100%;height:100%}
+        body{background:#06060B;color:#fff;font-family:'DM Sans',sans-serif;overflow-x:hidden}
+        h1,h2,h3,h4{font-family:'Instrument Serif',serif}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0a0a10}::-webkit-scrollbar-thumb{background:#34D399;border-radius:3px}
+        .lanes-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;background:linear-gradient(135deg,#06060B,#0f0f1a)}
+        .lanes-logo{width:80px;height:80px;margin-bottom:1.5rem;opacity:0.9}
+        .lanes-title{font-size:2.5rem;font-weight:600;margin-bottom:0.5rem;background:linear-gradient(135deg,#34D399,#22D3EE,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center}
+        .lanes-sub{font-size:1.1rem;color:#888;margin-bottom:2.5rem;text-align:center}
+        .lanes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;width:100%;max-width:1100px;margin-bottom:2rem}
+        .lc{padding:1.5rem;background:rgba(13,13,20,0.85);border:1px solid rgba(255,255,255,0.1);border-radius:12px;cursor:pointer;transition:all 0.3s}
+        .lc:hover{border-color:rgba(255,255,255,0.3);transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.4)}
+        .lc-clin{border-left:4px solid #34D399}.lc-pat{border-left:4px solid #A78BFA}.lc-ops{border-left:4px solid #22D3EE}.lc-exp{border-left:4px solid #D4A853}
+        .lc-icon{font-size:2rem;margin-bottom:0.5rem}
+        .lc h2{font-size:1.2rem;margin-bottom:0.2rem}
+        .lc p{font-size:0.85rem;color:#aaa;line-height:1.3}
+        .ls{padding:1rem 2rem;background:rgba(13,13,20,0.85);border:1px solid rgba(255,255,255,0.1);border-radius:12px;text-align:center;font-size:0.95rem;color:#888}
+        .ls strong{color:#34D399}
+        .app{display:flex;flex-direction:column;height:100vh}
+        .topbar{padding:0.6rem 1.2rem;background:rgba(13,13,20,0.95);border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:0.75rem;flex-shrink:0;z-index:100;flex-wrap:wrap}
+        .topbar-logo{width:28px;height:28px;opacity:0.8}
+        .topbar-brand{font-size:0.95rem;font-weight:600}
+        .spacer{flex:1}
+        .pill{padding:0.25rem 0.6rem;border-radius:16px;font-size:0.75rem;border:1px solid}
+        .pill-clin{border-color:#34D399;color:#34D399}.pill-pat{border-color:#A78BFA;color:#A78BFA}.pill-ops{border-color:#22D3EE;color:#22D3EE}.pill-exp{border-color:#D4A853;color:#D4A853}
+        .btn{padding:0.3rem 0.7rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:5px;cursor:pointer;font-size:0.78rem;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.1)}.btn.active{background:rgba(52,211,153,0.15);border-color:#34D399;color:#34D399}
+        .view-tabs{display:flex;gap:0.5rem;padding:0.6rem 1.2rem;background:rgba(13,13,20,0.6);border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;flex-wrap:wrap;align-items:center}
+        .search-bar{padding:0.75rem 1.2rem;flex-shrink:0}
+        .search-wrap{position:relative;max-width:600px;margin:0 auto}
+        .search-input{width:100%;padding:0.65rem 1rem;background:rgba(13,13,20,0.9);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-size:0.9rem;font-family:'DM Sans',sans-serif}
+        .search-input:focus{outline:none;border-color:rgba(52,211,153,0.5);box-shadow:0 0 12px rgba(52,211,153,0.1)}
+        .sdrop{position:absolute;top:100%;left:0;right:0;margin-top:0.3rem;background:rgba(13,13,20,0.97);border:1px solid rgba(255,255,255,0.12);border-radius:8px;max-height:300px;overflow-y:auto;z-index:200;display:none}
+        .sdrop.open{display:block}
+        .sr{padding:0.6rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s}
+        .sr:hover{background:rgba(255,255,255,0.05)}
+        .sr-name{font-weight:600;font-size:0.85rem}.sr-detail{font-size:0.78rem;color:#888;margin-top:0.1rem}
+        .content{flex:1;overflow-y:auto;padding:1rem 1.2rem}
+        .badge{display:inline-block;padding:0.12rem 0.45rem;border-radius:3px;font-size:0.68rem;margin-left:0.4rem;font-weight:600}
+        .b-provider{color:#34D399;border:1px solid #34D399}.b-drug{color:#F97316;border:1px solid #F97316}.b-diagnosis{color:#EF4444;border:1px solid #EF4444}.b-trial{color:#D4A853;border:1px solid #D4A853}.b-code{color:#22D3EE;border:1px solid #22D3EE}.b-exclusion{color:#F472B6;border:1px solid #F472B6}.b-taxonomy{color:#A78BFA;border:1px solid #A78BFA}.b-ndc{color:#8B5CF6;border:1px solid #8B5CF6}
+        .hub{margin-bottom:1.5rem}
+        .hub-hdr{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .hub-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .hub-hdr h3{font-size:1.1rem;flex:1}.hub-cnt{font-size:0.8rem;color:#888}
+        .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.75rem}
+        .ecard{padding:0.85rem 1rem;background:rgba(13,13,20,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:8px;cursor:pointer;transition:all 0.2s}
+        .ecard:hover{border-color:rgba(255,255,255,0.18);transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,0.25)}
+        .ecard.expanded{grid-column:1/-1;border-color:rgba(52,211,153,0.3)}
+        .ec-name{font-weight:600;font-size:0.88rem;display:flex;align-items:center;gap:0.4rem}
+        .ec-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+        .ec-detail{font-size:0.8rem;color:#999;margin-top:0.2rem;line-height:1.3}
+        .ec-meta{font-size:0.72rem;color:#666;margin-top:0.25rem}
+        .exp-panel{margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid rgba(255,255,255,0.06)}
+        .exp-row{display:flex;gap:0.4rem;margin-bottom:0.3rem;font-size:0.8rem}
+        .exp-lbl{color:#888;min-width:80px;flex-shrink:0}.exp-val{color:#ccc;word-break:break-word}
+        .rel-map{width:100%;overflow:hidden;background:rgba(6,6,11,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:1.5rem}
+        .rel-map svg{width:100%;height:auto;display:block}
+        .stats-bar{padding:0.6rem 1.2rem;background:rgba(13,13,20,0.9);border-top:1px solid rgba(255,255,255,0.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:0.5rem;text-align:center;flex-shrink:0}
+        .sn{font-size:0.95rem;font-weight:600}.sn-prov{color:#34D399}.sn-drug{color:#F97316}.sn-dx{color:#EF4444}.sn-trial{color:#D4A853}.sn-code{color:#22D3EE}
+        .sl{font-size:0.68rem;color:#888}
+        .loading{display:flex;align-items:center;gap:0.4rem;color:#888;padding:2rem;justify-content:center}
+        .dot{width:6px;height:6px;background:#34D399;border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
+        .dot:nth-child(2){animation-delay:0.2s}.dot:nth-child(3){animation-delay:0.4s}
+        @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
+        @media(max-width:768px){.lanes-grid{grid-template-columns:1fr}.lanes-title{font-size:1.8rem}.egrid{grid-template-columns:1fr}.stats-bar{grid-template-columns:repeat(3,1fr)}}
     </style>
 </head>
 <body>
@@ -154,423 +91,286 @@
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
-const e = React.createElement;
-const { useState, useEffect, useRef } = React;
+var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef;
+var API="https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
+var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
+var HDR={apikey:KEY,Authorization:"Bearer "+KEY};
+function q(p){return fetch(API+p,{headers:HDR}).then(function(r){return r.json()}).catch(function(){return[]})}
+function cnt(t){return fetch(API+"/"+t+"?select=id&limit=1",{method:"HEAD",headers:Object.assign({},HDR,{Prefer:"count=exact"})}).then(function(r){var g=r.headers.get("content-range");return g?parseInt(g.split("/")[1]||"0",10):0}).catch(function(){return 0})}
 
-const API = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
-const H = { apikey: KEY, Authorization: "Bearer " + KEY };
-
-async function q(path) {
-    const r = await fetch(API + path, { headers: H });
-    return r.json();
-}
-async function count(table) {
-    const r = await fetch(API + "/" + table + "?select=id&limit=1", { method: "HEAD", headers: { ...H, Prefer: "count=exact" } });
-    const range = r.headers.get("content-range");
-    return range ? parseInt(range.split("/")[1] || "0", 10) : 0;
-}
-
-const LANES = {
-    clinician: { id:"clinician", icon:"🏥", title:"Clinician", sub:"I treat patients", desc:"Provider lookup, drug references, diagnosis codes, clinical trials", color:"#34D399" },
-    patient: { id:"patient", icon:"💚", title:"Patient / Caregiver", sub:"I want to understand my health", desc:"Plain-language explanations, find providers, understand medications", color:"#A78BFA" },
-    operations: { id:"operations", icon:"⚙️", title:"Operations", sub:"I manage healthcare systems", desc:"Compliance checks, billing codes, exclusion screening, analytics", color:"#22D3EE" },
-    explorer: { id:"explorer", icon:"🔍", title:"Explorer", sub:"I'm curious about healthcare data", desc:"Browse the full knowledge graph, search everything", color:"#D4A853" }
+var COLORS={provider:"#34D399",drug:"#F97316",diagnosis:"#EF4444",trial:"#D4A853",code:"#22D3EE",exclusion:"#F472B6",taxonomy:"#A78BFA",ndc:"#8B5CF6"};
+var LANES={
+    clinician:{id:"clinician",icon:"\u{1F3E5}",title:"Clinician",sub:"I treat patients",desc:"Provider lookup, drug references, diagnosis codes, clinical trials",color:"#34D399",cls:"clin"},
+    patient:{id:"patient",icon:"\u{1F49A}",title:"Patient / Caregiver",sub:"I want to understand my health",desc:"Plain-language explanations, find providers, understand medications",color:"#A78BFA",cls:"pat"},
+    operations:{id:"operations",icon:"\u2699\uFE0F",title:"Operations",sub:"I manage healthcare systems",desc:"Compliance checks, billing codes, exclusion screening, analytics",color:"#22D3EE",cls:"ops"},
+    explorer:{id:"explorer",icon:"\u{1F50D}",title:"Explorer",sub:"I'm curious about healthcare data",desc:"Browse the full knowledge graph, search everything",color:"#D4A853",cls:"exp"}
 };
 
-const COLORS = { provider:"#34D399", drug:"#F97316", diagnosis:"#EF4444", trial:"#D4A853", code:"#22D3EE", exclusion:"#F472B6", taxonomy:"#A78BFA", manufacturer:"#8B5CF6", publication:"#94A3B8" };
-
-// ========== DATA LOADERS ==========
-
-async function loadClinicianData() {
-    const [providers, drugs, diagnoses, trials] = await Promise.all([
-        q("/providers?credential=ilike.%25M.D.%25&limit=6&select=id,first_name,last_name,credential,status"),
-        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25lisinopril%25,name.ilike.%25atorvastatin%25)&limit=6&select=id,name,drug_class,dosage_form"),
-        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.I10,code.eq.J449,code.eq.M545,code.eq.F329,code.eq.N390)&select=id,code,description,chapter,is_billable"),
-        q("/clinical_trials?status=ilike.%25active%25&limit=4&select=id,title,status,phase,sponsor")
-    ]);
-    // Get taxonomies for first provider
-    let taxonomies = [];
-    if (providers.length > 0) {
-        taxonomies = await q("/provider_taxonomies?provider_id=eq." + providers[0].id + "&limit=3&select=id,taxonomy_code,taxonomy_description,license_state,is_primary");
-    }
-    return { providers, drugs, diagnoses, trials, taxonomies, center: providers[0] };
-}
-
-async function loadPatientData() {
-    const [drugs, providers, trials, diagnoses] = await Promise.all([
-        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25insulin%25,name.ilike.%25glipizide%25)&limit=6&select=id,name,drug_class,dosage_form"),
-        q("/providers?credential=ilike.%25M.D.%25&limit=4&select=id,first_name,last_name,credential"),
-        q("/clinical_trials?conditions=ilike.%25diabetes%25&limit=3&select=id,title,status,phase"),
-        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.E1165,code.eq.E1122,code.eq.E1140)&select=id,code,description,is_billable")
-    ]);
-    return { drugs, providers, trials, diagnoses, center: { code: "E11.9", description: "Type 2 Diabetes Mellitus" } };
-}
-
-async function loadOperationsData() {
-    const [exclusions, hcpcs, providers, ndcCodes] = await Promise.all([
-        q("/oig_exclusions?limit=6&select=id,entity_name"),
-        q("/hcpcs_codes?limit=6&select=id,hcpcs_code,short_description"),
-        q("/providers?limit=4&select=id,first_name,last_name,credential,status"),
-        q("/ndc_codes?limit=4&select=id,ndc_code,proprietary_name,manufacturer")
-    ]);
-    return { exclusions, hcpcs, providers, ndcCodes, center: { name: "Compliance Hub" } };
-}
-
-async function loadExplorerData() {
-    const [providers, drugs, diagnoses, trials, hcpcs, exclusions, pubs] = await Promise.all([
-        q("/providers?limit=4&select=id,first_name,last_name,credential"),
-        q("/drugs?limit=4&select=id,name,drug_class"),
-        q("/icd10_cm_codes?limit=4&select=id,code,description"),
-        q("/clinical_trials?limit=3&select=id,title,status,phase"),
-        q("/hcpcs_codes?limit=3&select=id,hcpcs_code,short_description"),
-        q("/oig_exclusions?limit=3&select=id,entity_name"),
-        q("/pubmed_citations?limit=3&select=id")
-    ]);
-    return { providers, drugs, diagnoses, trials, hcpcs, exclusions, pubs };
-}
-
-// ========== COMPONENTS ==========
-
-function LanesScreen({ onSelect, stats }) {
-    return e("div", { className: "lanes-screen" },
-        e("img", { className: "lanes-logo", src: "assets/logo-transparent.png", alt: "HKG" }),
-        e("h1", { className: "lanes-title" }, "Health Knowledge Garden"),
-        e("p", { className: "lanes-sub" }, "How can we help you today?"),
-        e("div", { className: "lanes-grid" },
-            Object.values(LANES).map(function(ln) {
-                return e("div", { key: ln.id, className: "lane-card " + ln.id, onClick: function() { onSelect(ln.id); } },
-                    e("div", { className: "lane-icon" }, ln.icon),
-                    e("h2", null, ln.title),
-                    e("p", { style: { fontSize: "0.85rem", marginBottom: "0.4rem" } }, ln.sub),
-                    e("p", null, ln.desc)
-                );
-            })
-        ),
-        e("div", { className: "lanes-stat" },
-            e("strong", null, stats.total.toLocaleString()),
-            " entities across 10 federal sources"
-        )
-    );
-}
-
-function EntityCard({ item, type, color, onExpand, expanded }) {
-    var name = "";
-    var detail = "";
-    var meta = "";
-    if (type === "provider") {
-        name = (item.first_name || "") + " " + (item.last_name || "");
-        detail = item.credential || "";
-        meta = item.status || "";
-    } else if (type === "drug") {
-        name = item.name || "";
-        detail = item.drug_class || "";
-        meta = item.dosage_form || "";
-    } else if (type === "diagnosis") {
-        name = item.code || "";
-        detail = item.description || "";
-        meta = item.is_billable ? "Billable" : "";
-    } else if (type === "trial") {
-        name = (item.title || "").substring(0, 80);
-        detail = item.phase || "";
-        meta = item.status || "";
-    } else if (type === "code") {
-        name = item.hcpcs_code || ("Code " + item.id);
-        detail = item.short_description || "";
-    } else if (type === "exclusion") {
-        name = item.entity_name || ("Exclusion " + item.id);
-    } else if (type === "ndc") {
-        name = item.proprietary_name || item.ndc_code || "";
-        detail = item.manufacturer || "";
-    } else if (type === "taxonomy") {
-        name = item.taxonomy_description || ("Taxonomy " + item.taxonomy_code);
-        detail = item.license_state ? "Licensed: " + item.license_state : "";
-        meta = item.is_primary ? "Primary" : "";
-    }
-
-    return e("div", { className: "entity-card" + (expanded ? " expanded" : ""), onClick: function() { onExpand(item, type); } },
-        e("div", { className: "ec-name" },
-            e("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 } }),
-            name,
-            e("span", { className: "badge " + type }, type)
-        ),
-        detail ? e("div", { className: "ec-detail" }, detail) : null,
-        meta ? e("div", { className: "ec-meta" }, meta) : null,
-        expanded ? e(ExpandedDetail, { item: item, type: type }) : null
-    );
-}
-
-function ExpandedDetail({ item, type }) {
-    var rows = [];
-    Object.keys(item).forEach(function(k) {
-        if (k === "id") return;
-        var v = item[k];
-        if (v !== null && v !== undefined && v !== "") {
-            rows.push(e("div", { className: "expand-row", key: k },
-                e("span", { className: "expand-label" }, k.replace(/_/g, " ")),
-                e("span", { className: "expand-val" }, String(v).substring(0, 200))
-            ));
-        }
+function loadClinician(){
+    return Promise.all([
+        q("/providers?credential=ilike.%25M.D.%25&limit=8&select=id,first_name,last_name,credential,status"),
+        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25lisinopril%25,name.ilike.%25atorvastatin%25,name.ilike.%25amlodipine%25)&limit=6&select=id,name,drug_class,dosage_form"),
+        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.I10,code.eq.J449,code.eq.M545,code.eq.F329,code.eq.N390,code.eq.K219,code.eq.G4709)&select=id,code,description,is_billable"),
+        q("/clinical_trials?status=ilike.%25recruiting%25&limit=4&select=id,title,status,phase,sponsor")
+    ]).then(function(r){
+        var d={providers:r[0],drugs:r[1],diagnoses:r[2],trials:r[3],taxonomies:[],rels:[]};
+        d.providers.slice(0,3).forEach(function(p){d.diagnoses.slice(0,2).forEach(function(dx){d.rels.push({from:p.last_name,ft:"provider",to:dx.code,tt:"diagnosis",label:"treats"})})});
+        d.providers.slice(0,2).forEach(function(p){d.drugs.slice(0,2).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:dr.name.split(" ")[0],tt:"drug",label:"prescribes"})})});
+        d.drugs.slice(0,3).forEach(function(dr,i){if(d.diagnoses[i])d.rels.push({from:dr.name.split(" ")[0],ft:"drug",to:d.diagnoses[i].code,tt:"diagnosis",label:"indicated for"})});
+        d.trials.slice(0,2).forEach(function(t){if(d.providers[0])d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.title||"").substring(0,25)+"..",tt:"trial",label:"enrolls in"})});
+        if(d.providers.length>0){return q("/provider_taxonomies?provider_id=eq."+d.providers[0].id+"&limit=4&select=id,taxonomy_code,taxonomy_description,license_state,is_primary").then(function(tx){d.taxonomies=tx;tx.forEach(function(t){d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.taxonomy_description||t.taxonomy_code||"").substring(0,25),tt:"taxonomy",label:"specializes"})});return d})}
+        return d;
     });
-    return e("div", { className: "expand-panel" }, rows);
 }
 
-function HubSection({ title, color, count, items, type, expandedId, onExpand }) {
-    return e("div", { className: "hub-section" },
-        e("div", { className: "hub-header" },
-            e("div", { className: "hub-dot", style: { background: color } }),
-            e("h3", null, title),
-            count > 0 ? e("span", { className: "hub-count" }, count.toLocaleString() + " total in database") : null
-        ),
-        e("div", { className: "entity-grid" },
-            items.map(function(item, idx) {
-                var id = item.id || idx;
-                return e(EntityCard, {
-                    key: type + "-" + id,
-                    item: item,
-                    type: type,
-                    color: color,
-                    expanded: expandedId === (type + "-" + id),
-                    onExpand: function() { onExpand(type + "-" + id); }
-                });
-            })
-        )
+function loadPatient(){
+    return Promise.all([
+        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.E1165,code.eq.E1122,code.eq.E1140,code.eq.E1151,code.eq.E1121)&select=id,code,description,is_billable"),
+        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25insulin%25,name.ilike.%25glipizide%25,name.ilike.%25sitagliptin%25)&limit=6&select=id,name,drug_class,dosage_form"),
+        q("/providers?credential=ilike.%25M.D.%25&limit=5&select=id,first_name,last_name,credential"),
+        q("/clinical_trials?title=ilike.%25diabetes%25&limit=4&select=id,title,status,phase,sponsor")
+    ]).then(function(r){
+        var d={diagnoses:r[0],drugs:r[1],providers:r[2],trials:r[3],rels:[]};
+        var c="Type 2 Diabetes";
+        d.diagnoses.forEach(function(dx){d.rels.push({from:c,ft:"diagnosis",to:dx.code+": "+dx.description.substring(0,20),tt:"diagnosis",label:"includes"})});
+        d.drugs.forEach(function(dr){d.rels.push({from:c,ft:"diagnosis",to:dr.name.split(" ")[0],tt:"drug",label:"treated with"})});
+        d.providers.slice(0,3).forEach(function(p){d.rels.push({from:c,ft:"diagnosis",to:"Dr. "+p.last_name,tt:"provider",label:"consult"})});
+        d.trials.forEach(function(t){d.rels.push({from:c,ft:"diagnosis",to:(t.title||"").substring(0,25)+"..",tt:"trial",label:"research"})});
+        return d;
+    });
+}
+
+function loadOperations(){
+    return Promise.all([
+        q("/oig_exclusions?limit=6&select=id,entity_name"),
+        q("/hcpcs_codes?limit=6&select=id,code,description,code_type"),
+        q("/providers?limit=5&select=id,first_name,last_name,credential,status"),
+        q("/ndc_codes?limit=5&select=id,ndc_code,proprietary_name,manufacturer")
+    ]).then(function(r){
+        var d={exclusions:r[0],hcpcs:r[1],providers:r[2],ndcCodes:r[3],rels:[]};
+        var c="Compliance Hub";
+        d.exclusions.slice(0,3).forEach(function(ex){d.rels.push({from:c,ft:"code",to:ex.entity_name,tt:"exclusion",label:"excluded"})});
+        d.hcpcs.slice(0,3).forEach(function(cd){d.rels.push({from:c,ft:"code",to:cd.code,tt:"code",label:"billing"})});
+        d.providers.slice(0,3).forEach(function(p){d.rels.push({from:c,ft:"code",to:p.last_name,tt:"provider",label:"monitors"})});
+        d.ndcCodes.slice(0,2).forEach(function(n){d.rels.push({from:c,ft:"code",to:(n.proprietary_name||"").substring(0,20),tt:"ndc",label:"tracks"})});
+        if(d.providers[0]&&d.exclusions[0])d.rels.push({from:d.providers[0].last_name,ft:"provider",to:d.exclusions[0].entity_name,tt:"exclusion",label:"screen against"});
+        return d;
+    });
+}
+
+function loadExplorer(){
+    return Promise.all([
+        q("/providers?limit=5&select=id,first_name,last_name,credential"),
+        q("/drugs?limit=5&select=id,name,drug_class"),
+        q("/icd10_cm_codes?limit=5&select=id,code,description"),
+        q("/clinical_trials?limit=4&select=id,title,status,phase"),
+        q("/hcpcs_codes?limit=4&select=id,code,description"),
+        q("/oig_exclusions?limit=4&select=id,entity_name"),
+        q("/ndc_codes?limit=3&select=id,ndc_code,proprietary_name,manufacturer"),
+        q("/pubmed_citations?limit=3&select=id")
+    ]).then(function(r){
+        var d={providers:r[0],drugs:r[1],diagnoses:r[2],trials:r[3],hcpcs:r[4],exclusions:r[5],ndcCodes:r[6],pubs:r[7],rels:[]};
+        d.rels.push({from:"Providers",ft:"provider",to:"Diagnoses",tt:"diagnosis",label:"treat"});
+        d.rels.push({from:"Providers",ft:"provider",to:"Drugs",tt:"drug",label:"prescribe"});
+        d.rels.push({from:"Drugs",ft:"drug",to:"Diagnoses",tt:"diagnosis",label:"indicated for"});
+        d.rels.push({from:"Drugs",ft:"drug",to:"NDC Codes",tt:"ndc",label:"identified by"});
+        d.rels.push({from:"Trials",ft:"trial",to:"Providers",tt:"provider",label:"enroll"});
+        d.rels.push({from:"Trials",ft:"trial",to:"Drugs",tt:"drug",label:"investigate"});
+        d.rels.push({from:"OIG Exclusions",ft:"exclusion",to:"Providers",tt:"provider",label:"screen"});
+        d.rels.push({from:"HCPCS Codes",ft:"code",to:"Providers",tt:"provider",label:"bill for"});
+        d.providers.slice(0,2).forEach(function(p){d.drugs.slice(0,1).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:dr.name.split(" ")[0],tt:"drug",label:"prescribes"})})});
+        return d;
+    });
+}
+
+// SVG Relationship Map
+function RelMap(props){
+    var rels=props.rels||[];
+    if(rels.length===0)return null;
+    var nm={};
+    rels.forEach(function(r){if(!nm[r.from])nm[r.from]={label:r.from,type:r.ft};if(!nm[r.to])nm[r.to]={label:r.to,type:r.tt}});
+    var nodes=Object.keys(nm).map(function(k){return nm[k]});
+    var W=900,HH=Math.max(420,nodes.length*28);
+    var cx=W/2,cy=HH/2,rad=Math.min(cx,cy)-70;
+    nodes.forEach(function(n,i){var a=2*Math.PI*i/nodes.length-Math.PI/2;n.x=cx+rad*Math.cos(a);n.y=cy+rad*Math.sin(a)});
+    var lines=[],labels=[],nodeEls=[];
+    rels.forEach(function(r,i){
+        var f=nm[r.from],t=nm[r.to];if(!f||!t)return;
+        var mx=(f.x+t.x)/2,my=(f.y+t.y)/2,dx=t.x-f.x,dy=t.y-f.y;
+        var cpx=mx+(-dy*0.15),cpy=my+(dx*0.15);
+        lines.push(h("path",{key:"l"+i,d:"M"+f.x+","+f.y+" Q"+cpx+","+cpy+" "+t.x+","+t.y,fill:"none",stroke:"rgba(255,255,255,0.1)",strokeWidth:1.5}));
+        var lx=(f.x+cpx+t.x)/3,ly=(f.y+cpy+t.y)/3;
+        labels.push(h("text",{key:"el"+i,x:lx,y:ly,fill:"rgba(255,255,255,0.35)",fontSize:9.5,textAnchor:"middle",fontFamily:"'DM Sans',sans-serif"},r.label));
+    });
+    nodes.forEach(function(n,i){
+        var col=COLORS[n.type]||"#888";
+        var tw=Math.max(55,Math.min(n.label.length*6.5+16,150)),th=26;
+        nodeEls.push(h("g",{key:"n"+i},
+            h("rect",{x:n.x-tw/2,y:n.y-th/2,width:tw,height:th,rx:5,fill:"rgba(13,13,20,0.9)",stroke:col,strokeWidth:1.5}),
+            h("text",{x:n.x,y:n.y+4,fill:"#fff",fontSize:10.5,textAnchor:"middle",fontFamily:"'DM Sans',sans-serif",fontWeight:600},n.label.length>24?n.label.substring(0,22)+"..":n.label)
+        ));
+    });
+    return h("div",{className:"rel-map"},h("svg",{viewBox:"0 0 "+W+" "+HH,xmlns:"http://www.w3.org/2000/svg"},lines,labels,nodeEls));
+}
+
+function ECard(props){
+    var item=props.item,type=props.type,color=props.color,expanded=props.expanded,onClick=props.onClick;
+    var name="",detail="",meta="";
+    if(type==="provider"){name=(item.first_name||"")+" "+(item.last_name||"");detail=item.credential||"";meta=item.status||""}
+    else if(type==="drug"){name=item.name||"";detail=item.drug_class||"";meta=item.dosage_form||""}
+    else if(type==="diagnosis"){name=item.code||"";detail=item.description||"";meta=item.is_billable?"Billable":""}
+    else if(type==="trial"){name=(item.title||"").substring(0,70);detail=(item.phase||"")+(item.sponsor?" - "+item.sponsor:"");meta=item.status||""}
+    else if(type==="code"){name=item.code||"Code";detail=item.description||"";meta=item.code_type||""}
+    else if(type==="exclusion"){name=item.entity_name||""}
+    else if(type==="ndc"){name=item.proprietary_name||item.ndc_code||"";detail=item.manufacturer||"";meta=item.ndc_code||""}
+    else if(type==="taxonomy"){name=item.taxonomy_description||item.taxonomy_code||"";detail=item.license_state?"License: "+item.license_state:"";meta=item.is_primary?"Primary":""}
+    var rows=null;
+    if(expanded){var rr=[];Object.keys(item).forEach(function(k){if(k==="id")return;var v=item[k];if(v!==null&&v!==undefined&&v!=="")rr.push(h("div",{className:"exp-row",key:k},h("span",{className:"exp-lbl"},k.replace(/_/g," ")),h("span",{className:"exp-val"},String(v).substring(0,200))))});rows=h("div",{className:"exp-panel"},rr)}
+    return h("div",{className:"ecard"+(expanded?" expanded":""),onClick:onClick},
+        h("div",{className:"ec-name"},h("span",{className:"ec-dot",style:{background:color}}),name,h("span",{className:"badge b-"+type},type)),
+        detail?h("div",{className:"ec-detail"},detail):null,
+        meta?h("div",{className:"ec-meta"},meta):null,
+        rows
     );
 }
 
-function ClinicianView({ data, counts, expandedId, onExpand }) {
-    var center = data.center;
-    var conns = [];
-    if (center) {
-        data.diagnoses.forEach(function(d) { conns.push({ label: center.last_name + " treats " + d.code, color: COLORS.diagnosis }); });
-        data.drugs.forEach(function(d) { conns.push({ label: center.last_name + " prescribes " + d.name.split(" ")[0], color: COLORS.drug }); });
-        data.trials.forEach(function(t) { conns.push({ label: center.last_name + " → " + (t.title||"").substring(0, 30), color: COLORS.trial }); });
-    }
-
-    return e("div", { className: "relationship-map" },
-        e("div", { className: "intro-card" },
-            e("h3", null, "Clinician View"),
-            e("p", null, "Showing how providers connect to diagnoses, medications, specialties, and clinical trials. Click any card to see full details."),
-            conns.length > 0 ? e("div", { className: "connections", style: { marginTop: "1rem", textAlign: "left" } },
-                e("div", { style: { fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" } }, "Relationships discovered:"),
-                conns.map(function(c, i) {
-                    return e("div", { className: "conn-item", key: i },
-                        e("span", { className: "conn-dot", style: { background: c.color } }),
-                        c.label
-                    );
-                })
-            ) : null
-        ),
-        e(HubSection, { title: "Providers", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
-        data.taxonomies && data.taxonomies.length > 0 ? e(HubSection, { title: "Specialties", color: COLORS.taxonomy, count: counts.provider_taxonomies || 0, items: data.taxonomies, type: "taxonomy", expandedId: expandedId, onExpand: onExpand }) : null,
-        e(HubSection, { title: "Diagnoses", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Medications", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Clinical Trials", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand })
+function Hub(props){
+    var items=props.items;if(!items||items.length===0)return null;
+    return h("div",{className:"hub"},
+        h("div",{className:"hub-hdr"},h("div",{className:"hub-dot",style:{background:props.color}}),h("h3",null,props.title),props.count>0?h("span",{className:"hub-cnt"},props.count.toLocaleString()+" in database"):null),
+        h("div",{className:"egrid"},items.map(function(item,i){var id=props.type+"-"+(item.id||i);return h(ECard,{key:id,item:item,type:props.type,color:props.color,expanded:props.expandedId===id,onClick:function(){props.onExpand(id)}})}))
     );
 }
 
-function PatientView({ data, counts, expandedId, onExpand }) {
-    var conns = [];
-    data.drugs.forEach(function(d) { conns.push({ label: "Type 2 Diabetes → treated with " + d.name.split(" ")[0], color: COLORS.drug }); });
-    data.providers.forEach(function(p) { conns.push({ label: "Consult Dr. " + p.last_name, color: COLORS.provider }); });
-    data.trials.forEach(function(t) { conns.push({ label: "Research: " + (t.title || "").substring(0, 35), color: COLORS.trial }); });
-
-    return e("div", { className: "relationship-map" },
-        e("div", { className: "intro-card" },
-            e("h3", null, "Patient View — Type 2 Diabetes (E11.9)"),
-            e("p", null, "Starting from a diagnosis, see available medications, specialists who can help, related conditions, and active research."),
-            e("div", { className: "connections", style: { marginTop: "1rem", textAlign: "left" } },
-                e("div", { style: { fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" } }, "Care pathways:"),
-                conns.map(function(c, i) {
-                    return e("div", { className: "conn-item", key: i },
-                        e("span", { className: "conn-dot", style: { background: c.color } }),
-                        c.label
-                    );
-                })
-            )
-        ),
-        e(HubSection, { title: "Related Diagnoses", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Medications", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Specialists", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Active Research", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand })
-    );
+function LaneContent(props){
+    var lane=props.lane,d=props.data,c=props.counts||{},eid=props.expandedId,onExp=props.onExpand,vm=props.viewMode;
+    if(!d)return null;
+    var rm=h(RelMap,{rels:d.rels});
+    if(vm==="graph")return h("div",null,rm);
+    if(lane==="clinician")return h("div",null,rm,h(Hub,{title:"Providers",color:COLORS.provider,count:c.providers,items:d.providers,type:"provider",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Specialties",color:COLORS.taxonomy,count:c.provider_taxonomies,items:d.taxonomies,type:"taxonomy",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Diagnoses",color:COLORS.diagnosis,count:c.icd10_cm_codes,items:d.diagnoses,type:"diagnosis",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Medications",color:COLORS.drug,count:c.drugs,items:d.drugs,type:"drug",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Clinical Trials",color:COLORS.trial,count:c.clinical_trials,items:d.trials,type:"trial",expandedId:eid,onExpand:onExp}));
+    if(lane==="patient")return h("div",null,rm,h(Hub,{title:"Related Diagnoses",color:COLORS.diagnosis,count:c.icd10_cm_codes,items:d.diagnoses,type:"diagnosis",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Medications",color:COLORS.drug,count:c.drugs,items:d.drugs,type:"drug",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Specialists",color:COLORS.provider,count:c.providers,items:d.providers,type:"provider",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Active Research",color:COLORS.trial,count:c.clinical_trials,items:d.trials,type:"trial",expandedId:eid,onExpand:onExp}));
+    if(lane==="operations")return h("div",null,rm,h(Hub,{title:"OIG Exclusions",color:COLORS.exclusion,count:c.oig_exclusions,items:d.exclusions,type:"exclusion",expandedId:eid,onExpand:onExp}),h(Hub,{title:"HCPCS Billing Codes",color:COLORS.code,count:c.hcpcs_codes,items:d.hcpcs,type:"code",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Providers",color:COLORS.provider,count:c.providers,items:d.providers,type:"provider",expandedId:eid,onExpand:onExp}),h(Hub,{title:"NDC Product Codes",color:COLORS.ndc,count:c.ndc_codes,items:d.ndcCodes,type:"ndc",expandedId:eid,onExpand:onExp}));
+    return h("div",null,rm,h(Hub,{title:"Providers",color:COLORS.provider,count:c.providers,items:d.providers,type:"provider",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Drugs",color:COLORS.drug,count:c.drugs,items:d.drugs,type:"drug",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Diagnoses (ICD-10)",color:COLORS.diagnosis,count:c.icd10_cm_codes,items:d.diagnoses,type:"diagnosis",expandedId:eid,onExpand:onExp}),h(Hub,{title:"Clinical Trials",color:COLORS.trial,count:c.clinical_trials,items:d.trials,type:"trial",expandedId:eid,onExpand:onExp}),h(Hub,{title:"HCPCS Codes",color:COLORS.code,count:c.hcpcs_codes,items:d.hcpcs,type:"code",expandedId:eid,onExpand:onExp}),h(Hub,{title:"OIG Exclusions",color:COLORS.exclusion,count:c.oig_exclusions,items:d.exclusions,type:"exclusion",expandedId:eid,onExpand:onExp}),h(Hub,{title:"NDC Product Codes",color:COLORS.ndc,count:c.ndc_codes,items:d.ndcCodes,type:"ndc",expandedId:eid,onExpand:onExp}));
 }
 
-function OperationsView({ data, counts, expandedId, onExpand }) {
-    return e("div", { className: "relationship-map" },
-        e("div", { className: "intro-card" },
-            e("h3", null, "Operations View — Compliance & Billing"),
-            e("p", null, "Screen providers against exclusion lists, audit billing codes, verify credentials, and track NDC codes across your network.")
-        ),
-        e(HubSection, { title: "OIG Exclusions", color: COLORS.exclusion, count: counts.oig_exclusions || 0, items: data.exclusions, type: "exclusion", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "HCPCS Billing Codes", color: COLORS.code, count: counts.hcpcs_codes || 0, items: data.hcpcs, type: "code", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Providers to Monitor", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "NDC Codes", color: "#8B5CF6", count: counts.ndc_codes || 0, items: data.ndcCodes, type: "ndc", expandedId: expandedId, onExpand: onExpand })
-    );
-}
+function AppScreen(props){
+    var lane=props.lane,onBack=props.onBack,stats=props.stats,ln=LANES[lane];
+    var s1=useState(null),data=s1[0],setData=s1[1];
+    var s2=useState(true),loading=s2[0],setLoading=s2[1];
+    var s3=useState(""),sq=s3[0],setSQ=s3[1];
+    var s4=useState([]),sResults=s4[0],setSR=s4[1];
+    var s5=useState(false),showDrop=s5[0],setSD=s5[1];
+    var s6=useState(null),eid=s6[0],setEid=s6[1];
+    var s7=useState("all"),vm=s7[0],setVM=s7[1];
+    var tmr=useRef(null);
 
-function ExplorerView({ data, counts, expandedId, onExpand }) {
-    return e("div", { className: "relationship-map" },
-        e("div", { className: "intro-card" },
-            e("h3", null, "Explorer View — The Full Garden"),
-            e("p", null, "Browse across all data categories. Every entity is connected. Every source is federal, verified, and updated.")
-        ),
-        e(HubSection, { title: "Providers", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Drugs", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Diagnoses (ICD-10)", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "Clinical Trials", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "HCPCS Codes", color: COLORS.code, count: counts.hcpcs_codes || 0, items: data.hcpcs, type: "code", expandedId: expandedId, onExpand: onExpand }),
-        e(HubSection, { title: "OIG Exclusions", color: COLORS.exclusion, count: counts.oig_exclusions || 0, items: data.exclusions, type: "exclusion", expandedId: expandedId, onExpand: onExpand })
-    );
-}
+    useEffect(function(){
+        setLoading(true);setData(null);
+        var fn=lane==="clinician"?loadClinician:lane==="patient"?loadPatient:lane==="operations"?loadOperations:loadExplorer;
+        fn().then(function(d){setData(d);setLoading(false)}).catch(function(e){console.error(e);setLoading(false)});
+    },[lane]);
 
-function AppScreen({ lane, onBack, stats }) {
-    var ln = LANES[lane];
-    var ref = useState(null); var data = ref[0]; var setData = ref[1];
-    var ref2 = useState(true); var loading = ref2[0]; var setLoading = ref2[1];
-    var ref3 = useState(""); var searchQuery = ref3[0]; var setSearchQuery = ref3[1];
-    var ref4 = useState([]); var searchResults = ref4[0]; var setSearchResults = ref4[1];
-    var ref5 = useState(false); var showDrop = ref5[0]; var setShowDrop = ref5[1];
-    var ref6 = useState(null); var expandedId = ref6[0]; var setExpandedId = ref6[1];
-    var searchTimer = useRef(null);
-
-    useEffect(function() {
-        setLoading(true);
-        var loader = lane === "clinician" ? loadClinicianData :
-                     lane === "patient" ? loadPatientData :
-                     lane === "operations" ? loadOperationsData : loadExplorerData;
-        loader().then(function(d) { setData(d); setLoading(false); })
-               .catch(function(err) { console.error(err); setLoading(false); });
-    }, [lane]);
-
-    function handleExpand(id) {
-        setExpandedId(expandedId === id ? null : id);
-    }
-
-    function handleSearch(val) {
-        setSearchQuery(val);
-        if (searchTimer.current) clearTimeout(searchTimer.current);
-        if (val.length < 2) { setSearchResults([]); setShowDrop(false); return; }
-        searchTimer.current = setTimeout(function() {
-            var term = "ilike.%25" + encodeURIComponent(val) + "%25";
+    function doSearch(val){
+        setSQ(val);if(tmr.current)clearTimeout(tmr.current);
+        if(val.length<2){setSR([]);setSD(false);return}
+        tmr.current=setTimeout(function(){
+            var t="ilike.%25"+encodeURIComponent(val)+"%25";
             Promise.all([
-                q("/providers?or=(first_name." + term + ",last_name." + term + ")&limit=3&select=id,first_name,last_name,credential").catch(function(){return[];}),
-                q("/drugs?name." + term + "&limit=3&select=id,name,drug_class").catch(function(){return[];}),
-                q("/icd10_cm_codes?or=(code." + term + ",description." + term + ")&limit=3&select=id,code,description").catch(function(){return[];}),
-                q("/clinical_trials?title." + term + "&limit=2&select=id,title,status").catch(function(){return[];})
-            ]).then(function(results) {
-                var all = [];
-                results[0].forEach(function(p) { all.push({ name: p.first_name + " " + p.last_name, detail: p.credential, type: "provider", data: p }); });
-                results[1].forEach(function(d) { all.push({ name: d.name, detail: d.drug_class, type: "drug", data: d }); });
-                results[2].forEach(function(d) { all.push({ name: d.code, detail: d.description, type: "diagnosis", data: d }); });
-                results[3].forEach(function(t) { all.push({ name: (t.title||"").substring(0, 60), detail: t.status, type: "trial", data: t }); });
-                setSearchResults(all.slice(0, 10));
-                setShowDrop(true);
+                q("/providers?or=(first_name."+t+",last_name."+t+")&limit=3&select=id,first_name,last_name,credential"),
+                q("/drugs?name."+t+"&limit=3&select=id,name,drug_class,dosage_form"),
+                q("/icd10_cm_codes?or=(code."+t+",description."+t+")&limit=3&select=id,code,description,is_billable"),
+                q("/clinical_trials?title."+t+"&limit=2&select=id,title,status,phase,sponsor"),
+                q("/hcpcs_codes?or=(code."+t+",description."+t+")&limit=2&select=id,code,description"),
+                q("/oig_exclusions?entity_name."+t+"&limit=2&select=id,entity_name"),
+                q("/ndc_codes?or=(proprietary_name."+t+",manufacturer."+t+")&limit=2&select=id,ndc_code,proprietary_name,manufacturer")
+            ]).then(function(res){
+                var all=[];
+                res[0].forEach(function(p){all.push({name:p.first_name+" "+p.last_name,detail:p.credential,type:"provider",data:p})});
+                res[1].forEach(function(d){all.push({name:d.name,detail:d.drug_class,type:"drug",data:d})});
+                res[2].forEach(function(d){all.push({name:d.code,detail:d.description,type:"diagnosis",data:d})});
+                res[3].forEach(function(t){all.push({name:(t.title||"").substring(0,55),detail:t.status,type:"trial",data:t})});
+                res[4].forEach(function(c){all.push({name:c.code,detail:c.description,type:"code",data:c})});
+                res[5].forEach(function(x){all.push({name:x.entity_name,detail:"OIG Exclusion",type:"exclusion",data:x})});
+                res[6].forEach(function(n){all.push({name:n.proprietary_name||n.ndc_code,detail:n.manufacturer,type:"ndc",data:n})});
+                setSR(all.slice(0,12));setSD(true);
             });
-        }, 300);
+        },250);
     }
 
-    function handleSelectResult(result) {
-        setSearchQuery("");
-        setShowDrop(false);
-        // Add to current data
-        if (data) {
-            var newData = Object.assign({}, data);
-            if (result.type === "provider") {
-                newData.providers = (newData.providers || []).concat([result.data]);
-            } else if (result.type === "drug") {
-                newData.drugs = (newData.drugs || []).concat([result.data]);
-            } else if (result.type === "diagnosis") {
-                newData.diagnoses = (newData.diagnoses || []).concat([result.data]);
-            } else if (result.type === "trial") {
-                newData.trials = (newData.trials || []).concat([result.data]);
-            }
-            setData(newData);
-        }
+    function pickResult(sr){
+        setSQ("");setSD(false);if(!data)return;
+        var nd=Object.assign({},data);
+        if(sr.type==="provider")nd.providers=(nd.providers||[]).concat([sr.data]);
+        else if(sr.type==="drug")nd.drugs=(nd.drugs||[]).concat([sr.data]);
+        else if(sr.type==="diagnosis")nd.diagnoses=(nd.diagnoses||[]).concat([sr.data]);
+        else if(sr.type==="trial")nd.trials=(nd.trials||[]).concat([sr.data]);
+        else if(sr.type==="code")nd.hcpcs=(nd.hcpcs||[]).concat([sr.data]);
+        else if(sr.type==="exclusion")nd.exclusions=(nd.exclusions||[]).concat([sr.data]);
+        else if(sr.type==="ndc")nd.ndcCodes=(nd.ndcCodes||[]).concat([sr.data]);
+        setData(nd);
     }
 
-    var placeholders = {
-        clinician: "Search providers, drugs, ICD-10 codes...",
-        patient: "Search conditions, medications, doctors...",
-        operations: "Search HCPCS, OIG exclusions, NDC codes...",
-        explorer: "Search anything across 1.1M records..."
-    };
+    var ph={clinician:"Search providers, drugs, ICD-10 codes, trials...",patient:"Search conditions, medications, doctors...",operations:"Search HCPCS, OIG exclusions, NDC codes...",explorer:"Search anything across 1M+ records..."};
 
-    var view = null;
-    if (loading) {
-        view = e("div", { className: "loading-row" }, e("span",{className:"dot"}), e("span",{className:"dot"}), e("span",{className:"dot"}), " Loading " + ln.title + " data...");
-    } else if (data) {
-        if (lane === "clinician") view = e(ClinicianView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
-        else if (lane === "patient") view = e(PatientView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
-        else if (lane === "operations") view = e(OperationsView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
-        else view = e(ExplorerView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
-    }
-
-    return e("div", { className: "app" },
-        e("div", { className: "topbar" },
-            e("img", { className: "topbar-logo", src: "assets/logo-transparent.png", alt: "HKG" }),
-            e("span", { className: "topbar-brand" }, "Health Knowledge Garden"),
-            e("span", { className: "pill " + lane }, ln.icon + " " + ln.title),
-            e("button", { className: "btn", onClick: onBack }, "Switch lane")
+    return h("div",{className:"app"},
+        h("div",{className:"topbar"},
+            h("img",{className:"topbar-logo",src:"assets/logo-transparent.png",alt:"HKG"}),
+            h("span",{className:"topbar-brand"},"Health Knowledge Garden"),
+            h("span",{className:"spacer"}),
+            h("span",{className:"pill pill-"+ln.cls},ln.icon+" "+ln.title),
+            h("button",{className:"btn",onClick:onBack},"Switch Lane")
         ),
-        e("div", { className: "search-bar" },
-            e("div", { className: "search-wrap" },
-                e("input", {
-                    className: "search-input",
-                    type: "text",
-                    placeholder: placeholders[lane],
-                    value: searchQuery,
-                    onChange: function(ev) { handleSearch(ev.target.value); },
-                    onFocus: function() { if (searchQuery.length >= 2) setShowDrop(true); },
-                    onBlur: function() { setTimeout(function() { setShowDrop(false); }, 150); }
-                }),
-                e("div", { className: "search-drop" + (showDrop ? " open" : "") },
-                    searchResults.map(function(sr, i) {
-                        return e("div", { key: i, className: "sr", onMouseDown: function() { handleSelectResult(sr); } },
-                            e("div", { className: "sr-name" }, sr.name, e("span", { className: "badge " + sr.type }, sr.type)),
-                            sr.detail ? e("div", { className: "sr-detail" }, sr.detail) : null
-                        );
-                    }),
-                    searchResults.length === 0 && showDrop ? e("div", { className: "sr", style: { color: "#666" } }, "No results") : null
+        h("div",{className:"view-tabs"},
+            h("button",{className:"btn"+(vm==="all"?" active":""),onClick:function(){setVM("all")}},"Cards + Map"),
+            h("button",{className:"btn"+(vm==="graph"?" active":""),onClick:function(){setVM("graph")}},"Relationship Map"),
+            h("span",{style:{flex:1}}),
+            h("span",{style:{fontSize:"0.72rem",color:"#555"}},"Click cards to expand \u2022 Search to add data")
+        ),
+        h("div",{className:"search-bar"},
+            h("div",{className:"search-wrap"},
+                h("input",{className:"search-input",type:"text",placeholder:ph[lane],value:sq,onChange:function(e){doSearch(e.target.value)},onFocus:function(){if(sq.length>=2)setSD(true)},onBlur:function(){setTimeout(function(){setSD(false)},150)}}),
+                h("div",{className:"sdrop"+(showDrop?" open":"")},
+                    sResults.map(function(sr,i){return h("div",{key:i,className:"sr",onMouseDown:function(){pickResult(sr)}},h("div",{className:"sr-name"},sr.name,h("span",{className:"badge b-"+sr.type},sr.type)),sr.detail?h("div",{className:"sr-detail"},sr.detail):null)}),
+                    sResults.length===0&&showDrop?h("div",{className:"sr",style:{color:"#555"}},"No results"):null
                 )
             )
         ),
-        e("div", { className: "content" }, view),
-        e("div", { className: "stats-bar" },
-            e("div", null, e("div", { className: "stat-num provider" }, (stats.counts.providers || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Providers")),
-            e("div", null, e("div", { className: "stat-num drug" }, (stats.counts.drugs || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Drugs")),
-            e("div", null, e("div", { className: "stat-num diagnosis" }, (stats.counts.icd10_cm_codes || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Diagnoses")),
-            e("div", null, e("div", { className: "stat-num trial" }, (stats.counts.clinical_trials || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Trials")),
-            e("div", null, e("div", { className: "stat-num code" }, (stats.counts.hcpcs_codes || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "HCPCS"))
+        h("div",{className:"content"},
+            loading?h("div",{className:"loading"},h("span",{className:"dot"}),h("span",{className:"dot"}),h("span",{className:"dot"})," Loading..."):
+            h(LaneContent,{lane:lane,data:data,counts:stats.counts,expandedId:eid,onExpand:function(id){setEid(eid===id?null:id)},viewMode:vm})
+        ),
+        h("div",{className:"stats-bar"},
+            h("div",null,h("div",{className:"sn sn-prov"},(stats.counts.providers||0).toLocaleString()),h("div",{className:"sl"},"Providers")),
+            h("div",null,h("div",{className:"sn sn-drug"},(stats.counts.drugs||0).toLocaleString()),h("div",{className:"sl"},"Drugs")),
+            h("div",null,h("div",{className:"sn sn-dx"},(stats.counts.icd10_cm_codes||0).toLocaleString()),h("div",{className:"sl"},"Diagnoses")),
+            h("div",null,h("div",{className:"sn sn-trial"},(stats.counts.clinical_trials||0).toLocaleString()),h("div",{className:"sl"},"Trials")),
+            h("div",null,h("div",{className:"sn sn-code"},(stats.counts.hcpcs_codes||0).toLocaleString()),h("div",{className:"sl"},"HCPCS"))
         )
     );
 }
 
-function App() {
-    var ref = useState(null); var lane = ref[0]; var setLane = ref[1];
-    var ref2 = useState({ total: 1102176, counts: {} }); var stats = ref2[0]; var setStats = ref2[1];
-
-    useEffect(function() {
-        Promise.all([
-            count("providers"), count("drugs"), count("icd10_cm_codes"),
-            count("ndc_codes"), count("clinical_trials"), count("oig_exclusions"),
-            count("pubmed_citations"), count("hcpcs_codes"), count("icd10_pcs_codes"),
-            count("provider_taxonomies")
-        ]).then(function(vals) {
-            var tables = ["providers","drugs","icd10_cm_codes","ndc_codes","clinical_trials","oig_exclusions","pubmed_citations","hcpcs_codes","icd10_pcs_codes","provider_taxonomies"];
-            var c = {}; var t = 0;
-            tables.forEach(function(tbl, i) { c[tbl] = vals[i]; t += vals[i]; });
-            setStats({ total: t, counts: c });
-        }).catch(function(){});
-    }, []);
-
-    if (!lane) {
-        return e(LanesScreen, { onSelect: setLane, stats: stats });
-    }
-    return e(AppScreen, { lane: lane, onBack: function() { setLane(null); }, stats: stats });
+function LanesScreen(props){
+    return h("div",{className:"lanes-screen"},
+        h("img",{className:"lanes-logo",src:"assets/logo-transparent.png",alt:"HKG"}),
+        h("h1",{className:"lanes-title"},"Health Knowledge Garden"),
+        h("p",{className:"lanes-sub"},"How can we help you today?"),
+        h("div",{className:"lanes-grid"},Object.values(LANES).map(function(ln){return h("div",{key:ln.id,className:"lc lc-"+ln.cls,onClick:function(){props.onSelect(ln.id)}},h("div",{className:"lc-icon"},ln.icon),h("h2",null,ln.title),h("p",{style:{marginBottom:"0.3rem",fontSize:"0.82rem"}},ln.sub),h("p",null,ln.desc))})),
+        h("div",{className:"ls"},h("strong",null,props.stats.total.toLocaleString())," entities across 10 federal sources")
+    );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+function App(){
+    var s1=useState(null),lane=s1[0],setLane=s1[1];
+    var s2=useState({total:1102176,counts:{}}),stats=s2[0],setStats=s2[1];
+    useEffect(function(){
+        var tables=["providers","drugs","icd10_cm_codes","ndc_codes","clinical_trials","oig_exclusions","pubmed_citations","hcpcs_codes","icd10_pcs_codes","provider_taxonomies"];
+        Promise.all(tables.map(cnt)).then(function(vals){var c={},t=0;tables.forEach(function(tbl,i){c[tbl]=vals[i];t+=vals[i]});if(t>0)setStats({total:t,counts:c})}).catch(function(){});
+    },[]);
+    if(!lane)return h(LanesScreen,{onSelect:setLane,stats:stats});
+    return h(AppScreen,{lane:lane,onBack:function(){setLane(null)},stats:stats});
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
 </script>
 </body>
 </html>
