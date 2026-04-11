@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Knowledge Garden — The Living Graph for Healthcare</title>
-
-    <!-- OG Meta Tags -->
     <meta property="og:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
     <meta property="og:description" content="725K+ verified entities. Every provider, drug, diagnosis, and clinical trial — connected, verified, queryable in real time.">
     <meta property="og:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
-    <meta property="og:url" content="https://chilly611.github.io/hkg/">
+    <meta property="og:url" content="https://health.theknowledgegardens.com/">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Health Knowledge Garden — The Living Graph for Healthcare">
@@ -17,1446 +15,562 @@
     <meta name="twitter:image" content="https://chilly611.github.io/hkg/assets/og-image.png">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/logo-180.png">
-
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..80,100..700;1,9..80,100..700&display=swap" rel="stylesheet">
-
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0a0a10;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #34D399;
-            border-radius: 4px;
-        }
-
-        html, body, #root {
-            width: 100%;
-            height: 100%;
-        }
-
-        body {
-            background: #06060B;
-            color: #ffffff;
-            font-family: 'DM Sans', sans-serif;
-            overflow: hidden;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Instrument Serif', serif;
-        }
-
-        /* Lanes View */
-        .lanes-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 2rem;
-            overflow-y: auto;
-            background: linear-gradient(135deg, #06060B 0%, #0f0f1a 100%);
-        }
-
-        .lanes-header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1);
-        }
-
-        .lanes-logo {
-            width: 100px;
-            height: 100px;
-            margin-bottom: 1.5rem;
-            opacity: 0.9;
-            animation: fadeIn 0.6s ease;
-        }
-
-        .lanes-title {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #34D399 0%, #22D3EE 50%, #A78BFA 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .lanes-subtitle {
-            font-size: 1.1rem;
-            color: #888;
-            font-weight: 300;
-        }
-
-        .lanes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            width: 100%;
-            max-width: 1200px;
-            margin-bottom: 3rem;
-        }
-
-        .lane-card {
-            padding: 2rem;
-            background: rgba(13, 13, 20, 0.85);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(.22,1,.36,1);
-            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1);
-            animation-fill-mode: both;
-        }
-
-        .lane-card:nth-child(1) { animation-delay: 0.1s; }
-        .lane-card:nth-child(2) { animation-delay: 0.2s; }
-        .lane-card:nth-child(3) { animation-delay: 0.3s; }
-        .lane-card:nth-child(4) { animation-delay: 0.4s; }
-
-        .lane-card:hover {
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .lane-card.clinician { border-left: 4px solid #34D399; }
-        .lane-card.patient { border-left: 4px solid #A78BFA; }
-        .lane-card.operations { border-left: 4px solid #22D3EE; }
-        .lane-card.explorer { border-left: 4px solid #D4A853; }
-
-        .lane-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .lane-card h2 {
-            font-size: 1.4rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .lane-card p {
-            font-size: 0.95rem;
-            color: #aaa;
-            line-height: 1.5;
-        }
-
-        .lanes-stats {
-            padding: 1.5rem 2rem;
-            background: rgba(13, 13, 20, 0.85);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            text-align: center;
-            font-size: 0.95rem;
-            color: #888;
-            animation: slideUp 0.6s cubic-bezier(.22,1,.36,1) 0.5s both;
-        }
-
-        .lanes-stats strong {
-            color: #34D399;
-            font-weight: 600;
-        }
-
-        /* Main App View */
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .app-topbar {
-            padding: 1rem 2rem;
-            background: rgba(13, 13, 20, 0.9);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-            gap: 1rem;
-        }
-
-        .topbar-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex: 1;
-        }
-
-        .topbar-logo {
-            width: 40px;
-            height: 40px;
-            opacity: 0.8;
-        }
-
-        .topbar-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .lane-pill {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            margin-left: auto;
-        }
-
-        .lane-pill.clinician { border-color: #34D399; color: #34D399; }
-        .lane-pill.patient { border-color: #A78BFA; color: #A78BFA; }
-        .lane-pill.operations { border-color: #22D3EE; color: #22D3EE; }
-        .lane-pill.explorer { border-color: #D4A853; color: #D4A853; }
-
-        .switch-lane-btn {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-
-        .switch-lane-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .app-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .search-section {
-            padding: 2rem;
-            background: linear-gradient(180deg, rgba(13, 13, 20, 0.5) 0%, rgba(13, 13, 20, 0) 100%);
-            flex-shrink: 0;
-            position: relative;
-            z-index: 10;
-        }
-
-        .search-wrapper {
-            position: relative;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            background: rgba(13, 13, 20, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            font-family: 'DM Sans', sans-serif;
-            transition: all 0.2s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: rgba(52, 211, 153, 0.5);
-            box-shadow: 0 0 20px rgba(52, 211, 153, 0.1);
-        }
-
-        .search-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            margin-top: 0.5rem;
-            background: rgba(13, 13, 20, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-        }
-
-        .search-dropdown.active {
-            display: block;
-        }
-
-        .search-result {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .search-result:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .search-result-name {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .search-result-detail {
-            font-size: 0.85rem;
-            color: #888;
-        }
-
-        .result-badge {
-            display: inline-block;
-            padding: 0.25rem 0.6rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            font-size: 0.75rem;
-            margin-left: 0.5rem;
-            font-weight: 600;
-        }
-
-        .result-badge.provider { color: #34D399; border: 1px solid #34D399; }
-        .result-badge.drug { color: #F97316; border: 1px solid #F97316; }
-        .result-badge.diagnosis { color: #EF4444; border: 1px solid #EF4444; }
-        .result-badge.trial { color: #D4A853; border: 1px solid #D4A853; }
-        .result-badge.code { color: #22D3EE; border: 1px solid #22D3EE; }
-
-        .graph-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: radial-gradient(circle at 30% 50%, rgba(52, 211, 153, 0.03) 0%, transparent 50%);
-        }
-
-        #graph-canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }
-
-        #graph-canvas:active {
-            cursor: grabbing;
-        }
-
-        .graph-tooltip {
-            position: absolute;
-            background: rgba(13, 13, 20, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 1rem;
-            font-size: 0.9rem;
-            max-width: 300px;
-            pointer-events: none;
-            z-index: 1000;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .tooltip-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .tooltip-detail {
-            color: #888;
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
-        .explanation-card {
-            padding: 1.5rem 2rem;
-            background: rgba(13, 13, 20, 0.85);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            margin: 1.5rem 2rem 0;
-            flex-shrink: 0;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .explanation-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-
-        .explanation-text {
-            font-size: 0.9rem;
-            color: #aaa;
-            line-height: 1.5;
-        }
-
-        .stats-footer {
-            padding: 1.5rem 2rem;
-            background: rgba(13, 13, 20, 0.85);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            flex-shrink: 0;
-            font-size: 0.9rem;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            color: #888;
-            font-size: 0.85rem;
-        }
-
-        .stat-number.provider { color: #34D399; }
-        .stat-number.drug { color: #F97316; }
-        .stat-number.diagnosis { color: #EF4444; }
-        .stat-number.trial { color: #D4A853; }
-        .stat-number.code { color: #22D3EE; }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            color: #888;
-        }
-
-        .loading-dot {
-            width: 8px;
-            height: 8px;
-            background: #34D399;
-            border-radius: 50%;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .loading-dot:nth-child(1) { animation-delay: 0s; }
-        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
-        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .lanes-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .lanes-title {
-                font-size: 2rem;
-            }
-
-            .app-topbar {
-                flex-wrap: wrap;
-                padding: 0.75rem 1rem;
-            }
-
-            .topbar-title {
-                font-size: 0.95rem;
-            }
-
-            .search-section {
-                padding: 1rem;
-            }
-
-            .explanation-card {
-                margin: 1rem;
-            }
-
-            .stats-footer {
-                padding: 1rem;
-                gap: 0.5rem;
-            }
-
-            .stat-number {
-                font-size: 1.1rem;
-            }
-
-            .stat-label {
-                font-size: 0.75rem;
-            }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html, body, #root { width:100%; height:100%; }
+        body { background:#06060B; color:#fff; font-family:'DM Sans',sans-serif; overflow-x:hidden; }
+        h1,h2,h3,h4 { font-family:'Instrument Serif',serif; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-track { background:#0a0a10; }
+        ::-webkit-scrollbar-thumb { background:#34D399; border-radius:3px; }
+
+        /* Lanes Screen */
+        .lanes-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; background:linear-gradient(135deg,#06060B 0%,#0f0f1a 100%); }
+        .lanes-logo { width:80px; height:80px; margin-bottom:1.5rem; opacity:0.9; }
+        .lanes-title { font-size:2.5rem; font-weight:600; margin-bottom:0.5rem; background:linear-gradient(135deg,#34D399 0%,#22D3EE 50%,#A78BFA 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-align:center; }
+        .lanes-sub { font-size:1.1rem; color:#888; margin-bottom:2.5rem; text-align:center; }
+        .lanes-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem; width:100%; max-width:1100px; margin-bottom:2rem; }
+        .lane-card { padding:1.5rem; background:rgba(13,13,20,0.85); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius:12px; cursor:pointer; transition:all 0.3s ease; }
+        .lane-card:hover { border-color:rgba(255,255,255,0.3); transform:translateY(-6px); box-shadow:0 16px 32px rgba(0,0,0,0.4); }
+        .lane-card.clinician { border-left:4px solid #34D399; }
+        .lane-card.patient { border-left:4px solid #A78BFA; }
+        .lane-card.operations { border-left:4px solid #22D3EE; }
+        .lane-card.explorer { border-left:4px solid #D4A853; }
+        .lane-icon { font-size:2rem; margin-bottom:0.75rem; }
+        .lane-card h2 { font-size:1.3rem; margin-bottom:0.25rem; }
+        .lane-card p { font-size:0.9rem; color:#aaa; line-height:1.4; }
+        .lanes-stat { padding:1rem 2rem; background:rgba(13,13,20,0.85); border:1px solid rgba(255,255,255,0.1); border-radius:12px; text-align:center; font-size:0.95rem; color:#888; }
+        .lanes-stat strong { color:#34D399; }
+
+        /* App Layout */
+        .app { display:flex; flex-direction:column; min-height:100vh; }
+        .topbar { padding:0.75rem 1.5rem; background:rgba(13,13,20,0.95); border-bottom:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:1rem; flex-shrink:0; position:sticky; top:0; z-index:100; }
+        .topbar-logo { width:32px; height:32px; opacity:0.8; }
+        .topbar-brand { font-size:1rem; font-weight:600; flex:1; }
+        .pill { padding:0.35rem 0.75rem; border-radius:20px; font-size:0.8rem; border:1px solid; }
+        .pill.clinician { border-color:#34D399; color:#34D399; }
+        .pill.patient { border-color:#A78BFA; color:#A78BFA; }
+        .pill.operations { border-color:#22D3EE; color:#22D3EE; }
+        .pill.explorer { border-color:#D4A853; color:#D4A853; }
+        .btn { padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+        .btn:hover { background:rgba(255,255,255,0.1); }
+
+        /* Search */
+        .search-bar { padding:1.5rem; background:linear-gradient(180deg,rgba(13,13,20,0.6) 0%,transparent 100%); }
+        .search-wrap { position:relative; max-width:600px; margin:0 auto; }
+        .search-input { width:100%; padding:0.85rem 1.25rem; background:rgba(13,13,20,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; font-size:0.95rem; font-family:'DM Sans',sans-serif; }
+        .search-input:focus { outline:none; border-color:rgba(52,211,153,0.5); box-shadow:0 0 16px rgba(52,211,153,0.1); }
+        .search-drop { position:absolute; top:100%; left:0; right:0; margin-top:0.4rem; background:rgba(13,13,20,0.97); border:1px solid rgba(255,255,255,0.12); border-radius:10px; max-height:350px; overflow-y:auto; z-index:200; display:none; }
+        .search-drop.open { display:block; }
+        .sr { padding:0.75rem 1rem; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.15s; }
+        .sr:hover { background:rgba(255,255,255,0.05); }
+        .sr:last-child { border-bottom:none; }
+        .sr-name { font-weight:600; font-size:0.9rem; }
+        .sr-detail { font-size:0.8rem; color:#888; margin-top:0.15rem; }
+        .badge { display:inline-block; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; margin-left:0.5rem; font-weight:600; }
+        .badge.provider { color:#34D399; border:1px solid #34D399; }
+        .badge.drug { color:#F97316; border:1px solid #F97316; }
+        .badge.diagnosis { color:#EF4444; border:1px solid #EF4444; }
+        .badge.trial { color:#D4A853; border:1px solid #D4A853; }
+        .badge.code { color:#22D3EE; border:1px solid #22D3EE; }
+        .badge.exclusion { color:#F472B6; border:1px solid #F472B6; }
+        .badge.taxonomy { color:#A78BFA; border:1px solid #A78BFA; }
+
+        /* Content Area */
+        .content { flex:1; padding:0 1.5rem 2rem; overflow-y:auto; }
+
+        /* Relationship Map */
+        .relationship-map { max-width:1000px; margin:0 auto; }
+        .hub-section { margin-bottom:2rem; }
+        .hub-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.08); }
+        .hub-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+        .hub-header h3 { font-size:1.2rem; flex:1; }
+        .hub-count { font-size:0.85rem; color:#888; }
+
+        /* Entity Cards */
+        .entity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
+        .entity-card { padding:1rem 1.25rem; background:rgba(13,13,20,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:10px; transition:all 0.2s; cursor:pointer; position:relative; }
+        .entity-card:hover { border-color:rgba(255,255,255,0.2); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+        .entity-card.expanded { grid-column:1/-1; }
+        .ec-name { font-weight:600; font-size:0.95rem; margin-bottom:0.3rem; display:flex; align-items:center; gap:0.5rem; }
+        .ec-detail { font-size:0.85rem; color:#999; line-height:1.4; }
+        .ec-meta { font-size:0.75rem; color:#666; margin-top:0.4rem; }
+
+        /* Relationship Lines */
+        .rel-section { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); }
+        .rel-tag { display:inline-block; padding:0.2rem 0.5rem; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.75rem; color:#aaa; margin:0.15rem 0.25rem 0.15rem 0; }
+        .rel-arrow { color:#555; margin:0 0.25rem; }
+
+        /* Stats Footer */
+        .stats-bar { padding:1rem 1.5rem; background:rgba(13,13,20,0.9); border-top:1px solid rgba(255,255,255,0.08); display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:0.75rem; text-align:center; flex-shrink:0; position:sticky; bottom:0; }
+        .stat-num { font-size:1.1rem; font-weight:600; }
+        .stat-num.provider { color:#34D399; }
+        .stat-num.drug { color:#F97316; }
+        .stat-num.diagnosis { color:#EF4444; }
+        .stat-num.trial { color:#D4A853; }
+        .stat-num.code { color:#22D3EE; }
+        .stat-lbl { font-size:0.75rem; color:#888; }
+
+        /* Loading */
+        .loading-row { display:flex; align-items:center; gap:0.5rem; color:#888; padding:1rem; }
+        .dot { width:6px; height:6px; background:#34D399; border-radius:50%; animation:pulse 1.2s ease-in-out infinite; }
+        .dot:nth-child(2) { animation-delay:0.2s; }
+        .dot:nth-child(3) { animation-delay:0.4s; }
+        @keyframes pulse { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
+
+        /* Expand panel */
+        .expand-panel { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); }
+        .expand-row { display:flex; align-items:flex-start; gap:0.5rem; margin-bottom:0.4rem; font-size:0.85rem; }
+        .expand-label { color:#888; min-width:80px; flex-shrink:0; }
+        .expand-val { color:#ccc; }
+
+        /* Connection viz */
+        .connections { margin-top:1rem; }
+        .conn-item { display:inline-flex; align-items:center; gap:0.4rem; padding:0.3rem 0.6rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:6px; font-size:0.8rem; margin:0.25rem; cursor:pointer; transition:all 0.15s; }
+        .conn-item:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15); }
+        .conn-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+        /* Intro card */
+        .intro-card { max-width:800px; margin:0 auto 2rem; padding:1.5rem 2rem; background:rgba(13,13,20,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:12px; text-align:center; }
+        .intro-card h3 { font-size:1.3rem; margin-bottom:0.5rem; }
+        .intro-card p { font-size:0.9rem; color:#aaa; line-height:1.5; }
+
+        @media(max-width:768px) {
+            .lanes-grid { grid-template-columns:1fr; }
+            .lanes-title { font-size:1.8rem; }
+            .entity-grid { grid-template-columns:1fr; }
+            .topbar { flex-wrap:wrap; }
+            .stats-bar { grid-template-columns:repeat(3,1fr); }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"></div>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const e = React.createElement;
+const { useState, useEffect, useRef } = React;
 
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+const API = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
+const H = { apikey: KEY, Authorization: "Bearer " + KEY };
 
-    <script>
-        const SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTgxODUsImV4cCI6MjA5MTI5NDE4NX0.zDAsWg36H0CCTO2wv7HAablyuYkqThAYGX23qcz7uKE";
+async function q(path) {
+    const r = await fetch(API + path, { headers: H });
+    return r.json();
+}
+async function count(table) {
+    const r = await fetch(API + "/" + table + "?select=id&limit=1", { method: "HEAD", headers: { ...H, Prefer: "count=exact" } });
+    const range = r.headers.get("content-range");
+    return range ? parseInt(range.split("/")[1] || "0", 10) : 0;
+}
 
-        const headers = {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`
-        };
+const LANES = {
+    clinician: { id:"clinician", icon:"🏥", title:"Clinician", sub:"I treat patients", desc:"Provider lookup, drug references, diagnosis codes, clinical trials", color:"#34D399" },
+    patient: { id:"patient", icon:"💚", title:"Patient / Caregiver", sub:"I want to understand my health", desc:"Plain-language explanations, find providers, understand medications", color:"#A78BFA" },
+    operations: { id:"operations", icon:"⚙️", title:"Operations", sub:"I manage healthcare systems", desc:"Compliance checks, billing codes, exclusion screening, analytics", color:"#22D3EE" },
+    explorer: { id:"explorer", icon:"🔍", title:"Explorer", sub:"I'm curious about healthcare data", desc:"Browse the full knowledge graph, search everything", color:"#D4A853" }
+};
 
-        const lanes = {
-            clinician: {
-                id: 'clinician',
-                icon: '🏥',
-                title: 'Clinician',
-                subtitle: 'I treat patients',
-                description: 'Provider lookup, drug references, diagnosis codes, clinical trials',
-                color: '#34D399',
-                colorName: 'clinician'
-            },
-            patient: {
-                id: 'patient',
-                icon: '💚',
-                title: 'Patient / Caregiver',
-                subtitle: 'I want to understand my health',
-                description: 'Plain-language explanations, find providers, understand medications',
-                color: '#A78BFA',
-                colorName: 'patient'
-            },
-            operations: {
-                id: 'operations',
-                icon: '⚙️',
-                title: 'Operations',
-                subtitle: 'I manage healthcare systems',
-                description: 'Compliance checks, billing codes, exclusion screening, analytics',
-                color: '#22D3EE',
-                colorName: 'operations'
-            },
-            explorer: {
-                id: 'explorer',
-                icon: '🔍',
-                title: 'Explorer',
-                subtitle: 'I\'m curious about healthcare data',
-                description: 'Browse the full knowledge graph, search everything',
-                color: '#D4A853',
-                colorName: 'explorer'
-            }
-        };
+const COLORS = { provider:"#34D399", drug:"#F97316", diagnosis:"#EF4444", trial:"#D4A853", code:"#22D3EE", exclusion:"#F472B6", taxonomy:"#A78BFA", manufacturer:"#8B5CF6", publication:"#94A3B8" };
 
-        // Fetch entity counts from Supabase
-        async function fetchEntityCounts() {
-            const tables = [
-                'providers', 'drugs', 'icd10_cm_codes', 'ndc_codes',
-                'clinical_trials', 'oig_exclusions', 'pubmed_citations',
-                'hcpcs_codes', 'icd10_pcs_codes', 'provider_taxonomies'
-            ];
+// ========== DATA LOADERS ==========
 
-            const counts = {};
-            const results = await Promise.all(tables.map(table =>
-                fetch(`${SUPABASE_URL}/${table}?select=id&limit=1`, {
-                    method: 'HEAD',
-                    headers: { ...headers, Prefer: 'count=exact' }
-                }).then(r => {
-                    const range = r.headers.get('content-range');
-                    return { table, count: range ? parseInt(range.split('/')[1] || '0', 10) : 0 };
-                }).catch(() => ({ table, count: 0 }))
+async function loadClinicianData() {
+    const [providers, drugs, diagnoses, trials] = await Promise.all([
+        q("/providers?credential=ilike.%25M.D.%25&limit=6&select=id,first_name,last_name,credential,status"),
+        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25lisinopril%25,name.ilike.%25atorvastatin%25)&limit=6&select=id,name,drug_class,dosage_form"),
+        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.I10,code.eq.J449,code.eq.M545,code.eq.F329,code.eq.N390)&select=id,code,description,chapter,is_billable"),
+        q("/clinical_trials?status=ilike.%25active%25&limit=4&select=id,title,status,phase,sponsor")
+    ]);
+    // Get taxonomies for first provider
+    let taxonomies = [];
+    if (providers.length > 0) {
+        taxonomies = await q("/provider_taxonomies?provider_id=eq." + providers[0].id + "&limit=3&select=id,taxonomy_code,taxonomy_description,license_state,is_primary");
+    }
+    return { providers, drugs, diagnoses, trials, taxonomies, center: providers[0] };
+}
+
+async function loadPatientData() {
+    const [drugs, providers, trials, diagnoses] = await Promise.all([
+        q("/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25insulin%25,name.ilike.%25glipizide%25)&limit=6&select=id,name,drug_class,dosage_form"),
+        q("/providers?credential=ilike.%25M.D.%25&limit=4&select=id,first_name,last_name,credential"),
+        q("/clinical_trials?conditions=ilike.%25diabetes%25&limit=3&select=id,title,status,phase"),
+        q("/icd10_cm_codes?or=(code.eq.E119,code.eq.E1165,code.eq.E1122,code.eq.E1140)&select=id,code,description,is_billable")
+    ]);
+    return { drugs, providers, trials, diagnoses, center: { code: "E11.9", description: "Type 2 Diabetes Mellitus" } };
+}
+
+async function loadOperationsData() {
+    const [exclusions, hcpcs, providers, ndcCodes] = await Promise.all([
+        q("/oig_exclusions?limit=6&select=id,entity_name"),
+        q("/hcpcs_codes?limit=6&select=id,hcpcs_code,short_description"),
+        q("/providers?limit=4&select=id,first_name,last_name,credential,status"),
+        q("/ndc_codes?limit=4&select=id,ndc_code,proprietary_name,manufacturer")
+    ]);
+    return { exclusions, hcpcs, providers, ndcCodes, center: { name: "Compliance Hub" } };
+}
+
+async function loadExplorerData() {
+    const [providers, drugs, diagnoses, trials, hcpcs, exclusions, pubs] = await Promise.all([
+        q("/providers?limit=4&select=id,first_name,last_name,credential"),
+        q("/drugs?limit=4&select=id,name,drug_class"),
+        q("/icd10_cm_codes?limit=4&select=id,code,description"),
+        q("/clinical_trials?limit=3&select=id,title,status,phase"),
+        q("/hcpcs_codes?limit=3&select=id,hcpcs_code,short_description"),
+        q("/oig_exclusions?limit=3&select=id,entity_name"),
+        q("/pubmed_citations?limit=3&select=id")
+    ]);
+    return { providers, drugs, diagnoses, trials, hcpcs, exclusions, pubs };
+}
+
+// ========== COMPONENTS ==========
+
+function LanesScreen({ onSelect, stats }) {
+    return e("div", { className: "lanes-screen" },
+        e("img", { className: "lanes-logo", src: "assets/logo-transparent.png", alt: "HKG" }),
+        e("h1", { className: "lanes-title" }, "Health Knowledge Garden"),
+        e("p", { className: "lanes-sub" }, "How can we help you today?"),
+        e("div", { className: "lanes-grid" },
+            Object.values(LANES).map(function(ln) {
+                return e("div", { key: ln.id, className: "lane-card " + ln.id, onClick: function() { onSelect(ln.id); } },
+                    e("div", { className: "lane-icon" }, ln.icon),
+                    e("h2", null, ln.title),
+                    e("p", { style: { fontSize: "0.85rem", marginBottom: "0.4rem" } }, ln.sub),
+                    e("p", null, ln.desc)
+                );
+            })
+        ),
+        e("div", { className: "lanes-stat" },
+            e("strong", null, stats.total.toLocaleString()),
+            " entities across 10 federal sources"
+        )
+    );
+}
+
+function EntityCard({ item, type, color, onExpand, expanded }) {
+    var name = "";
+    var detail = "";
+    var meta = "";
+    if (type === "provider") {
+        name = (item.first_name || "") + " " + (item.last_name || "");
+        detail = item.credential || "";
+        meta = item.status || "";
+    } else if (type === "drug") {
+        name = item.name || "";
+        detail = item.drug_class || "";
+        meta = item.dosage_form || "";
+    } else if (type === "diagnosis") {
+        name = item.code || "";
+        detail = item.description || "";
+        meta = item.is_billable ? "Billable" : "";
+    } else if (type === "trial") {
+        name = (item.title || "").substring(0, 80);
+        detail = item.phase || "";
+        meta = item.status || "";
+    } else if (type === "code") {
+        name = item.hcpcs_code || ("Code " + item.id);
+        detail = item.short_description || "";
+    } else if (type === "exclusion") {
+        name = item.entity_name || ("Exclusion " + item.id);
+    } else if (type === "ndc") {
+        name = item.proprietary_name || item.ndc_code || "";
+        detail = item.manufacturer || "";
+    } else if (type === "taxonomy") {
+        name = item.taxonomy_description || ("Taxonomy " + item.taxonomy_code);
+        detail = item.license_state ? "Licensed: " + item.license_state : "";
+        meta = item.is_primary ? "Primary" : "";
+    }
+
+    return e("div", { className: "entity-card" + (expanded ? " expanded" : ""), onClick: function() { onExpand(item, type); } },
+        e("div", { className: "ec-name" },
+            e("span", { style: { width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 } }),
+            name,
+            e("span", { className: "badge " + type }, type)
+        ),
+        detail ? e("div", { className: "ec-detail" }, detail) : null,
+        meta ? e("div", { className: "ec-meta" }, meta) : null,
+        expanded ? e(ExpandedDetail, { item: item, type: type }) : null
+    );
+}
+
+function ExpandedDetail({ item, type }) {
+    var rows = [];
+    Object.keys(item).forEach(function(k) {
+        if (k === "id") return;
+        var v = item[k];
+        if (v !== null && v !== undefined && v !== "") {
+            rows.push(e("div", { className: "expand-row", key: k },
+                e("span", { className: "expand-label" }, k.replace(/_/g, " ")),
+                e("span", { className: "expand-val" }, String(v).substring(0, 200))
             ));
-            let totalCount = 0;
-            results.forEach(r => { counts[r.table] = r.count; totalCount += r.count; });
-
-            return { totalCount, counts };
         }
-
-        // Graph data structure and force simulation
-        class ForceGraph {
-            constructor(width, height) {
-                this.width = width;
-                this.height = height;
-                this.nodes = [];
-                this.edges = [];
-                this.simulation = null;
-                this.alpha = 1;
-                this.padding = 60;
-            }
-
-            addNode(id, label, type, data = {}) {
-                if (!this.nodes.find(n => n.id === id)) {
-                    this.nodes.push({
-                        id,
-                        label,
-                        type,
-                        x: Math.random() * (this.width - this.padding * 2) + this.padding,
-                        y: Math.random() * (this.height - this.padding * 2) + this.padding,
-                        vx: 0,
-                        vy: 0,
-                        data
-                    });
-                }
-            }
-
-            addEdge(source, target, label = '') {
-                if (this.nodes.find(n => n.id === source) && this.nodes.find(n => n.id === target)) {
-                    if (!this.edges.find(e => (e.source === source && e.target === target) || (e.source === target && e.target === source))) {
-                        this.edges.push({ source, target, label });
-                    }
-                }
-            }
-
-            tick() {
-                const k = 0.3;
-                const strength = -150;
-                const distance = 140;
-                const damping = 0.82;
-                const minAlpha = 0.001;
-
-                // Centering gravity
-                const cx = this.width / 2;
-                const cy = this.height / 2;
-                for (const node of this.nodes) {
-                    node.vx += (cx - node.x) * 0.005;
-                    node.vy += (cy - node.y) * 0.005;
-                }
-
-                // Charge repulsion (clamped distance prevents explosions)
-                for (let i = 0; i < this.nodes.length; i++) {
-                    for (let j = i + 1; j < this.nodes.length; j++) {
-                        const a = this.nodes[i];
-                        const b = this.nodes[j];
-                        const dx = b.x - a.x;
-                        const dy = b.y - a.y;
-                        const dist = Math.max(50, Math.sqrt(dx * dx + dy * dy));
-                        const force = strength / (dist * dist);
-
-                        a.vx += (force * dx) / dist;
-                        a.vy += (force * dy) / dist;
-                        b.vx -= (force * dx) / dist;
-                        b.vy -= (force * dy) / dist;
-                    }
-                }
-
-                // Link forces
-                for (const edge of this.edges) {
-                    const a = this.nodes.find(n => n.id === edge.source);
-                    const b = this.nodes.find(n => n.id === edge.target);
-                    if (a && b) {
-                        const dx = b.x - a.x;
-                        const dy = b.y - a.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                        const force = k * (dist - distance);
-
-                        a.vx += (force * dx) / dist;
-                        a.vy += (force * dy) / dist;
-                        b.vx -= (force * dx) / dist;
-                        b.vy -= (force * dy) / dist;
-                    }
-                }
-
-                // Apply damping and update positions
-                let maxVel = 0;
-                for (const node of this.nodes) {
-                    node.vx *= damping;
-                    node.vy *= damping;
-                    node.x += node.vx;
-                    node.y += node.vy;
-
-                    // Contain within bounds
-                    node.x = Math.max(this.padding, Math.min(this.width - this.padding, node.x));
-                    node.y = Math.max(this.padding, Math.min(this.height - this.padding, node.y));
-
-                    const vel = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-                    maxVel = Math.max(maxVel, vel);
-                }
-
-                this.alpha = Math.max(minAlpha, this.alpha * 0.995);
-                return this.alpha > minAlpha || maxVel > 0.1;
-            }
-
-            render(ctx, hoveredNodeId = null) {
-                ctx.fillStyle = '#06060B';
-                ctx.fillRect(0, 0, this.width, this.height);
-
-                // Draw edges
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.lineWidth = 1.5;
-                for (const edge of this.edges) {
-                    const source = this.nodes.find(n => n.id === edge.source);
-                    const target = this.nodes.find(n => n.id === edge.target);
-                    if (source && target) {
-                        ctx.beginPath();
-                        ctx.moveTo(source.x, source.y);
-                        ctx.lineTo(target.x, target.y);
-                        ctx.stroke();
-
-                        // Draw edge label
-                        if (edge.label) {
-                            const mx = (source.x + target.x) / 2;
-                            const my = (source.y + target.y) / 2;
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                            ctx.font = '11px "DM Sans"';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(edge.label, mx, my - 5);
-                        }
-                    }
-                }
-
-                // Draw nodes
-                for (const node of this.nodes) {
-                    const radius = 25;
-                    const isHovered = node.id === hoveredNodeId;
-
-                    // Node background
-                    ctx.fillStyle = this.getNodeColor(node.type);
-                    if (isHovered) {
-                        ctx.fillStyle = this.adjustBrightness(ctx.fillStyle, 1.3);
-                    }
-
-                    // Draw rounded rect for node
-                    ctx.beginPath();
-                    ctx.roundRect(node.x - radius, node.y - radius / 1.5, radius * 2, radius, 8);
-                    ctx.fill();
-
-                    // Node border
-                    if (isHovered) {
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-                        ctx.lineWidth = 2;
-                    } else {
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                        ctx.lineWidth = 1;
-                    }
-                    ctx.stroke();
-
-                    // Node label
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px "DM Sans"';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-
-                    const lines = this.wrapText(node.label, 18);
-                    const lineHeight = 13;
-                    const totalHeight = (lines.length - 1) * lineHeight;
-                    const startY = node.y - totalHeight / 2;
-
-                    for (let i = 0; i < lines.length; i++) {
-                        ctx.fillText(lines[i], node.x, startY + i * lineHeight);
-                    }
-                }
-            }
-
-            getNodeColor(type) {
-                const colors = {
-                    provider: '#34D399',
-                    drug: '#F97316',
-                    diagnosis: '#EF4444',
-                    trial: '#D4A853',
-                    code: '#22D3EE',
-                    taxonomy: '#A78BFA',
-                    manufacturer: '#8B5CF6'
-                };
-                return colors[type] || '#34D399';
-            }
-
-            adjustBrightness(color, factor) {
-                const hex = color.replace('#', '');
-                const r = Math.min(255, Math.floor(parseInt(hex.substr(0, 2), 16) * factor));
-                const g = Math.min(255, Math.floor(parseInt(hex.substr(2, 2), 16) * factor));
-                const b = Math.min(255, Math.floor(parseInt(hex.substr(4, 2), 16) * factor));
-                return `rgb(${r}, ${g}, ${b})`;
-            }
-
-            wrapText(text, maxChars) {
-                if (text.length <= maxChars) return [text];
-                const words = text.split(' ');
-                const lines = [];
-                let currentLine = '';
-                for (const word of words) {
-                    if ((currentLine + word).length > maxChars) {
-                        if (currentLine) lines.push(currentLine);
-                        currentLine = word;
-                    } else {
-                        currentLine += (currentLine ? ' ' : '') + word;
-                    }
-                }
-                if (currentLine) lines.push(currentLine);
-                return lines;
-            }
-
-            getNodeAtPoint(x, y) {
-                for (const node of this.nodes) {
-                    const dx = node.x - x;
-                    const dy = node.y - y;
-                    if (Math.sqrt(dx * dx + dy * dy) < 35) {
-                        return node;
-                    }
-                }
-                return null;
-            }
-        }
-
-        // React Components
-        const LanesScreen = ({ onSelectLane, stats }) => {
-            return React.createElement('div', { className: 'lanes-container' },
-                React.createElement('div', { className: 'lanes-header' },
-                    React.createElement('img', {
-                        className: 'lanes-logo',
-                        src: 'assets/logo-transparent.png',
-                        alt: 'Health Knowledge Garden'
-                    }),
-                    React.createElement('h1', { className: 'lanes-title' }, 'Health Knowledge Garden'),
-                    React.createElement('p', { className: 'lanes-subtitle' }, 'How can we help you today?')
-                ),
-                React.createElement('div', { className: 'lanes-grid' },
-                    Object.values(lanes).map(lane =>
-                        React.createElement('div', {
-                            key: lane.id,
-                            className: `lane-card ${lane.colorName}`,
-                            onClick: () => onSelectLane(lane.id)
-                        },
-                            React.createElement('div', { className: 'lane-icon' }, lane.icon),
-                            React.createElement('h2', null, lane.title),
-                            React.createElement('p', { style: { fontSize: '0.85rem', marginBottom: '0.5rem' } }, lane.subtitle),
-                            React.createElement('p', { style: { fontSize: '0.9rem', color: '#999' } }, lane.description)
-                        )
-                    )
-                ),
-                React.createElement('div', { className: 'lanes-stats' },
-                    React.createElement('span', null,
-                        React.createElement('strong', null, stats.totalCount.toLocaleString()),
-                        ' entities across 10 federal sources'
-                    )
-                )
-            );
-        };
-
-        const AppScreen = ({ currentLane, onSwitchLane, stats }) => {
-            const [searchQuery, setSearchQuery] = React.useState('');
-            const [searchResults, setSearchResults] = React.useState([]);
-            const [showDropdown, setShowDropdown] = React.useState(false);
-            const [tooltip, setTooltip] = React.useState(null);
-            const canvasRef = React.useRef(null);
-            const graphRef = React.useRef(null);
-            const animationRef = React.useRef(null);
-            const hoveredNodeRef = React.useRef(null);
-
-            const lane = lanes[currentLane];
-
-            const searchPlaceholders = {
-                clinician: 'Search providers, drugs, ICD-10 codes...',
-                patient: 'Search conditions, medications, doctors...',
-                operations: 'Search HCPCS, OIG exclusions, NDC codes...',
-                explorer: 'Search anything across 1.1M records...'
-            };
-
-            const explanations = {
-                clinician: 'Clinician view: See provider networks, their specialties, common diagnoses they treat, and relevant medications with active clinical trials.',
-                patient: 'Patient view: Discover what a diagnosis means, medications used to treat it, specialists who can help, and research opportunities.',
-                operations: 'Operations view: Verify provider credentials and exclusion status, audit billing code usage, and track compliance across your network.',
-                explorer: 'Explorer view: Navigate the complete healthcare knowledge graph with 1.1M verified entities from 10 federal sources.',
-            };
-
-            // Initialize graph
-            React.useEffect(() => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-
-                // Clean up previous graph if switching lanes
-                if (animationRef.current) cancelAnimationFrame(animationRef.current);
-                graphRef.current = null;
-
-                const parent = canvas.parentElement;
-                const dpr = window.devicePixelRatio || 1;
-                const w = parent ? parent.clientWidth : window.innerWidth;
-                const h = parent ? parent.clientHeight : 500;
-                canvas.width = (w || 800) * dpr;
-                canvas.height = (h || 500) * dpr;
-                canvas.style.width = (w || 800) + 'px';
-                canvas.style.height = (h || 500) + 'px';
-
-                const ctx = canvas.getContext('2d');
-                ctx.scale(dpr, dpr);
-
-                const graph = new ForceGraph(w || 800, h || 500);
-                graphRef.current = graph;
-
-                // Load initial data based on lane
-                loadGraphData(currentLane, graph);
-
-                // Animation loop — always render, tick for physics
-                const animate = () => {
-                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                    graph.tick();
-                    graph.render(ctx, hoveredNodeRef.current);
-                    animationRef.current = requestAnimationFrame(animate);
-                };
-                animate();
-
-                // Handle canvas interactions
-                const getCanvasXY = (e) => {
-                    const rect = canvas.getBoundingClientRect();
-                    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-                };
-
-                const handleMouseMove = (e) => {
-                    const { x, y } = getCanvasXY(e);
-                    const node = graph.getNodeAtPoint(x, y);
-                    hoveredNodeRef.current = node?.id || null;
-                    if (node) {
-                        setTooltip({ x: e.clientX, y: e.clientY, node });
-                    } else {
-                        setTooltip(null);
-                    }
-
-                    // Panning
-                    if (isPanning && !dragNode) {
-                        const dx = e.clientX - panStart.x;
-                        const dy = e.clientY - panStart.y;
-                        for (const n of graph.nodes) {
-                            n.x += dx;
-                            n.y += dy;
-                        }
-                        panStart = { x: e.clientX, y: e.clientY };
-                    }
-
-                    // Node dragging
-                    if (dragNode) {
-                        const { x: wx, y: wy } = getCanvasXY(e);
-                        dragNode.x = wx;
-                        dragNode.y = wy;
-                        dragNode.vx = 0;
-                        dragNode.vy = 0;
-                        graph.alpha = Math.max(graph.alpha, 0.1);
-                    }
-                };
-
-                const handleClick = (e) => {
-                    const { x, y } = getCanvasXY(e);
-                    const node = graph.getNodeAtPoint(x, y);
-                    if (node) {
-                        expandNode(node, graph);
-                    }
-                };
-
-                let isPanning = false;
-                let panStart = { x: 0, y: 0 };
-                let dragNode = null;
-
-                const handleMouseDown = (e) => {
-                    const { x, y } = getCanvasXY(e);
-                    const node = graph.getNodeAtPoint(x, y);
-                    if (node) {
-                        dragNode = node;
-                    } else {
-                        isPanning = true;
-                        panStart = { x: e.clientX, y: e.clientY };
-                    }
-                };
-
-                const handleMouseUp = () => {
-                    isPanning = false;
-                    dragNode = null;
-                };
-
-                const handleWheel = (e) => {
-                    e.preventDefault();
-                    const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
-                    const { x: mx, y: my } = getCanvasXY(e);
-                    for (const node of graph.nodes) {
-                        node.x = mx + (node.x - mx) * zoomFactor;
-                        node.y = my + (node.y - my) * zoomFactor;
-                    }
-                };
-
-                canvas.addEventListener('mousemove', handleMouseMove);
-                canvas.addEventListener('click', handleClick);
-                canvas.addEventListener('mousedown', handleMouseDown);
-                canvas.addEventListener('mouseup', handleMouseUp);
-                canvas.addEventListener('wheel', handleWheel, { passive: false });
-
-                return () => {
-                    cancelAnimationFrame(animationRef.current);
-                    canvas.removeEventListener('mousemove', handleMouseMove);
-                    canvas.removeEventListener('click', handleClick);
-                    canvas.removeEventListener('mousedown', handleMouseDown);
-                    canvas.removeEventListener('mouseup', handleMouseUp);
-                    canvas.removeEventListener('wheel', handleWheel);
-                };
-            }, [currentLane]);
-
-            const loadGraphData = async (lane, graph) => {
-                try {
-                    if (lane === 'clinician') {
-                        // Fetch a provider with M.D. credential
-                        const providers = await fetch(
-                            `${SUPABASE_URL}/providers?credential=ilike.%25M.D.%25&limit=1&select=id,first_name,last_name,credential`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        if (providers.length > 0) {
-                            const provider = providers[0];
-                            const providerId = `provider-${provider.id}`;
-                            graph.addNode(providerId, `${provider.first_name} ${provider.last_name}`, 'provider', provider);
-
-                            // Fetch provider taxonomies
-                            const taxonomies = await fetch(
-                                `${SUPABASE_URL}/provider_taxonomies?provider_id=eq.${provider.id}&limit=3&select=id,taxonomy_code,taxonomy_description,license_state,is_primary`,
-                                { headers }
-                            ).then(r => r.json());
-
-                            for (const tax of taxonomies) {
-                                const taxId = `taxonomy-${tax.id}`;
-                                var taxLabel = tax.taxonomy_description || ('Taxonomy ' + tax.taxonomy_code);
-                                if (tax.license_state) taxLabel += ' (' + tax.license_state + ')';
-                                graph.addNode(taxId, taxLabel, 'taxonomy', tax);
-                                graph.addEdge(providerId, taxId, 'specializes');
-                            }
-
-                            // Add common diagnoses
-                            const diagnosisCodes = ['E119', 'I10', 'J449', 'M545'];
-                            const diagnoses = await Promise.all(
-                                diagnosisCodes.map(code =>
-                                    fetch(`${SUPABASE_URL}/icd10_cm_codes?code=eq.${code}&select=id,code,description`, { headers })
-                                        .then(r => r.json())
-                                        .then(res => res[0])
-                                        .catch(() => null)
-                                )
-                            );
-
-                            for (const dx of diagnoses.filter(d => d)) {
-                                const dxId = `diagnosis-${dx.id}`;
-                                graph.addNode(dxId, `${dx.code}: ${dx.description.substring(0, 30)}`, 'diagnosis', dx);
-                                graph.addEdge(providerId, dxId, 'treats');
-                            }
-
-                            // Add drugs
-                            const drugs = await fetch(
-                                `${SUPABASE_URL}/drugs?name=ilike.%25metformin%25&limit=2&select=id,name,drug_class`,
-                                { headers }
-                            ).then(r => r.json());
-
-                            for (const drug of drugs) {
-                                const drugId = `drug-${drug.id}`;
-                                graph.addNode(drugId, drug.name, 'drug', drug);
-                                graph.addEdge(providerId, drugId, 'prescribes');
-                            }
-
-                            // Add clinical trials
-                            const trials = await fetch(
-                                `${SUPABASE_URL}/clinical_trials?status=ilike.%25active%25&limit=2&select=id,title`,
-                                { headers }
-                            ).then(r => r.json());
-
-                            for (const trial of trials) {
-                                const trialId = `trial-${trial.id}`;
-                                graph.addNode(trialId, trial.title.substring(0, 35), 'trial', trial);
-                                graph.addEdge(providerId, trialId, 'enrolls');
-                            }
-                        }
-                    } else if (lane === 'patient') {
-                        // Center on Type 2 Diabetes diagnosis
-                        graph.addNode('dx-e119', 'Type 2 Diabetes (E11.9)', 'diagnosis', { code: 'E119' });
-
-                        // Related drugs
-                        const drugs = await fetch(
-                            `${SUPABASE_URL}/drugs?or=(name.ilike.%25metformin%25,name.ilike.%25lisinopril%25)&limit=3&select=id,name`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (const drug of drugs) {
-                            const drugId = `drug-${drug.id}`;
-                            graph.addNode(drugId, drug.name, 'drug', drug);
-                            graph.addEdge('dx-e119', drugId, 'treated with');
-                        }
-
-                        // Specialist providers
-                        const providers = await fetch(
-                            `${SUPABASE_URL}/providers?credential=ilike.%25M.D.%25&limit=3&select=id,first_name,last_name`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (const provider of providers) {
-                            const providerId = `provider-${provider.id}`;
-                            graph.addNode(providerId, `Dr. ${provider.last_name}`, 'provider', provider);
-                            graph.addEdge('dx-e119', providerId, 'consult');
-                        }
-
-                        // Clinical trials
-                        const trials = await fetch(
-                            `${SUPABASE_URL}/clinical_trials?limit=2&select=id,title`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (const trial of trials) {
-                            const trialId = `trial-${trial.id}`;
-                            graph.addNode(trialId, trial.title.substring(0, 35), 'trial', trial);
-                            graph.addEdge('dx-e119', trialId, 'research');
-                        }
-                    } else if (lane === 'operations') {
-                        graph.addNode('compliance', 'Compliance Hub', 'code', {});
-
-                        // OIG exclusions
-                        const exclusions = await fetch(
-                            `${SUPABASE_URL}/oig_exclusions?limit=3&select=id,entity_name`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (const excl of exclusions) {
-                            const exclId = `exclusion-${excl.id}`;
-                            graph.addNode(exclId, excl.entity_name, 'code', excl);
-                            graph.addEdge('compliance', exclId, 'excluded');
-                        }
-
-                        // HCPCS codes
-                        const hcpcs = await fetch(
-                            `${SUPABASE_URL}/hcpcs_codes?limit=3&select=id`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (let i = 0; i < hcpcs.length; i++) {
-                            graph.addNode(`hcpcs-${i}`, `HCPCS Code ${i + 1}`, 'code', hcpcs[i]);
-                            graph.addEdge('compliance', `hcpcs-${i}`, 'codes');
-                        }
-
-                        // Providers
-                        const providers = await fetch(
-                            `${SUPABASE_URL}/providers?limit=2&select=id,first_name,last_name`,
-                            { headers }
-                        ).then(r => r.json());
-
-                        for (const provider of providers) {
-                            const providerId = `provider-${provider.id}`;
-                            graph.addNode(providerId, `${provider.first_name} ${provider.last_name}`, 'provider', provider);
-                            graph.addEdge('compliance', providerId, 'monitors');
-                        }
-                    } else if (lane === 'explorer') {
-                        // Multi-hub explorer view
-                        const hubs = ['Providers', 'Drugs', 'Diagnoses', 'Trials', 'Codes'];
-                        for (const hub of hubs) {
-                            graph.addNode(`hub-${hub.toLowerCase()}`, hub, 'code', {});
-                        }
-
-                        // Sample data from each category
-                        const providers = await fetch(
-                            `${SUPABASE_URL}/providers?limit=2&select=id,first_name,last_name`,
-                            { headers }
-                        ).then(r => r.json());
-                        for (const p of providers) {
-                            const id = `provider-${p.id}`;
-                            graph.addNode(id, p.last_name, 'provider', p);
-                            graph.addEdge(`hub-providers`, id, 'includes');
-                        }
-
-                        const drugs = await fetch(
-                            `${SUPABASE_URL}/drugs?limit=2&select=id,name`,
-                            { headers }
-                        ).then(r => r.json());
-                        for (const d of drugs) {
-                            const id = `drug-${d.id}`;
-                            graph.addNode(id, d.name, 'drug', d);
-                            graph.addEdge(`hub-drugs`, id, 'includes');
-                        }
-
-                        const diagnoses = await fetch(
-                            `${SUPABASE_URL}/icd10_cm_codes?limit=2&select=id,code,description`,
-                            { headers }
-                        ).then(r => r.json());
-                        for (const dx of diagnoses) {
-                            const id = `diagnosis-${dx.id}`;
-                            graph.addNode(id, dx.code, 'diagnosis', dx);
-                            graph.addEdge(`hub-diagnoses`, id, 'includes');
-                        }
-
-                        const trials = await fetch(
-                            `${SUPABASE_URL}/clinical_trials?limit=2&select=id,title`,
-                            { headers }
-                        ).then(r => r.json());
-                        for (const t of trials) {
-                            const id = `trial-${t.id}`;
-                            graph.addNode(id, t.title.substring(0, 25), 'trial', t);
-                            graph.addEdge(`hub-trials`, id, 'includes');
-                        }
-
-                        const codes = await fetch(
-                            `${SUPABASE_URL}/hcpcs_codes?limit=2&select=id`,
-                            { headers }
-                        ).then(r => r.json());
-                        for (let i = 0; i < codes.length; i++) {
-                            graph.addNode(`code-${i}`, `Code ${i + 1}`, 'code', codes[i]);
-                            graph.addEdge(`hub-codes`, `code-${i}`, 'includes');
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Failed to load graph data:', e);
-                }
-            };
-
-            const expandNode = async (node, graph) => {
-                if (node.type === 'provider' && node.data.id) {
-                    // Fetch and add taxonomies
-                    const taxes = await fetch(
-                        `${SUPABASE_URL}/provider_taxonomies?provider_id=eq.${node.data.id}&limit=2&select=id,taxonomy_description`,
-                        { headers }
-                    ).then(r => r.json()).catch(() => []);
-
-                    for (const tax of taxes) {
-                        const taxId = `taxonomy-${tax.id}`;
-                        graph.addNode(taxId, tax.taxonomy_description, 'taxonomy', tax);
-                        graph.addEdge(node.id, taxId, 'has');
-                    }
-                } else if (node.type === 'drug' && node.data.id) {
-                    // Fetch similar drugs
-                    const similar = await fetch(
-                        `${SUPABASE_URL}/drugs?drug_class=eq.${node.data.drug_class}&limit=2&select=id,name`,
-                        { headers }
-                    ).then(r => r.json()).catch(() => []);
-
-                    for (const drug of similar) {
-                        const drugId = `drug-${drug.id}`;
-                        graph.addNode(drugId, drug.name, 'drug', drug);
-                        graph.addEdge(node.id, drugId, 'similar');
-                    }
-                } else if (node.type === 'diagnosis' && node.data.id) {
-                    // Fetch related diagnoses
-                    const code = node.data.code?.substring(0, 3) || '';
-                    const related = await fetch(
-                        `${SUPABASE_URL}/icd10_cm_codes?code=ilike.${code}%&limit=2&select=id,code,description`,
-                        { headers }
-                    ).then(r => r.json()).catch(() => []);
-
-                    for (const dx of related) {
-                        const dxId = `diagnosis-${dx.id}`;
-                        graph.addNode(dxId, `${dx.code}: ${dx.description.substring(0, 20)}`, 'diagnosis', dx);
-                        graph.addEdge(node.id, dxId, 'related');
-                    }
-                }
-            };
-
-            const handleSearch = async (query) => {
-                setSearchQuery(query);
-                if (query.length < 2) {
-                    setSearchResults([]);
-                    setShowDropdown(false);
-                    return;
-                }
-
-                const results = [];
-                const searchTerm = `ilike.%25${encodeURIComponent(query)}%25`;
-
-                try {
-                    // Search across multiple tables based on lane
-                    if (['clinician', 'explorer'].includes(currentLane)) {
-                        const providers = await fetch(
-                            `${SUPABASE_URL}/providers?or=(first_name.${searchTerm},last_name.${searchTerm})&limit=3&select=id,first_name,last_name,credential`,
-                            { headers }
-                        ).then(r => r.json()).catch(() => []);
-                        for (const p of providers) {
-                            results.push({
-                                id: `provider-${p.id}`,
-                                name: `${p.first_name} ${p.last_name}`,
-                                type: 'provider',
-                                detail: p.credential
-                            });
-                        }
-                    }
-
-                    const drugs = await fetch(
-                        `${SUPABASE_URL}/drugs?name.${searchTerm}&limit=3&select=id,name,drug_class`,
-                        { headers }
-                    ).then(r => r.json()).catch(() => []);
-                    for (const d of drugs) {
-                        results.push({
-                            id: `drug-${d.id}`,
-                            name: d.name,
-                            type: 'drug',
-                            detail: d.drug_class
-                        });
-                    }
-
-                    const diagnoses = await fetch(
-                        `${SUPABASE_URL}/icd10_cm_codes?or=(code.${searchTerm},description.${searchTerm})&limit=3&select=id,code,description`,
-                        { headers }
-                    ).then(r => r.json()).catch(() => []);
-                    for (const dx of diagnoses) {
-                        results.push({
-                            id: `diagnosis-${dx.id}`,
-                            name: `${dx.code}`,
-                            type: 'diagnosis',
-                            detail: dx.description
-                        });
-                    }
-
-                    if (['clinician', 'explorer'].includes(currentLane)) {
-                        const trials = await fetch(
-                            `${SUPABASE_URL}/clinical_trials?title.${searchTerm}&limit=3&select=id,title,status`,
-                            { headers }
-                        ).then(r => r.json()).catch(() => []);
-                        for (const t of trials) {
-                            results.push({
-                                id: `trial-${t.id}`,
-                                name: t.title,
-                                type: 'trial',
-                                detail: t.status
-                            });
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Search error:', e);
-                }
-
-                setSearchResults(results.slice(0, 8));
-                setShowDropdown(true);
-            };
-
-            return React.createElement('div', { className: 'app-container' },
-                React.createElement('div', { className: 'app-topbar' },
-                    React.createElement('div', { className: 'topbar-left' },
-                        React.createElement('img', {
-                            className: 'topbar-logo',
-                            src: 'assets/logo-transparent.png',
-                            alt: 'HKG'
-                        }),
-                        React.createElement('div', { className: 'topbar-title' }, 'Health Knowledge Garden')
-                    ),
-                    React.createElement('div', { className: `lane-pill ${lane.colorName}` }, `🏷️ ${lane.title}`),
-                    React.createElement('button', {
-                        className: 'switch-lane-btn',
-                        onClick: onSwitchLane
-                    }, 'Switch lane')
-                ),
-                React.createElement('div', { className: 'app-content' },
-                    React.createElement('div', { className: 'search-section' },
-                        React.createElement('div', { className: 'search-wrapper' },
-                            React.createElement('input', {
-                                type: 'text',
-                                className: 'search-input',
-                                placeholder: searchPlaceholders[currentLane],
-                                value: searchQuery,
-                                onChange: (e) => handleSearch(e.target.value),
-                                onFocus: () => searchQuery.length >= 2 && setShowDropdown(true),
-                                onBlur: () => setTimeout(() => setShowDropdown(false), 100)
-                            }),
-                            React.createElement('div', { className: `search-dropdown ${showDropdown ? 'active' : ''}` },
-                                searchResults.map((result, idx) =>
-                                    React.createElement('div', {
-                                        key: idx,
-                                        className: 'search-result',
-                                        onClick: () => {
-                                            setSearchQuery('');
-                                            setShowDropdown(false);
-                                        }
-                                    },
-                                        React.createElement('div', { className: 'search-result-name' },
-                                            result.name,
-                                            React.createElement('span', { className: `result-badge ${result.type}` }, result.type)
-                                        ),
-                                        React.createElement('div', { className: 'search-result-detail' }, result.detail)
-                                    )
-                                )
-                            )
-                        )
-                    ),
-                    React.createElement('div', { className: 'graph-container' },
-                        React.createElement('canvas', {
-                            ref: canvasRef,
-                            id: 'graph-canvas'
-                        })
-                    ),
-                    tooltip && React.createElement('div', {
-                        className: 'graph-tooltip',
-                        style: {
-                            left: `${tooltip.x + 10}px`,
-                            top: `${tooltip.y + 10}px`
-                        }
-                    },
-                        React.createElement('div', { className: 'tooltip-title' }, tooltip.node.label),
-                        React.createElement('div', { className: 'tooltip-detail' }, `Type: ${tooltip.node.type}`)
-                    ),
-                    React.createElement('div', { className: 'explanation-card' },
-                        React.createElement('div', { className: 'explanation-title' }, 'What you\'re seeing'),
-                        React.createElement('div', { className: 'explanation-text' }, explanations[currentLane])
-                    ),
-                    React.createElement('div', { className: 'stats-footer' },
-                        React.createElement('div', { className: 'stat-item' },
-                            React.createElement('div', { className: 'stat-number provider' }, (stats.counts.providers || 0).toLocaleString()),
-                            React.createElement('div', { className: 'stat-label' }, 'Providers')
-                        ),
-                        React.createElement('div', { className: 'stat-item' },
-                            React.createElement('div', { className: 'stat-number drug' }, (stats.counts.drugs || 0).toLocaleString()),
-                            React.createElement('div', { className: 'stat-label' }, 'Drugs')
-                        ),
-                        React.createElement('div', { className: 'stat-item' },
-                            React.createElement('div', { className: 'stat-number diagnosis' }, (stats.counts.icd10_cm_codes || 0).toLocaleString()),
-                            React.createElement('div', { className: 'stat-label' }, 'Diagnoses')
-                        ),
-                        React.createElement('div', { className: 'stat-item' },
-                            React.createElement('div', { className: 'stat-number trial' }, (stats.counts.clinical_trials || 0).toLocaleString()),
-                            React.createElement('div', { className: 'stat-label' }, 'Trials')
-                        ),
-                        React.createElement('div', { className: 'stat-item' },
-                            React.createElement('div', { className: 'stat-number code' }, (stats.counts.hcpcs_codes || 0).toLocaleString()),
-                            React.createElement('div', { className: 'stat-label' }, 'HCPCS Codes')
-                        )
-                    )
-                )
-            );
-        };
-
-        const App = () => {
-            const [currentLane, setCurrentLane] = React.useState(null);
-            const [stats, setStats] = React.useState({ totalCount: 1102176, counts: {} });
-
-            React.useEffect(() => {
-                fetchEntityCounts().then(data => {
-                    if (data && data.totalCount > 0) setStats(data);
-                }).catch(() => {});
-            }, []);
-
-            if (!currentLane) {
-                return React.createElement(LanesScreen, {
-                    onSelectLane: setCurrentLane,
-                    stats
+    });
+    return e("div", { className: "expand-panel" }, rows);
+}
+
+function HubSection({ title, color, count, items, type, expandedId, onExpand }) {
+    return e("div", { className: "hub-section" },
+        e("div", { className: "hub-header" },
+            e("div", { className: "hub-dot", style: { background: color } }),
+            e("h3", null, title),
+            count > 0 ? e("span", { className: "hub-count" }, count.toLocaleString() + " total in database") : null
+        ),
+        e("div", { className: "entity-grid" },
+            items.map(function(item, idx) {
+                var id = item.id || idx;
+                return e(EntityCard, {
+                    key: type + "-" + id,
+                    item: item,
+                    type: type,
+                    color: color,
+                    expanded: expandedId === (type + "-" + id),
+                    onExpand: function() { onExpand(type + "-" + id); }
                 });
-            }
+            })
+        )
+    );
+}
 
-            return React.createElement(AppScreen, {
-                currentLane,
-                onSwitchLane: () => setCurrentLane(null),
-                stats
+function ClinicianView({ data, counts, expandedId, onExpand }) {
+    var center = data.center;
+    var conns = [];
+    if (center) {
+        data.diagnoses.forEach(function(d) { conns.push({ label: center.last_name + " treats " + d.code, color: COLORS.diagnosis }); });
+        data.drugs.forEach(function(d) { conns.push({ label: center.last_name + " prescribes " + d.name.split(" ")[0], color: COLORS.drug }); });
+        data.trials.forEach(function(t) { conns.push({ label: center.last_name + " → " + (t.title||"").substring(0, 30), color: COLORS.trial }); });
+    }
+
+    return e("div", { className: "relationship-map" },
+        e("div", { className: "intro-card" },
+            e("h3", null, "Clinician View"),
+            e("p", null, "Showing how providers connect to diagnoses, medications, specialties, and clinical trials. Click any card to see full details."),
+            conns.length > 0 ? e("div", { className: "connections", style: { marginTop: "1rem", textAlign: "left" } },
+                e("div", { style: { fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" } }, "Relationships discovered:"),
+                conns.map(function(c, i) {
+                    return e("div", { className: "conn-item", key: i },
+                        e("span", { className: "conn-dot", style: { background: c.color } }),
+                        c.label
+                    );
+                })
+            ) : null
+        ),
+        e(HubSection, { title: "Providers", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
+        data.taxonomies && data.taxonomies.length > 0 ? e(HubSection, { title: "Specialties", color: COLORS.taxonomy, count: counts.provider_taxonomies || 0, items: data.taxonomies, type: "taxonomy", expandedId: expandedId, onExpand: onExpand }) : null,
+        e(HubSection, { title: "Diagnoses", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Medications", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Clinical Trials", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand })
+    );
+}
+
+function PatientView({ data, counts, expandedId, onExpand }) {
+    var conns = [];
+    data.drugs.forEach(function(d) { conns.push({ label: "Type 2 Diabetes → treated with " + d.name.split(" ")[0], color: COLORS.drug }); });
+    data.providers.forEach(function(p) { conns.push({ label: "Consult Dr. " + p.last_name, color: COLORS.provider }); });
+    data.trials.forEach(function(t) { conns.push({ label: "Research: " + (t.title || "").substring(0, 35), color: COLORS.trial }); });
+
+    return e("div", { className: "relationship-map" },
+        e("div", { className: "intro-card" },
+            e("h3", null, "Patient View — Type 2 Diabetes (E11.9)"),
+            e("p", null, "Starting from a diagnosis, see available medications, specialists who can help, related conditions, and active research."),
+            e("div", { className: "connections", style: { marginTop: "1rem", textAlign: "left" } },
+                e("div", { style: { fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" } }, "Care pathways:"),
+                conns.map(function(c, i) {
+                    return e("div", { className: "conn-item", key: i },
+                        e("span", { className: "conn-dot", style: { background: c.color } }),
+                        c.label
+                    );
+                })
+            )
+        ),
+        e(HubSection, { title: "Related Diagnoses", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Medications", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Specialists", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Active Research", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand })
+    );
+}
+
+function OperationsView({ data, counts, expandedId, onExpand }) {
+    return e("div", { className: "relationship-map" },
+        e("div", { className: "intro-card" },
+            e("h3", null, "Operations View — Compliance & Billing"),
+            e("p", null, "Screen providers against exclusion lists, audit billing codes, verify credentials, and track NDC codes across your network.")
+        ),
+        e(HubSection, { title: "OIG Exclusions", color: COLORS.exclusion, count: counts.oig_exclusions || 0, items: data.exclusions, type: "exclusion", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "HCPCS Billing Codes", color: COLORS.code, count: counts.hcpcs_codes || 0, items: data.hcpcs, type: "code", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Providers to Monitor", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "NDC Codes", color: "#8B5CF6", count: counts.ndc_codes || 0, items: data.ndcCodes, type: "ndc", expandedId: expandedId, onExpand: onExpand })
+    );
+}
+
+function ExplorerView({ data, counts, expandedId, onExpand }) {
+    return e("div", { className: "relationship-map" },
+        e("div", { className: "intro-card" },
+            e("h3", null, "Explorer View — The Full Garden"),
+            e("p", null, "Browse across all data categories. Every entity is connected. Every source is federal, verified, and updated.")
+        ),
+        e(HubSection, { title: "Providers", color: COLORS.provider, count: counts.providers || 0, items: data.providers, type: "provider", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Drugs", color: COLORS.drug, count: counts.drugs || 0, items: data.drugs, type: "drug", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Diagnoses (ICD-10)", color: COLORS.diagnosis, count: counts.icd10_cm_codes || 0, items: data.diagnoses, type: "diagnosis", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "Clinical Trials", color: COLORS.trial, count: counts.clinical_trials || 0, items: data.trials, type: "trial", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "HCPCS Codes", color: COLORS.code, count: counts.hcpcs_codes || 0, items: data.hcpcs, type: "code", expandedId: expandedId, onExpand: onExpand }),
+        e(HubSection, { title: "OIG Exclusions", color: COLORS.exclusion, count: counts.oig_exclusions || 0, items: data.exclusions, type: "exclusion", expandedId: expandedId, onExpand: onExpand })
+    );
+}
+
+function AppScreen({ lane, onBack, stats }) {
+    var ln = LANES[lane];
+    var ref = useState(null); var data = ref[0]; var setData = ref[1];
+    var ref2 = useState(true); var loading = ref2[0]; var setLoading = ref2[1];
+    var ref3 = useState(""); var searchQuery = ref3[0]; var setSearchQuery = ref3[1];
+    var ref4 = useState([]); var searchResults = ref4[0]; var setSearchResults = ref4[1];
+    var ref5 = useState(false); var showDrop = ref5[0]; var setShowDrop = ref5[1];
+    var ref6 = useState(null); var expandedId = ref6[0]; var setExpandedId = ref6[1];
+    var searchTimer = useRef(null);
+
+    useEffect(function() {
+        setLoading(true);
+        var loader = lane === "clinician" ? loadClinicianData :
+                     lane === "patient" ? loadPatientData :
+                     lane === "operations" ? loadOperationsData : loadExplorerData;
+        loader().then(function(d) { setData(d); setLoading(false); })
+               .catch(function(err) { console.error(err); setLoading(false); });
+    }, [lane]);
+
+    function handleExpand(id) {
+        setExpandedId(expandedId === id ? null : id);
+    }
+
+    function handleSearch(val) {
+        setSearchQuery(val);
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        if (val.length < 2) { setSearchResults([]); setShowDrop(false); return; }
+        searchTimer.current = setTimeout(function() {
+            var term = "ilike.%25" + encodeURIComponent(val) + "%25";
+            Promise.all([
+                q("/providers?or=(first_name." + term + ",last_name." + term + ")&limit=3&select=id,first_name,last_name,credential").catch(function(){return[];}),
+                q("/drugs?name." + term + "&limit=3&select=id,name,drug_class").catch(function(){return[];}),
+                q("/icd10_cm_codes?or=(code." + term + ",description." + term + ")&limit=3&select=id,code,description").catch(function(){return[];}),
+                q("/clinical_trials?title." + term + "&limit=2&select=id,title,status").catch(function(){return[];})
+            ]).then(function(results) {
+                var all = [];
+                results[0].forEach(function(p) { all.push({ name: p.first_name + " " + p.last_name, detail: p.credential, type: "provider", data: p }); });
+                results[1].forEach(function(d) { all.push({ name: d.name, detail: d.drug_class, type: "drug", data: d }); });
+                results[2].forEach(function(d) { all.push({ name: d.code, detail: d.description, type: "diagnosis", data: d }); });
+                results[3].forEach(function(t) { all.push({ name: (t.title||"").substring(0, 60), detail: t.status, type: "trial", data: t }); });
+                setSearchResults(all.slice(0, 10));
+                setShowDrop(true);
             });
-        };
+        }, 300);
+    }
 
-        // Render the app
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(App));
-    </script>
+    function handleSelectResult(result) {
+        setSearchQuery("");
+        setShowDrop(false);
+        // Add to current data
+        if (data) {
+            var newData = Object.assign({}, data);
+            if (result.type === "provider") {
+                newData.providers = (newData.providers || []).concat([result.data]);
+            } else if (result.type === "drug") {
+                newData.drugs = (newData.drugs || []).concat([result.data]);
+            } else if (result.type === "diagnosis") {
+                newData.diagnoses = (newData.diagnoses || []).concat([result.data]);
+            } else if (result.type === "trial") {
+                newData.trials = (newData.trials || []).concat([result.data]);
+            }
+            setData(newData);
+        }
+    }
+
+    var placeholders = {
+        clinician: "Search providers, drugs, ICD-10 codes...",
+        patient: "Search conditions, medications, doctors...",
+        operations: "Search HCPCS, OIG exclusions, NDC codes...",
+        explorer: "Search anything across 1.1M records..."
+    };
+
+    var view = null;
+    if (loading) {
+        view = e("div", { className: "loading-row" }, e("span",{className:"dot"}), e("span",{className:"dot"}), e("span",{className:"dot"}), " Loading " + ln.title + " data...");
+    } else if (data) {
+        if (lane === "clinician") view = e(ClinicianView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
+        else if (lane === "patient") view = e(PatientView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
+        else if (lane === "operations") view = e(OperationsView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
+        else view = e(ExplorerView, { data: data, counts: stats.counts, expandedId: expandedId, onExpand: handleExpand });
+    }
+
+    return e("div", { className: "app" },
+        e("div", { className: "topbar" },
+            e("img", { className: "topbar-logo", src: "assets/logo-transparent.png", alt: "HKG" }),
+            e("span", { className: "topbar-brand" }, "Health Knowledge Garden"),
+            e("span", { className: "pill " + lane }, ln.icon + " " + ln.title),
+            e("button", { className: "btn", onClick: onBack }, "Switch lane")
+        ),
+        e("div", { className: "search-bar" },
+            e("div", { className: "search-wrap" },
+                e("input", {
+                    className: "search-input",
+                    type: "text",
+                    placeholder: placeholders[lane],
+                    value: searchQuery,
+                    onChange: function(ev) { handleSearch(ev.target.value); },
+                    onFocus: function() { if (searchQuery.length >= 2) setShowDrop(true); },
+                    onBlur: function() { setTimeout(function() { setShowDrop(false); }, 150); }
+                }),
+                e("div", { className: "search-drop" + (showDrop ? " open" : "") },
+                    searchResults.map(function(sr, i) {
+                        return e("div", { key: i, className: "sr", onMouseDown: function() { handleSelectResult(sr); } },
+                            e("div", { className: "sr-name" }, sr.name, e("span", { className: "badge " + sr.type }, sr.type)),
+                            sr.detail ? e("div", { className: "sr-detail" }, sr.detail) : null
+                        );
+                    }),
+                    searchResults.length === 0 && showDrop ? e("div", { className: "sr", style: { color: "#666" } }, "No results") : null
+                )
+            )
+        ),
+        e("div", { className: "content" }, view),
+        e("div", { className: "stats-bar" },
+            e("div", null, e("div", { className: "stat-num provider" }, (stats.counts.providers || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Providers")),
+            e("div", null, e("div", { className: "stat-num drug" }, (stats.counts.drugs || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Drugs")),
+            e("div", null, e("div", { className: "stat-num diagnosis" }, (stats.counts.icd10_cm_codes || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Diagnoses")),
+            e("div", null, e("div", { className: "stat-num trial" }, (stats.counts.clinical_trials || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "Trials")),
+            e("div", null, e("div", { className: "stat-num code" }, (stats.counts.hcpcs_codes || 0).toLocaleString()), e("div", { className: "stat-lbl" }, "HCPCS"))
+        )
+    );
+}
+
+function App() {
+    var ref = useState(null); var lane = ref[0]; var setLane = ref[1];
+    var ref2 = useState({ total: 1102176, counts: {} }); var stats = ref2[0]; var setStats = ref2[1];
+
+    useEffect(function() {
+        Promise.all([
+            count("providers"), count("drugs"), count("icd10_cm_codes"),
+            count("ndc_codes"), count("clinical_trials"), count("oig_exclusions"),
+            count("pubmed_citations"), count("hcpcs_codes"), count("icd10_pcs_codes"),
+            count("provider_taxonomies")
+        ]).then(function(vals) {
+            var tables = ["providers","drugs","icd10_cm_codes","ndc_codes","clinical_trials","oig_exclusions","pubmed_citations","hcpcs_codes","icd10_pcs_codes","provider_taxonomies"];
+            var c = {}; var t = 0;
+            tables.forEach(function(tbl, i) { c[tbl] = vals[i]; t += vals[i]; });
+            setStats({ total: t, counts: c });
+        }).catch(function(){});
+    }, []);
+
+    if (!lane) {
+        return e(LanesScreen, { onSelect: setLane, stats: stats });
+    }
+    return e(AppScreen, { lane: lane, onBack: function() { setLane(null); }, stats: stats });
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+</script>
 </body>
 </html>
