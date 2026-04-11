@@ -165,11 +165,11 @@ function loadClinician(){
         q("/clinical_trials?status=ilike.%25recruiting%25&limit=4&select=id,title,status,phase,sponsor")
     ]).then(function(r){
         var d={providers:r[0],drugs:r[1],diagnoses:r[2],trials:r[3],taxonomies:[],rels:[]};
-        d.providers.slice(0,3).forEach(function(p){d.diagnoses.slice(0,2).forEach(function(dx){d.rels.push({from:p.last_name,ft:"provider",to:dx.code,tt:"diagnosis",label:"treats"})})});
-        d.providers.slice(0,2).forEach(function(p){d.drugs.slice(0,2).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:dr.name.split(" ")[0],tt:"drug",label:"prescribes"})})});
-        d.drugs.slice(0,3).forEach(function(dr,i){if(d.diagnoses[i])d.rels.push({from:dr.name.split(" ")[0],ft:"drug",to:d.diagnoses[i].code,tt:"diagnosis",label:"indicated for"})});
-        d.trials.slice(0,2).forEach(function(t){if(d.providers[0])d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.title||"").substring(0,25)+"..",tt:"trial",label:"enrolls in"})});
-        if(d.providers.length>0){return q("/provider_taxonomies?provider_id=eq."+d.providers[0].id+"&limit=4&select=id,taxonomy_code,taxonomy_description,license_state,is_primary").then(function(tx){d.taxonomies=tx;tx.forEach(function(t){d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.taxonomy_description||t.taxonomy_code||"").substring(0,25),tt:"taxonomy",label:"specializes"})});return d})}
+        d.providers.filter(function(p){return p.last_name}).slice(0,3).forEach(function(p){d.diagnoses.slice(0,2).forEach(function(dx){d.rels.push({from:p.last_name,ft:"provider",to:dx.code,tt:"diagnosis",label:"treats"})})});
+        d.providers.filter(function(p){return p.last_name}).slice(0,2).forEach(function(p){d.drugs.slice(0,2).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:(dr.name||"Drug").split(" ")[0],tt:"drug",label:"prescribes"})})});
+        d.drugs.slice(0,3).forEach(function(dr,i){if(d.diagnoses[i])d.rels.push({from:(dr.name||"Drug").split(" ")[0],ft:"drug",to:d.diagnoses[i].code,tt:"diagnosis",label:"indicated for"})});
+        d.trials.slice(0,2).forEach(function(t){if(d.providers[0]&&d.providers[0].last_name)d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.title||"").substring(0,25)+"..",tt:"trial",label:"enrolls in"})});
+        if(d.providers.length>0&&d.providers[0].last_name){return q("/provider_taxonomies?provider_id=eq."+d.providers[0].id+"&limit=4&select=id,taxonomy_code,taxonomy_description,license_state,is_primary").then(function(tx){d.taxonomies=tx;tx.forEach(function(t){d.rels.push({from:d.providers[0].last_name,ft:"provider",to:(t.taxonomy_description||t.taxonomy_code||"").substring(0,25),tt:"taxonomy",label:"specializes"})});return d})}
         return d;
     });
 }
@@ -185,7 +185,7 @@ function loadPatient(){
         var c="Type 2 Diabetes";
         d.diagnoses.forEach(function(dx){d.rels.push({from:c,ft:"diagnosis",to:dx.code+": "+dx.description.substring(0,20),tt:"diagnosis",label:"includes"})});
         d.drugs.forEach(function(dr){d.rels.push({from:c,ft:"diagnosis",to:dr.name.split(" ")[0],tt:"drug",label:"treated with"})});
-        d.providers.slice(0,3).forEach(function(p){d.rels.push({from:c,ft:"diagnosis",to:"Dr. "+p.last_name,tt:"provider",label:"consult"})});
+        d.providers.filter(function(p){return p.last_name}).slice(0,3).forEach(function(p){d.rels.push({from:c,ft:"diagnosis",to:"Dr. "+p.last_name,tt:"provider",label:"consult"})});
         d.trials.forEach(function(t){d.rels.push({from:c,ft:"diagnosis",to:(t.title||"").substring(0,25)+"..",tt:"trial",label:"research"})});
         return d;
     });
@@ -200,11 +200,11 @@ function loadOperations(){
     ]).then(function(r){
         var d={exclusions:r[0],hcpcs:r[1],providers:r[2],ndcCodes:r[3],rels:[]};
         var c="Compliance Hub";
-        d.exclusions.slice(0,3).forEach(function(ex){d.rels.push({from:c,ft:"code",to:ex.entity_name,tt:"exclusion",label:"excluded"})});
-        d.hcpcs.slice(0,3).forEach(function(cd){d.rels.push({from:c,ft:"code",to:cd.code,tt:"code",label:"billing"})});
-        d.providers.slice(0,3).forEach(function(p){d.rels.push({from:c,ft:"code",to:p.last_name,tt:"provider",label:"monitors"})});
-        d.ndcCodes.slice(0,2).forEach(function(n){d.rels.push({from:c,ft:"code",to:(n.proprietary_name||"").substring(0,20),tt:"ndc",label:"tracks"})});
-        if(d.providers[0]&&d.exclusions[0])d.rels.push({from:d.providers[0].last_name,ft:"provider",to:d.exclusions[0].entity_name,tt:"exclusion",label:"screen against"});
+        d.exclusions.slice(0,3).forEach(function(ex){if(ex.entity_name)d.rels.push({from:c,ft:"code",to:ex.entity_name,tt:"exclusion",label:"excluded"})});
+        d.hcpcs.slice(0,3).forEach(function(cd){if(cd.code)d.rels.push({from:c,ft:"code",to:cd.code,tt:"code",label:"billing"})});
+        d.providers.slice(0,3).forEach(function(p){if(p.last_name)d.rels.push({from:c,ft:"code",to:p.last_name,tt:"provider",label:"monitors"})});
+        d.ndcCodes.slice(0,2).forEach(function(n){d.rels.push({from:c,ft:"code",to:(n.proprietary_name||n.ndc_code||"NDC").substring(0,20),tt:"ndc",label:"tracks"})});
+        if(d.providers[0]&&d.providers[0].last_name&&d.exclusions[0]&&d.exclusions[0].entity_name)d.rels.push({from:d.providers[0].last_name,ft:"provider",to:d.exclusions[0].entity_name,tt:"exclusion",label:"screen against"});
         return d;
     });
 }
@@ -229,7 +229,7 @@ function loadExplorer(){
         d.rels.push({from:"Trials",ft:"trial",to:"Drugs",tt:"drug",label:"investigate"});
         d.rels.push({from:"OIG Exclusions",ft:"exclusion",to:"Providers",tt:"provider",label:"screen"});
         d.rels.push({from:"HCPCS Codes",ft:"code",to:"Providers",tt:"provider",label:"bill for"});
-        d.providers.slice(0,2).forEach(function(p){d.drugs.slice(0,1).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:dr.name.split(" ")[0],tt:"drug",label:"prescribes"})})});
+        d.providers.filter(function(p){return p.last_name}).slice(0,2).forEach(function(p){d.drugs.filter(function(dr){return dr.name}).slice(0,1).forEach(function(dr){d.rels.push({from:p.last_name,ft:"provider",to:dr.name.split(" ")[0],tt:"drug",label:"prescribes"})})});
         return d;
     });
 }
@@ -239,7 +239,7 @@ function RelMap(props){
     var rels=props.rels||[];
     if(rels.length===0)return null;
     var nm={};
-    rels.forEach(function(r){if(!nm[r.from])nm[r.from]={label:r.from,type:r.ft};if(!nm[r.to])nm[r.to]={label:r.to,type:r.tt}});
+    rels.forEach(function(r){var ff=r.from||"Unknown",tt=r.to||"Unknown";if(!nm[ff])nm[ff]={label:ff,type:r.ft};if(!nm[tt])nm[tt]={label:tt,type:r.tt}});
     var nodes=Object.keys(nm).map(function(k){return nm[k]});
     var W=900,HH=Math.max(420,nodes.length*28);
     var cx=W/2,cy=HH/2,rad=Math.min(cx,cy)-70;
@@ -255,10 +255,10 @@ function RelMap(props){
     });
     nodes.forEach(function(n,i){
         var col=COLORS[n.type]||"#888";
-        var tw=Math.max(55,Math.min(n.label.length*6.5+16,150)),th=26;
+        var lbl=n.label||"Unknown";var tw=Math.max(55,Math.min(lbl.length*6.5+16,150)),th=26;
         nodeEls.push(h("g",{key:"n"+i},
             h("rect",{x:n.x-tw/2,y:n.y-th/2,width:tw,height:th,rx:5,fill:"rgba(13,13,20,0.9)",stroke:col,strokeWidth:1.5}),
-            h("text",{x:n.x,y:n.y+4,fill:"#fff",fontSize:10.5,textAnchor:"middle",fontFamily:"'DM Sans',sans-serif",fontWeight:600},n.label.length>24?n.label.substring(0,22)+"..":n.label)
+            h("text",{x:n.x,y:n.y+4,fill:"#fff",fontSize:10.5,textAnchor:"middle",fontFamily:"'DM Sans',sans-serif",fontWeight:600},lbl.length>24?lbl.substring(0,22)+"..":lbl)
         ));
     });
     return h("div",{className:"rel-map"},h("svg",{viewBox:"0 0 "+W+" "+HH,xmlns:"http://www.w3.org/2000/svg"},lines,labels,nodeEls));
