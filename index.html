@@ -83,7 +83,42 @@
         .dot{width:6px;height:6px;background:#34D399;border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
         .dot:nth-child(2){animation-delay:0.2s}.dot:nth-child(3){animation-delay:0.4s}
         @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
-        @media(max-width:768px){.lanes-grid{grid-template-columns:1fr}.lanes-title{font-size:1.8rem}.egrid{grid-template-columns:1fr}.stats-bar{grid-template-columns:repeat(3,1fr)}}
+        /* Data Scale Dashboard */
+        .scale-section{width:100%;max-width:1100px;margin-bottom:2rem}
+        .scale-title{font-size:1.3rem;text-align:center;margin-bottom:1rem;color:#ccc}
+        .scale-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.6rem;margin-bottom:1.5rem}
+        .scale-card{padding:0.75rem;background:rgba(13,13,20,0.85);border:1px solid rgba(255,255,255,0.08);border-radius:8px;text-align:center;transition:all 0.2s}
+        .scale-card:hover{border-color:rgba(255,255,255,0.2)}
+        .sc-num{font-size:1.4rem;font-weight:700;font-family:'Instrument Serif',serif}
+        .sc-lbl{font-size:0.72rem;color:#888;margin-top:0.15rem}
+        .sc-src{font-size:0.62rem;color:#555;margin-top:0.1rem}
+        .multiply-section{background:rgba(13,13,20,0.85);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:1.25rem;margin-bottom:1.5rem}
+        .multiply-title{font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#34D399;text-align:center}
+        .multiply-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem}
+        .mult-row{display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;padding:0.5rem 0.75rem;background:rgba(255,255,255,0.02);border-radius:6px}
+        .mult-a{color:#ccc;flex:1}.mult-x{color:#555;font-size:0.75rem}.mult-b{color:#ccc;flex:1}.mult-eq{color:#555;font-size:0.75rem}.mult-r{color:#34D399;font-weight:700;font-size:0.9rem;text-align:right;min-width:70px}
+        /* Browse table */
+        .browse-section{margin-top:1rem}
+        .browse-tabs{display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem}
+        .browse-tab{padding:0.3rem 0.6rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:5px;cursor:pointer;font-size:0.75rem;color:#aaa;transition:all 0.15s}
+        .browse-tab:hover{border-color:rgba(255,255,255,0.15)}
+        .browse-tab.active{background:rgba(52,211,153,0.1);border-color:#34D399;color:#34D399}
+        .browse-table{width:100%;border-collapse:collapse;font-size:0.78rem}
+        .browse-table th{text-align:left;padding:0.5rem;border-bottom:1px solid rgba(255,255,255,0.1);color:#888;font-weight:600;position:sticky;top:0;background:#0a0a12}
+        .browse-table td{padding:0.45rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#ccc;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .browse-table tr:hover td{background:rgba(255,255,255,0.02)}
+        .browse-wrap{max-height:350px;overflow-y:auto;border:1px solid rgba(255,255,255,0.06);border-radius:8px;background:rgba(6,6,11,0.5)}
+        .browse-nav{display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;justify-content:center}
+        .browse-info{font-size:0.75rem;color:#888}
+        /* Depth panel in lanes */
+        .depth-panel{width:100%;max-width:1100px;margin-bottom:1.5rem;padding:1.25rem;background:rgba(13,13,20,0.85);border:1px solid rgba(255,255,255,0.08);border-radius:10px}
+        .depth-title{font-size:1.1rem;margin-bottom:0.5rem;text-align:center}
+        .depth-desc{font-size:0.85rem;color:#aaa;text-align:center;line-height:1.4;margin-bottom:1rem}
+        .depth-stats{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center}
+        .ds{text-align:center;min-width:80px}
+        .ds-num{font-size:1.5rem;font-weight:700;font-family:'Instrument Serif',serif}
+        .ds-lbl{font-size:0.7rem;color:#888}
+        @media(max-width:768px){.lanes-grid{grid-template-columns:1fr}.lanes-title{font-size:1.8rem}.egrid{grid-template-columns:1fr}.stats-bar{grid-template-columns:repeat(3,1fr)}.scale-grid{grid-template-columns:repeat(2,1fr)}.multiply-grid{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
@@ -323,6 +358,7 @@ function AppScreen(props){
         h("div",{className:"view-tabs"},
             h("button",{className:"btn"+(vm==="all"?" active":""),onClick:function(){setVM("all")}},"Cards + Map"),
             h("button",{className:"btn"+(vm==="graph"?" active":""),onClick:function(){setVM("graph")}},"Relationship Map"),
+            h("button",{className:"btn"+(vm==="browse"?" active":""),onClick:function(){setVM("browse")}},"Browse Data"),
             h("span",{style:{flex:1}}),
             h("span",{style:{fontSize:"0.72rem",color:"#555"}},"Click cards to expand \u2022 Search to add data")
         ),
@@ -337,6 +373,7 @@ function AppScreen(props){
         ),
         h("div",{className:"content"},
             loading?h("div",{className:"loading"},h("span",{className:"dot"}),h("span",{className:"dot"}),h("span",{className:"dot"})," Loading..."):
+            vm==="browse"?h("div",null,h(ScaleDashboard,{counts:stats.counts}),h(BrowseTable,{counts:stats.counts})):
             h(LaneContent,{lane:lane,data:data,counts:stats.counts,expandedId:eid,onExpand:function(id){setEid(eid===id?null:id)},viewMode:vm})
         ),
         h("div",{className:"stats-bar"},
@@ -349,11 +386,140 @@ function AppScreen(props){
     );
 }
 
+// Data Scale Components
+var TABLE_META=[
+    {key:"providers",label:"Providers (NPI)",color:"#34D399",source:"CMS NPPES",icon:"\u{1F469}\u200D\u2695\uFE0F"},
+    {key:"drugs",label:"Drugs",color:"#F97316",source:"FDA NDC / RxNorm",icon:"\u{1F48A}"},
+    {key:"icd10_cm_codes",label:"ICD-10-CM Diagnoses",color:"#EF4444",source:"CMS / WHO",icon:"\u{1FA7A}"},
+    {key:"icd10_pcs_codes",label:"ICD-10-PCS Procedures",color:"#F472B6",source:"CMS",icon:"\u{1FA79}"},
+    {key:"clinical_trials",label:"Clinical Trials",color:"#D4A853",source:"ClinicalTrials.gov",icon:"\u{1F52C}"},
+    {key:"oig_exclusions",label:"OIG Exclusions",color:"#F472B6",source:"HHS OIG LEIE",icon:"\u{1F6AB}"},
+    {key:"pubmed_citations",label:"PubMed Citations",color:"#94A3B8",source:"NIH / NLM",icon:"\u{1F4DA}"},
+    {key:"hcpcs_codes",label:"HCPCS Billing Codes",color:"#22D3EE",source:"CMS HCPCS",icon:"\u{1F4B2}"},
+    {key:"ndc_codes",label:"NDC Product Codes",color:"#8B5CF6",source:"FDA NDC Directory",icon:"\u{1F3F7}\uFE0F"},
+    {key:"provider_taxonomies",label:"Provider Taxonomies",color:"#A78BFA",source:"NUCC / NPPES",icon:"\u{1F3E5}"}
+];
+
+var RELATIONSHIPS=[
+    {a:"providers",b:"icd10_cm_codes",label:"Provider \u2192 Diagnosis",verb:"treatment relationships",factor:0.0001},
+    {a:"providers",b:"drugs",label:"Provider \u2192 Drug",verb:"prescribing relationships",factor:0.00005},
+    {a:"drugs",b:"icd10_cm_codes",label:"Drug \u2192 Diagnosis",verb:"indication links",factor:0.001},
+    {a:"clinical_trials",b:"providers",label:"Trial \u2192 Provider",verb:"enrollment connections",factor:0.0005},
+    {a:"providers",b:"oig_exclusions",label:"Provider \u2192 Exclusion",verb:"compliance screenings",factor:0.00001},
+    {a:"drugs",b:"ndc_codes",label:"Drug \u2192 NDC",verb:"product mappings",factor:0.01},
+    {a:"providers",b:"hcpcs_codes",label:"Provider \u2192 HCPCS",verb:"billable service links",factor:0.0002},
+    {a:"providers",b:"provider_taxonomies",label:"Provider \u2192 Specialty",verb:"specialty classifications",factor:0.0001}
+];
+
+function fmt(n){if(n>=1e12)return(n/1e12).toFixed(1)+"T";if(n>=1e9)return(n/1e9).toFixed(1)+"B";if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(1)+"K";return String(n)}
+
+function ScaleDashboard(props){
+    var c=props.counts||{};
+    var total=0;Object.values(c).forEach(function(v){total+=v});
+    var relTotal=0;
+    var rels=RELATIONSHIPS.map(function(r){
+        var va=c[r.a]||0,vb=c[r.b]||0;
+        var potential=va*vb;
+        var est=Math.round(potential*r.factor);
+        relTotal+=est;
+        return{label:r.label,a:fmt(va),b:fmt(vb),potential:fmt(potential),est:fmt(est),verb:r.verb};
+    });
+
+    return h("div",{className:"scale-section"},
+        h("h3",{className:"scale-title"},"10 Federal Data Sources \u2022 "+fmt(total)+" Records \u2022 Growing Daily"),
+        h("div",{className:"scale-grid"},
+            TABLE_META.map(function(t){
+                var v=c[t.key]||0;
+                return h("div",{className:"scale-card",key:t.key},
+                    h("div",{className:"sc-num",style:{color:t.color}},v>0?v.toLocaleString():"..."),
+                    h("div",{className:"sc-lbl"},t.icon+" "+t.label),
+                    h("div",{className:"sc-src"},t.source)
+                );
+            })
+        ),
+        h("div",{className:"multiply-section"},
+            h("div",{className:"multiply-title"},"Relationships Multiply the Data \u2022 ~"+fmt(relTotal)+" estimated connections"),
+            h("div",{className:"multiply-grid"},
+                rels.map(function(r,i){
+                    return h("div",{className:"mult-row",key:i},
+                        h("span",{className:"mult-a"},r.label),
+                        h("span",{className:"mult-x"},"\u00D7"),
+                        h("span",{className:"mult-eq"},"="),
+                        h("span",{className:"mult-r"},r.est+" "+r.verb)
+                    );
+                })
+            )
+        )
+    );
+}
+
+// Browse Table - drill into real data
+var BROWSE_TABLES=[
+    {key:"providers",label:"Providers",cols:["first_name","last_name","credential","status"],select:"id,first_name,last_name,credential,status"},
+    {key:"drugs",label:"Drugs",cols:["name","drug_class","dosage_form"],select:"id,name,drug_class,dosage_form"},
+    {key:"icd10_cm_codes",label:"Diagnoses",cols:["code","description","is_billable"],select:"id,code,description,is_billable"},
+    {key:"clinical_trials",label:"Trials",cols:["title","phase","status","sponsor"],select:"id,title,phase,status,sponsor"},
+    {key:"hcpcs_codes",label:"HCPCS",cols:["code","description","code_type"],select:"id,code,description,code_type"},
+    {key:"oig_exclusions",label:"Exclusions",cols:["entity_name"],select:"id,entity_name"},
+    {key:"ndc_codes",label:"NDC Codes",cols:["ndc_code","proprietary_name","manufacturer"],select:"id,ndc_code,proprietary_name,manufacturer"}
+];
+
+function BrowseTable(props){
+    var counts=props.counts||{};
+    var s1=useState("providers"),activeTab=s1[0],setTab=s1[1];
+    var s2=useState([]),rows=s2[0],setRows=s2[1];
+    var s3=useState(0),offset=s3[0],setOffset=s3[1];
+    var s4=useState(true),loading=s4[0],setLoading=s4[1];
+    var pageSize=20;
+
+    var tbl=BROWSE_TABLES.find(function(t){return t.key===activeTab})||BROWSE_TABLES[0];
+
+    useEffect(function(){
+        setLoading(true);
+        q("/"+tbl.key+"?select="+tbl.select+"&limit="+pageSize+"&offset="+offset+"&order=id").then(function(data){
+            setRows(data||[]);setLoading(false);
+        });
+    },[activeTab,offset]);
+
+    function switchTab(key){setTab(key);setOffset(0)}
+    var totalForTab=counts[activeTab]||0;
+
+    return h("div",{className:"browse-section"},
+        h("h3",{style:{fontSize:"1rem",marginBottom:"0.5rem"}},"Browse Live Data"),
+        h("div",{className:"browse-tabs"},
+            BROWSE_TABLES.map(function(bt){
+                var c=counts[bt.key]||0;
+                return h("div",{key:bt.key,className:"browse-tab"+(activeTab===bt.key?" active":""),onClick:function(){switchTab(bt.key)}},bt.label+" ("+c.toLocaleString()+")")
+            })
+        ),
+        h("div",{className:"browse-wrap"},
+            h("table",{className:"browse-table"},
+                h("thead",null,h("tr",null,tbl.cols.map(function(col){return h("th",{key:col},col.replace(/_/g," "))}))),
+                h("tbody",null,
+                    loading?h("tr",null,h("td",{colSpan:tbl.cols.length,style:{textAlign:"center",padding:"1rem",color:"#888"}},"Loading...")):
+                    rows.map(function(row,i){
+                        return h("tr",{key:i},tbl.cols.map(function(col){return h("td",{key:col},row[col]!=null?String(row[col]).substring(0,80):"")}))
+                    })
+                )
+            )
+        ),
+        h("div",{className:"browse-nav"},
+            h("button",{className:"btn",onClick:function(){if(offset>0)setOffset(Math.max(0,offset-pageSize))},disabled:offset===0},"\u2190 Prev"),
+            h("span",{className:"browse-info"},"Showing "+(offset+1)+"-"+(offset+rows.length)+" of "+totalForTab.toLocaleString()),
+            h("button",{className:"btn",onClick:function(){if(offset+pageSize<totalForTab)setOffset(offset+pageSize)},disabled:offset+pageSize>=totalForTab},"Next \u2192")
+        )
+    );
+}
+
 function LanesScreen(props){
-    return h("div",{className:"lanes-screen"},
+    var c=props.stats.counts||{};
+    return h("div",{className:"lanes-screen",style:{justifyContent:"flex-start",paddingTop:"2rem"}},
         h("img",{className:"lanes-logo",src:"assets/logo-transparent.png",alt:"HKG"}),
         h("h1",{className:"lanes-title"},"Health Knowledge Garden"),
-        h("p",{className:"lanes-sub"},"How can we help you today?"),
+        h("p",{className:"lanes-sub"},"The living graph for healthcare. Every provider, drug, diagnosis, trial, and code \u2014 connected."),
+        h(ScaleDashboard,{counts:c}),
+        h("div",{style:{width:"100%",maxWidth:"1100px",marginBottom:"1.5rem"}},h(BrowseTable,{counts:c})),
+        h("h3",{style:{fontSize:"1.2rem",marginBottom:"1rem",color:"#ccc"}},"Choose your lens into the data:"),
         h("div",{className:"lanes-grid"},Object.values(LANES).map(function(ln){return h("div",{key:ln.id,className:"lc lc-"+ln.cls,onClick:function(){props.onSelect(ln.id)}},h("div",{className:"lc-icon"},ln.icon),h("h2",null,ln.title),h("p",{style:{marginBottom:"0.3rem",fontSize:"0.82rem"}},ln.sub),h("p",null,ln.desc))})),
         h("div",{className:"ls"},h("strong",null,props.stats.total.toLocaleString())," entities across 10 federal sources")
     );
