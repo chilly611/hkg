@@ -8,6 +8,9 @@
 *.mp3
 *.mp4
 *.zip
+*.png
+*.jpg
+*.jpeg
 *.rtfd/
 
 # Python

@@ -42,9 +42,22 @@
 - [x] NPI providers (weekly): 34,809 providers + 67,866 addresses + 46,723 taxonomies
 - [x] HCPCS billing codes: 22,700 records from CMS Level II
 - [x] DRG codes: 863 MS-DRG v42 codes from CMS
-- [ ] NPI full bulk load: 9.4M providers from NPPES Mar 2026 dissemination (IN PROGRESS)
-- [ ] OIG-NPI reconciliation: link 82K exclusions to provider NPIs (after NPI load)
-- [ ] Provider addresses + taxonomies for full NPI dataset (after NPI load)
+- [x] NPI full bulk load: 9,078,000 of 9,415,363 providers loaded (84 min, 1,801 rec/s). Batch 4540 failed on varchar(10) overflow — ~2K records to backfill after column fix.
+- [ ] OIG-NPI reconciliation: ~2,900 matched so far, ~7,214 remaining. Run: `cd scripts/ingestion && python3 apply_oig_matches.py`
+- [x] Provider addresses: 1,107,336 extracted (Apr 11, 2026)
+- [x] Provider taxonomies: 731,907 extracted (Apr 11, 2026)
+
+### Frontend (Built in BKG Project — Apr 10, 2026)
+- [x] Single-file React 18 UMD app — zero build step
+- [x] 4 lanes: Clinician, Patient/Caregiver, Operations, Explorer
+- [x] Live data browsing with tabbed interface (providers, drugs, diagnoses, trials, billing, exclusions, NDC)
+- [x] Real-time search across multiple data types
+- [x] SVG relationship map visualization
+- [x] Expandable entity cards with detailed info
+- [x] Deployed to https://health.theknowledgegardens.com/ via GitHub Pages
+- [ ] Migrate frontend index.html from BKG project into HKG repo (chilly611/hkg)
+- [ ] Merge BKG project's HKG lessons (PostgREST gotchas, React UMD patterns) into tasks.lessons.md
+- [ ] Reconcile project_hkg_backend.md and project_hkg_frontend.md into HKG repo docs
 
 ### Data Ingestion Sprint (P1 — Apr 9, 2026)
 - [x] ClinicalTrials.gov: 33,593 interventional trials via API v2

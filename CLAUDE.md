@@ -6,24 +6,32 @@ Chilly (Charles Dahlgren), Founder of XRWorkers. Building the Healthcare Knowled
 ## What This Is
 AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/Doctor/Patient/Machine), 3 surfaces (Gold/Green/Red), powered by Neo4j + Supabase + Claude API.
 
+## Frontend (LIVE)
+- URL: https://health.theknowledgegardens.com/
+- Single-file React 18 UMD app (index.html) — zero build step
+- 4 lanes: Clinician, Patient/Caregiver, Operations, Explorer
+- Live data browsing, search, SVG relationship map, entity cards
+- Deployed via GitHub Pages (from BKG project — needs migration to HKG repo)
+- Queries Supabase PostgREST API directly from browser
+
 ## Supabase Database (LIVE)
 - Project: opbrzaegvfyjpyyrmdfe
 - 28-table schema deployed with RLS, triggers, GIN indexes
-- 725K+ records across 17 populated tables (as of Apr 9, 2026)
+- ~10M+ records across 17 populated tables (as of Apr 11, 2026)
 - Connection details in .env (see .env.example)
 - Schema source of truth: supabase_schema.sql
 
 ### Current Data State
 | Table | Records | Source |
 |-------|---------|--------|
-| providers | 120,351 | NPPES NPI Registry (partial — 9.4M full load pending) |
+| providers | 9,078,000 | NPPES NPI Registry (full bulk load Apr 11, 2026 — batch 4540 varchar overflow, ~2K to backfill) |
 | icd10_cm_codes | 97,584 | CMS FY2025 |
 | ndc_codes | 82,740 | FDA openFDA |
 | oig_exclusions | 82,749 | HHS-OIG LEIE (Mar 2026) |
 | icd10_pcs_codes | 78,948 | CMS FY2025 |
-| provider_addresses | 67,866 | NPPES (partial) |
+| provider_addresses | 1,107,336 | NPPES (full bulk addr extraction Apr 11, 2026) |
 | pubmed_citations | 59,798 | NCBI E-Utilities |
-| provider_taxonomies | 46,723 | NPPES (partial) |
+| provider_taxonomies | 731,907 | NPPES (full bulk taxonomy extraction Apr 11, 2026) |
 | clinical_trials | 33,593 | ClinicalTrials.gov API v2 |
 | drugs | 25,790 | NLM RxNorm |
 | hcpcs_codes | 22,700 | CMS Level II |
@@ -35,11 +43,14 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 | sam_exclusions | 5 | SAM.gov (API issues — needs real key) |
 
 ### Pending Data Work
-- NPI full bulk load (9.4M records) — must run from local machine, sandbox kills after ~30min
-- Provider addresses + taxonomies for full NPI dataset
-- OIG-NPI reconciliation (run reconcile_oig_exclusions() after full NPI load)
-- DailyMed drug labels (5,500 target)
+- NPI bulk load DONE (9,078,000 of 9.4M). Batch 4540 failed on varchar(10) overflow — fix column and backfill ~2K records
+- Provider addresses + taxonomies: DONE (1,107,336 addr + 731,907 tax)
+- OIG-NPI reconciliation: ~2,900 of ~9,120 matched so far. Run `cd scripts/ingestion && python3 apply_oig_matches.py` to apply remaining ~7,214
+- DailyMed drug labels (5,500 target, ~400 loaded so far)
 - SAM.gov exclusions (needs registered API key)
+
+### Cross-Project Note
+Frontend was built in the BKG (Builder's Knowledge Garden) project and deployed to health.theknowledgegardens.com. The index.html needs to be migrated into this repo. The BKG project also created HKG-specific markdown files (project_hkg_backend.md, project_hkg_frontend.md) that should be merged here.
 
 ## Key Files
 - `tasks.todo.md` — Living development plan with checkable items

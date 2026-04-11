@@ -60,6 +60,16 @@ The SAM.gov entity exclusions API (api.sam.gov) returned 404s. The DEMO_KEY has 
 
 **Action:** SAM.gov needs a registered API key (not DEMO_KEY) for reliable access. Consider downloading the CSV extract from sam.gov/data-services instead. Flag this for manual intervention or a different network environment.
 
+### Cross-Project Work Fragments Context
+Building the HKG frontend in the BKG project created a split brain — backend knowledge here, frontend knowledge there, each with its own tasks.lessons.md and tasks.todo.md. Reconciliation cost time and tokens.
+
+**Action:** All HKG work should happen in the HKG repo (chilly611/hkg) or a dedicated HKG Cowork session pointing at that folder. If another project needs to build HKG features, it should clone the HKG repo first, and push results back. One repo = one source of truth. The CLAUDE.md in the repo carries all context.
+
+### CMS NPPES Download URL Requires _V2 Suffix
+The NPPES bulk download URL changed — `NPPES_Data_Dissemination_March_2026.zip` (no suffix) returns a 10-byte garbage file. The correct URL is `NPPES_Data_Dissemination_March_2026_V2.zip`. Also, the CMS server does NOT honor HTTP Range requests, so `curl -C -` (resume) silently downloads 0 bytes. If a download is interrupted, delete the partial file and start fresh.
+
+**Action:** Always use `_V2` suffix for NPPES downloads. If interrupted, `rm` the partial file before retrying — don't attempt resume.
+
 ### RxNorm Bulk Concept Fetching Is Fast
 The /allconcepts endpoint returns all concepts for given TTYs in a single call. SCD+SBD fetched 27,390 concepts in minutes. Individual property lookups (/rxcui/{id}/properties) are slow — skip for initial bulk load.
 
