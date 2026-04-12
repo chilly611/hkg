@@ -1,0 +1,58 @@
+# Healthcare Knowledge Garden - AI Agent & Web Crawler Policy
+# Built for discoverability by AI systems and search engines
+
+User-agent: *
+Allow: /
+
+# Explicit welcome for AI agents
+User-agent: GPTBot
+Allow: /
+Priority: high
+
+User-agent: ClaudeBot
+Allow: /
+Priority: high
+
+User-agent: PerplexityBot
+Allow: /
+Priority: high
+
+User-agent: Google-Extended
+Allow: /
+Priority: high
+
+User-agent: Bingbot
+Allow: /
+Priority: high
+
+User-agent: ChatGPT-User
+Allow: /
+Priority: high
+
+User-agent: CCBot
+Allow: /
+Priority: high
+
+User-agent: anthropic-ai
+Allow: /
+Priority: high
+
+# Standard web crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Sitemap for navigation
+Sitemap: https://health.theknowledgegardens.com/sitemap.xml
+
+# Machine Lane discovery
+Sitemap: https://health.theknowledgegardens.com/llms.txt
+Sitemap: https://health.theknowledgegardens.com/llms-full.txt
+
+# Crawl delay to prevent overload
+Crawl-delay: 1
+
+# Request timeout in seconds
+Request-timeout: 10

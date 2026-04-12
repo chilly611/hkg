@@ -1,0 +1,792 @@
+# Health Knowledge Garden - Full Technical Reference
+> The operating system for the $12T global healthcare ecosystem. 12M+ verified records from 13 federal sources, connected in real time.
+
+## Complete Data Dictionary & Field Schemas
+
+### 1. PROVIDERS TABLE (9.4M records)
+National Provider Identifier (NPI) registry. The master index for all healthcare professionals.
+
+**Endpoint**: `GET /rest/v1/providers`
+**Primary Key**: npi (National Provider Identifier)
+
+**Fields**:
+| Field | Type | Source | Description |
+|-------|------|--------|-------------|
+| npi | BIGINT | NPPES | Unique 10-digit National Provider Identifier |
+| entity_type | VARCHAR | NPPES | 'Individual' or 'Organization' |
+| first_name | VARCHAR | NPPES | First name (individuals only) |
+| last_name | VARCHAR | NPPES | Last name (individuals only) |
+| organization_name | VARCHAR | NPPES | Organization legal name (orgs only) |
+| credential | VARCHAR | NPPES | MD, DO, DPM, DDS, PA-C, APRN, etc. |
+| gender | VARCHAR | NPPES | 'M' or 'F' (individuals only) |
+| city | VARCHAR | NPPES | Practice location city |
+| state | CHAR(2) | NPPES | State abbreviation (CA, NY, TX, etc.) |
+| zip | VARCHAR | NPPES | ZIP code |
+| telephone | VARCHAR | NPPES | Business phone |
+| sole_proprietor | BOOLEAN | NPPES | Is sole practitioner |
+| enumeration_date | DATE | NPPES | NPI issued date |
+| last_update | DATE | NPPES | Last registry update date |
+| deactivation_date | DATE | NPPES | Null if active; date if inactive |
+| status | VARCHAR | NPPES | 'Active' or 'Inactive' |
+
+**Example Queries**:
+```
+# Find all cardiologists in California
+GET /providers?credential=eq.MD&state=eq.CA&order=last_name.asc&limit=100
+
+# Search by name
+GET /providers?last_name=ilike.*Smith*&first_name=ilike.*John*
+
+# Get organization by NPI
+GET /providers?npi=eq.1234567890
+
+# Find inactive providers
+GET /providers?status=eq.Inactive&state=eq.NY
+
+# Get all newly enumerated providers (last 90 days)
+GET /providers?enumeration_date=gt.2026-01-12
+```
+
+---
+
+### 2. PROVIDER_ADDRESSES TABLE (1.1M records)
+Complete address data for all providers. Supports mail/practice location separation.
+
+**Endpoint**: `GET /rest/v1/provider_addresses`
+**Foreign Key**: npi → providers.npi
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| npi | BIGINT | Links to provider |
+| address_type | VARCHAR | 'Practice Location' or 'Mailing Address' |
+| address_line_1 | VARCHAR | Street address |
+| address_line_2 | VARCHAR | Suite/unit number |
+| city | VARCHAR | City |
+| state | CHAR(2) | State |
+| zip | VARCHAR | ZIP code |
+| country | VARCHAR | Country code |
+| telephone | VARCHAR | Location-specific phone |
+
+**Example Queries**:
+```
+# Get all practice locations for a provider
+GET /provider_addresses?npi=eq.1234567890&address_type=eq.'Practice Location'
+
+# Find all providers in a specific ZIP
+GET /provider_addresses?zip=eq.90210&address_type=eq.'Practice Location'
+```
+
+---
+
+### 3. PROVIDER_TAXONOMIES TABLE (778K records)
+Provider specialty/taxonomy codes (>60 unique specialties).
+
+**Endpoint**: `GET /rest/v1/provider_taxonomies`
+**Foreign Key**: npi → providers.npi
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| npi | BIGINT | Links to provider |
+| taxonomy_code | VARCHAR | CMS taxonomy code (e.g., '207R00000X' for internal medicine) |
+| taxonomy_desc | VARCHAR | Human-readable specialty (e.g., 'Internal Medicine') |
+| is_primary | BOOLEAN | Is this the primary specialty? |
+| license_num | VARCHAR | State license number (if available) |
+| state_code | CHAR(2) | License state |
+
+**Common Taxonomy Codes**:
+```
+207R00000X — Internal Medicine
+207QA0505X — Family Medicine
+207PE0004X — Psychiatry
+203BF0100Y — Cardiology
+207N00000X — Nephrology
+206H00000X — Ophthalmology
+```
+
+**Example Queries**:
+```
+# Find all cardiologists
+GET /provider_taxonomies?taxonomy_desc=ilike.*Cardiology*
+
+# Find all primary specialties for a provider
+GET /provider_taxonomies?npi=eq.1234567890&is_primary=eq.true
+
+# Count providers by specialty
+GET /provider_taxonomies?select=taxonomy_desc,count(npi).gt.0
+```
+
+---
+
+### 4. ICD10_CM_CODES TABLE (97.5K records)
+ICD-10 Clinical Modification codes for diagnoses and conditions.
+
+**Endpoint**: `GET /rest/v1/icd10_cm_codes`
+**Primary Key**: code
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| code | VARCHAR(7) | ICD-10-CM code (e.g., 'I10' for hypertension) |
+| short_desc | VARCHAR | Abbreviated description |
+| long_desc | VARCHAR | Full description |
+| is_hierarchical | BOOLEAN | Parent code in hierarchy |
+| valid_for_billing | BOOLEAN | Can be billed (billable codes) |
+| category | VARCHAR | Parent category |
+| severity_level | VARCHAR | Major/Moderate/Minor (inferred) |
+
+**Example Queries**:
+```
+# Find hypertension codes
+GET /icd10_cm_codes?long_desc=ilike.*Hypertension*&valid_for_billing=eq.true
+
+# Get a specific code
+GET /icd10_cm_codes?code=eq.I10
+
+# Find all diabetes-related codes
+GET /icd10_cm_codes?long_desc=ilike.*Diabetes*&order=code.asc
+
+# Search for codes containing a keyword
+GET /icd10_cm_codes?long_desc=ilike.*Acute*&select=code,long_desc
+```
+
+---
+
+### 5. ICD10_PCS_CODES TABLE (78.9K records)
+ICD-10 Procedure Coding System codes for medical procedures.
+
+**Endpoint**: `GET /rest/v1/icd10_pcs_codes`
+**Primary Key**: code
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| code | VARCHAR(7) | ICD-10-PCS code (e.g., '5A1221Z' for ventilation) |
+| short_desc | VARCHAR | Short description |
+| long_desc | VARCHAR | Full description |
+| section | VARCHAR | First character section (Medical/Surgical, Obstetrics, etc.) |
+| valid_for_billing | BOOLEAN | Can be billed |
+
+**Example Queries**:
+```
+# Find all surgical codes
+GET /icd10_pcs_codes?section=eq.0&valid_for_billing=eq.true
+
+# Search for coronary procedures
+GET /icd10_pcs_codes?long_desc=ilike.*Coronary*
+
+# Get code by specific code
+GET /icd10_pcs_codes?code=eq.02000A4
+```
+
+---
+
+### 6. DRUGS TABLE (25.7K records)
+Normalized drug names and properties via RxNorm.
+
+**Endpoint**: `GET /rest/v1/drugs`
+**Primary Key**: rxnorm_cui
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| rxnorm_cui | VARCHAR | RxNorm Concept Unique Identifier |
+| name | VARCHAR | Preferred drug name |
+| rxcui_strength | VARCHAR | Strength (e.g., '500 mg') |
+| rxcui_form | VARCHAR | Form (Tablet, Capsule, Solution, etc.) |
+| rxcui_route | VARCHAR | Route of administration (Oral, IV, IM, etc.) |
+| dea_schedule | VARCHAR | DEA schedule (I-V, or null if non-controlled) |
+| pregnancy_category | VARCHAR | FDA pregnancy category (A, B, C, D, X) |
+| mechanism_of_action | TEXT | How drug works (when available) |
+
+**Example Queries**:
+```
+# Find all dosages of Metformin
+GET /drugs?name=ilike.*Metformin*&order=rxcui_strength.asc
+
+# Find all IV forms of a drug
+GET /drugs?rxcui_route=eq.'Intravenous'&name=ilike.*Antibiotic*
+
+# Get specific drug by name
+GET /drugs?name=eq.Aspirin
+
+# Find controlled substances
+GET /drugs?dea_schedule=not.null
+```
+
+---
+
+### 7. NDC_CODES TABLE (82.7K records)
+National Drug Code directory from FDA.
+
+**Endpoint**: `GET /rest/v1/ndc_codes`
+**Primary Key**: ndc
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| ndc | VARCHAR(11) | National Drug Code (10-digit or 11-digit format) |
+| proprietary_name | VARCHAR | Brand name |
+| labeler_name | VARCHAR | Manufacturer name |
+| dosage_form | VARCHAR | Form (Tablet, Capsule, etc.) |
+| strength | VARCHAR | Dose strength |
+| route | VARCHAR | Route of administration |
+| packaging_qty | INTEGER | Quantity per package |
+| packaging_unit | VARCHAR | Unit (tablets, mL, etc.) |
+| status | VARCHAR | 'Active' or 'Inactive' |
+
+**Example Queries**:
+```
+# Find all NDCs for a brand name
+GET /ndc_codes?proprietary_name=ilike.*Tylenol*
+
+# Find all products by a manufacturer
+GET /ndc_codes?labeler_name=ilike.*Pfizer*
+
+# Get active products only
+GET /ndc_codes?status=eq.Active&order=proprietary_name.asc
+
+# Find intravenous formulations
+GET /ndc_codes?route=eq.'Intravenous'
+```
+
+---
+
+### 8. DRUG_INTERACTIONS TABLE (5.5K records)
+Known drug-drug interactions with severity levels.
+
+**Endpoint**: `GET /rest/v1/drug_interactions`
+**Fields**: drug_a, drug_b, severity, mechanism, clinical_significance
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| drug_a | VARCHAR | First drug (normalized name) |
+| drug_b | VARCHAR | Second drug (normalized name) |
+| severity | VARCHAR | 'Critical', 'Major', 'Moderate', 'Minor' |
+| mechanism | TEXT | How drugs interact pharmacologically |
+| clinical_significance | TEXT | Clinical impact on patient |
+| management | TEXT | Recommended management (monitor, avoid, adjust dose, etc.) |
+
+**Example Queries**:
+```
+# Find all interactions for Warfarin
+GET /drug_interactions?or=(drug_a.eq.Warfarin,drug_b.eq.Warfarin)
+
+# Find all critical interactions
+GET /drug_interactions?severity=eq.Critical
+
+# Find interactions between two specific drugs
+GET /drug_interactions?or=(and(drug_a.eq.Warfarin,drug_b.eq.Ibuprofen),and(drug_a.eq.Ibuprofen,drug_b.eq.Warfarin))
+
+# Get all major interactions
+GET /drug_interactions?severity=eq.Major&order=drug_a.asc
+```
+
+---
+
+### 9. DRUG_ADVERSE_EVENTS TABLE (139.7K records)
+FDA FAERS adverse event reports linked to drugs.
+
+**Endpoint**: `GET /rest/v1/drug_adverse_events`
+**Primary Key**: report_id
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| report_id | VARCHAR | Unique FAERS report ID |
+| drug_name | VARCHAR | Drug involved in event |
+| rxnorm_cui | VARCHAR | Link to drugs table (if available) |
+| adverse_event | VARCHAR | Description of adverse event |
+| outcome | VARCHAR | 'Hospitalization', 'Death', 'Disability', 'Other Serious' |
+| severity | VARCHAR | Severity assessment |
+| patient_age | VARCHAR | Patient age (if reported) |
+| patient_gender | VARCHAR | Patient gender (M/F) |
+| report_date | DATE | Date report submitted |
+| manufacturer_note | TEXT | Manufacturer response |
+
+**Example Queries**:
+```
+# Find all serious events for a drug
+GET /drug_adverse_events?drug_name=ilike.*Metformin*&outcome=eq.'Hospitalization'
+
+# Get fatal events
+GET /drug_adverse_events?outcome=eq.Death&order=report_date.desc
+
+# Find events for a specific condition
+GET /drug_adverse_events?adverse_event=ilike.*Diabetes*&limit=50
+
+# Count events by drug (top 10 most reported)
+GET /drug_adverse_events?select=drug_name,count(report_id)&order=count.desc&limit=10
+```
+
+---
+
+### 10. CLINICAL_TRIALS TABLE (33.5K records)
+Active and recent clinical trials from ClinicalTrials.gov.
+
+**Endpoint**: `GET /rest/v1/clinical_trials`
+**Primary Key**: nct_id
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| nct_id | VARCHAR | NCT identifier (e.g., NCT03210753) |
+| title | VARCHAR | Trial title |
+| condition | VARCHAR | Primary condition studied |
+| condition_icd10 | VARCHAR | Linked ICD-10 code (if mapped) |
+| phase | VARCHAR | 'Phase 1', 'Phase 2', 'Phase 3', 'Phase 4' |
+| status | VARCHAR | 'Recruiting', 'Active/Not Recruiting', 'Completed', 'Enrolling by Invitation' |
+| sponsor | VARCHAR | Organization running trial |
+| enrollment | INTEGER | Target enrollment number |
+| current_enrollment | INTEGER | Current enrollment count |
+| start_date | DATE | Trial start date |
+| end_date | DATE | Expected end date |
+| study_type | VARCHAR | 'Interventional', 'Observational' |
+| primary_outcome | TEXT | Main study objective |
+| inclusion_criteria | TEXT | Who can enroll |
+| exclusion_criteria | TEXT | Who cannot enroll |
+| locations | TEXT | Study site cities and states |
+| contact_name | VARCHAR | Principal investigator name |
+| contact_email | VARCHAR | Contact email |
+
+**Example Queries**:
+```
+# Find recruiting trials for a condition
+GET /clinical_trials?condition=ilike.*Diabetes*&status=eq.Recruiting
+
+# Get all Phase 3 trials by a sponsor
+GET /clinical_trials?sponsor=ilike.*Mayo*&phase=eq.'Phase 3'
+
+# Find trials with high enrollment
+GET /clinical_trials?current_enrollment=gt.100&order=current_enrollment.desc
+
+# Find recent trials (started in last year)
+GET /clinical_trials?start_date=gt.2025-04-12
+
+# Search by NCT ID
+GET /clinical_trials?nct_id=eq.NCT03210753
+```
+
+---
+
+### 11. OIG_EXCLUSIONS TABLE (82.7K records)
+HHS-OIG LEIE (List of Excluded Individuals/Entities). Critical for provider compliance.
+
+**Endpoint**: `GET /rest/v1/oig_exclusions`
+**Primary Key**: exclusion_id
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| exclusion_id | VARCHAR | Unique OIG exclusion ID |
+| entity_name | VARCHAR | Name of excluded person/organization |
+| entity_type | VARCHAR | 'Individual' or 'Organization' |
+| npi | BIGINT | NPI if linked (foreign key to providers) |
+| exclusion_type | VARCHAR | 'Mandatory', 'Permissive', 'Voluntary' |
+| exclusion_reason | VARCHAR | Reason for exclusion (fraud, abuse, etc.) |
+| exclusion_date | DATE | Date exclusion imposed |
+| reinstatement_date | DATE | Date reinstated (null if currently excluded) |
+| status | VARCHAR | 'Excluded' or 'Reinstated' |
+
+**Example Queries**:
+```
+# Check if provider is excluded
+GET /oig_exclusions?npi=eq.1234567890
+
+# Find all currently excluded entities
+GET /oig_exclusions?status=eq.Excluded
+
+# Get recent exclusions (last 30 days)
+GET /oig_exclusions?exclusion_date=gt.2026-03-13&status=eq.Excluded
+
+# Find all mandatory exclusions
+GET /oig_exclusions?exclusion_type=eq.Mandatory
+```
+
+---
+
+### 12. HCPCS_CODES TABLE (22.7K records)
+CMS HCPCS Level II billing codes for procedures, services, and supplies.
+
+**Endpoint**: `GET /rest/v1/hcpcs_codes`
+**Primary Key**: code
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| code | VARCHAR(5) | HCPCS code (e.g., 'J9999' for drug) |
+| description | VARCHAR | What the code represents |
+| category | VARCHAR | Code category (E/M, Supplies, Procedures, etc.) |
+| status | VARCHAR | 'Active' or 'Inactive' |
+| effective_date | DATE | Code effective date |
+| end_date | DATE | Code retirement date (null if active) |
+
+**Example Queries**:
+```
+# Find billing codes for injections
+GET /hcpcs_codes?description=ilike.*Injection*&status=eq.Active
+
+# Get specific code
+GET /hcpcs_codes?code=eq.J9999
+
+# Find retired codes
+GET /hcpcs_codes?status=eq.Inactive
+```
+
+---
+
+### 13. LOINC_CODES TABLE (7.5K+ records, expanding to 108K)
+LOINC (Logical Observation Identifiers Names and Codes) for lab tests.
+
+**Endpoint**: `GET /rest/v1/loinc_codes`
+**Primary Key**: loinc_num
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| loinc_num | VARCHAR | LOINC identifier (e.g., '2345-7') |
+| long_common_name | VARCHAR | Human-readable test name |
+| component | VARCHAR | What is being measured |
+| property | VARCHAR | Kind of property (concentration, mass, etc.) |
+| method | VARCHAR | How measurement is performed |
+| class | VARCHAR | Test category |
+| short_name | VARCHAR | Abbreviated test name |
+| reference_range | VARCHAR | Normal range values |
+| unit | VARCHAR | Measurement unit |
+
+**Example Queries**:
+```
+# Find glucose test codes
+GET /loinc_codes?long_common_name=ilike.*Glucose*
+
+# Find codes for a specific test type
+GET /loinc_codes?component=ilike.*Hemoglobin*
+
+# Get lab codes by class
+GET /loinc_codes?class=eq.'Chemistry'&order=long_common_name.asc
+
+# Find a specific LOINC code
+GET /loinc_codes?loinc_num=eq.2345-7
+```
+
+---
+
+### 14. PUBMED_CITATIONS TABLE (59.7K records)
+PubMed/MEDLINE literature citations for evidence-based lookup.
+
+**Endpoint**: `GET /rest/v1/pubmed_citations`
+**Primary Key**: pmid
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| pmid | BIGINT | PubMed Identifier |
+| title | VARCHAR | Article title |
+| authors | TEXT | Author list (comma-separated) |
+| journal | VARCHAR | Journal name |
+| publication_year | INTEGER | Year published |
+| abstract | TEXT | Article abstract |
+| doi | VARCHAR | Digital Object Identifier |
+| keywords | TEXT | Keywords (comma-separated) |
+| conditions | TEXT | Related medical conditions (linked) |
+| drugs | TEXT | Related drugs mentioned |
+
+**Example Queries**:
+```
+# Find literature on a condition
+GET /pubmed_citations?conditions=ilike.*Hypertension*&order=publication_year.desc
+
+# Find articles about a drug
+GET /pubmed_citations?drugs=ilike.*Warfarin*&publication_year=gt.2020
+
+# Search by keyword
+GET /pubmed_citations?keywords=ilike.*diabetes*&limit=50
+
+# Get citation by PMID
+GET /pubmed_citations?pmid=eq.12345678
+```
+
+---
+
+### 15. DRUG_LABELS TABLE (700 loaded, targeting 5.5K)
+NLM DailyMed drug label data.
+
+**Endpoint**: `GET /rest/v1/drug_labels`
+**Fields**: drug_name, ndc, rxnorm_cui, indications, dosage, warnings, contraindications, side_effects
+
+**Example Queries**:
+```
+# Get label for a drug
+GET /drug_labels?drug_name=ilike.*Aspirin*
+
+# Find labels by NDC
+GET /drug_labels?ndc=eq.00069025600
+```
+
+---
+
+### 16. MEDICARE_PART_D_PRESCRIBERS TABLE (70.6K records)
+CMS Medicare Part D prescriber-level drug data.
+
+**Endpoint**: `GET /rest/v1/medicare_part_d_prescribers`
+**Foreign Key**: npi → providers.npi
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| npi | BIGINT | Provider NPI |
+| drug_name | VARCHAR | Drug prescribed |
+| ndc | VARCHAR | Drug NDC code |
+| total_claims | INTEGER | Number of prescriptions |
+| total_cost | DECIMAL | Total cost to Medicare |
+| avg_claim_cost | DECIMAL | Average cost per claim |
+| beneficiary_count | INTEGER | Number of Medicare beneficiaries |
+| year | INTEGER | Reporting year |
+
+**Example Queries**:
+```
+# Get prescribing patterns for a provider
+GET /medicare_part_d_prescribers?npi=eq.1234567890
+
+# Find top prescribed drugs by a provider
+GET /medicare_part_d_prescribers?npi=eq.1234567890&order=total_claims.desc&limit=10
+
+# Find all prescribers of a specific drug
+GET /medicare_part_d_prescribers?drug_name=ilike.*Metformin*&order=total_claims.desc
+
+# Get cost data
+GET /medicare_part_d_prescribers?order=total_cost.desc&limit=50
+```
+
+---
+
+### 17. MEDICARE_UTILIZATION TABLE (50K records)
+CMS Medicare Physician & Other Practitioners utilization data.
+
+**Endpoint**: `GET /rest/v1/medicare_utilization`
+**Foreign Key**: npi → providers.npi
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| npi | BIGINT | Provider NPI |
+| provider_name | VARCHAR | Full name |
+| specialty | VARCHAR | Primary specialty |
+| state | CHAR(2) | State |
+| procedure_code | VARCHAR | CPT/HCPCS code |
+| procedure_desc | VARCHAR | Procedure description |
+| service_count | INTEGER | Number of services |
+| beneficiary_count | INTEGER | Unique Medicare beneficiaries |
+| allowed_amount | DECIMAL | Amount allowed by Medicare |
+| submitted_charges | DECIMAL | Amount billed to Medicare |
+| average_charge | DECIMAL | Average charge per service |
+| year | INTEGER | Reporting year |
+
+**Example Queries**:
+```
+# Get utilization for a provider
+GET /medicare_utilization?npi=eq.1234567890
+
+# Find top procedures by a provider
+GET /medicare_utilization?npi=eq.1234567890&order=service_count.desc&limit=20
+
+# Find high-cost specialists
+GET /medicare_utilization?specialty=ilike.*Cardiology*&order=allowed_amount.desc&limit=50
+
+# Compare billing patterns
+GET /medicare_utilization?order=submitted_charges.desc&limit=100
+```
+
+---
+
+### 18. HOSPITALS TABLE (2.1K records)
+CMS Hospital All Owners dataset with facility information.
+
+**Endpoint**: `GET /rest/v1/hospitals`
+**Primary Key**: cms_certification_num
+
+**Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| cms_certification_num | VARCHAR | Medicare Certification Number |
+| name | VARCHAR | Hospital name |
+| address | VARCHAR | Street address |
+| city | VARCHAR | City |
+| state | CHAR(2) | State |
+| zip | VARCHAR | ZIP code |
+| phone | VARCHAR | Main phone |
+| beds | INTEGER | Licensed bed count |
+| ownership_type | VARCHAR | Public, Private Nonprofit, For-Profit |
+| trauma_center | BOOLEAN | Is trauma center |
+| teaching_hospital | BOOLEAN | Teaches medical residents |
+
+**Example Queries**:
+```
+# Find hospitals in a state
+GET /hospitals?state=eq.CA
+
+# Find trauma centers
+GET /hospitals?trauma_center=eq.true
+
+# Find teaching hospitals
+GET /hospitals?teaching_hospital=eq.true&order=beds.desc
+
+# Get hospital by name
+GET /hospitals?name=ilike.*Mayo*
+```
+
+---
+
+### 19. DRG_CODES TABLE (863 records)
+CMS MS-DRG (Diagnosis-Related Group) codes for inpatient billing.
+
+**Endpoint**: `GET /rest/v1/drg_codes`
+**Fields**: drg_code, description, mdc_code, mdc_name, severity_level, mortality_rate
+
+**Example Queries**:
+```
+# Find DRG for a condition
+GET /drg_codes?description=ilike.*Diabetes*
+
+# Get specific DRG
+GET /drg_codes?drg_code=eq.637
+```
+
+---
+
+### 20. STATE_MEDICAL_BOARDS TABLE (51 records)
+Reference data for all 50 states + DC medical boards.
+
+**Endpoint**: `GET /rest/v1/state_medical_boards`
+**Fields**: state_code, board_name, website, phone, verify_license_url
+
+---
+
+### 21. MESH_TERMS TABLE (15+ expanding)
+NLM MeSH (Medical Subject Headings) taxonomy terms.
+
+**Endpoint**: `GET /rest/v1/mesh_terms`
+**Fields**: mesh_id, term_name, scope_note, related_terms, parent_terms
+
+**Example Queries**:
+```
+# Find MeSH terms for a condition
+GET /mesh_terms?term_name=ilike.*Diabetes*
+
+# Get all related terms
+GET /mesh_terms?mesh_id=eq.D003920
+```
+
+---
+
+### 22. DATA_SOURCES TABLE (10 records)
+Reference registry of all data sources powering HKG.
+
+**Endpoint**: `GET /rest/v1/data_sources`
+**Fields**: source_id, source_name, description, url, last_updated, record_count, refresh_frequency
+
+---
+
+## Advanced Query Patterns
+
+### Pattern 1: Provider Compliance Verification
+```javascript
+// Check if provider is active AND not excluded
+async function verifyProvider(npi) {
+  const provider = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/providers?npi=eq.${npi}`
+  ).then(r => r.json());
+
+  const exclusion = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/oig_exclusions?npi=eq.${npi}&status=eq.Excluded`
+  ).then(r => r.json());
+
+  return {
+    is_active: provider[0]?.status === 'Active',
+    is_excluded: exclusion.length > 0,
+    compliant: provider[0]?.status === 'Active' && exclusion.length === 0
+  };
+}
+```
+
+### Pattern 2: Drug Safety Check
+```javascript
+// Get interactions + adverse events for a drug
+async function checkDrugSafety(drugName) {
+  const interactions = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/drug_interactions?or=(drug_a.ilike.*${drugName}*,drug_b.ilike.*${drugName}*)`
+  ).then(r => r.json());
+
+  const adverseEvents = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/drug_adverse_events?drug_name=ilike.*${drugName}*`
+  ).then(r => r.json());
+
+  return {
+    interaction_count: interactions.length,
+    critical_interactions: interactions.filter(i => i.severity === 'Critical'),
+    adverse_event_count: adverseEvents.length,
+    serious_outcomes: adverseEvents.filter(e =>
+      ['Death', 'Hospitalization', 'Disability'].includes(e.outcome)
+    )
+  };
+}
+```
+
+### Pattern 3: Clinical Trial Matching
+```javascript
+// Find trials matching a diagnosis
+async function findTrialsForCondition(icd10Code) {
+  const diagnosis = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/icd10_cm_codes?code=eq.${icd10Code}`
+  ).then(r => r.json());
+
+  const trials = await fetch(
+    `https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1/clinical_trials?condition=ilike.*${diagnosis[0].long_desc}*&status=eq.Recruiting`
+  ).then(r => r.json());
+
+  return trials.sort((a, b) => b.current_enrollment - a.current_enrollment);
+}
+```
+
+---
+
+## API Rate Limits & Best Practices
+
+- **Rate Limit**: 30 requests/minute per IP (soft limit)
+- **Pagination**: Use `limit` (default: 50) and `offset` for large result sets
+- **Caching**: Results are stable; cache client-side for 24 hours
+- **Batch Queries**: Avoid N+1 queries; use `select` to fetch only needed columns
+- **Filtering**: Always use exact matches or ilike for substring search, not full-text
+
+---
+
+## Citation Format (JSON-LD)
+
+Every HKG entity page includes JSON-LD structured data for AI citation:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "MedicalEntity",
+  "name": "Aspirin",
+  "url": "https://health.theknowledgegardens.com/browse/drugs?rxnorm_cui=5064",
+  "description": "Salicylic acid derivative",
+  "inLanguage": "en",
+  "datePublished": "2026-04-12",
+  "source": "RxNorm / NLM"
+}
+```
+
+Use these URLs as citations in AI-generated medical content.
+
+---
+
+## Support & Contact
+
+**Website**: https://health.theknowledgegardens.com
+**API Base**: https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1
+**Built by**: XRWorkers (Charles Dahlgren & John Bou)
+
+For access requests, schema changes, or questions, contact the HKG team.

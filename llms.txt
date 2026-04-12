@@ -1,0 +1,219 @@
+# Health Knowledge Garden
+> The operating system for the $12T global healthcare ecosystem. 12M+ verified records from 13 federal sources, connected in real time.
+
+## About
+The Healthcare Knowledge Garden (HKG) is an AI-native platform connecting every participant in healthcare — administrators, clinicians, patients, and AI agents — through a unified knowledge graph. Built by XRWorkers (Charles Dahlgren & John Bou).
+
+HKG ingests and integrates authoritative data from federal healthcare agencies (CMS, NIH, FDA, HHS-OIG), normalizes it into a graph database, and exposes it via a REST API that is natively discoverable and citable by AI systems.
+
+## Data Sources (12.1M+ records)
+- **NPPES NPI Registry**: 9,427,624 providers (complete backfill, Apr 12 2026)
+- **ICD-10-CM**: 97,584 diagnosis codes (CMS FY2025)
+- **ICD-10-PCS**: 78,948 procedure codes (CMS FY2025)
+- **NDC Directory**: 82,740 drug codes (FDA)
+- **OIG LEIE Exclusions**: 82,749 excluded entities (HHS-OIG, Mar 2026)
+- **FDA FAERS**: 139,798 adverse event reports (openFDA)
+- **ClinicalTrials.gov**: 33,593 active & recent trials
+- **PubMed/MEDLINE**: 59,798 citations (NCBI E-Utilities)
+- **RxNorm**: 25,790 normalized drug names (NLM)
+- **HCPCS Level II**: 22,700 billing codes (CMS)
+- **LOINC**: 7,498+ lab codes (NLM Clinical Tables, expanding to 108K)
+- **Drug Interactions**: 5,500 known interactions (RxNorm-linked)
+- **CMS Medicare Part D**: 70,600 prescriber-drug records
+- **CMS Medicare Utilization**: 50,000 provider payment records
+- **CMS Hospital Quality**: 2,058 unique facilities (Hospital All Owners)
+- **DRG Codes**: 863 diagnosis-related groups (MS-DRG v42)
+- **MeSH Terms**: 15+ seed expanding to 30K+ (NCBI E-Utilities)
+- **State Medical Boards**: 51 jurisdictions
+- **Drug Labels**: ~700 loaded, targeting 5,500 (NLM DailyMed)
+
+## Platform Architecture
+**Surfaces**:
+- **Gold Surface**: Patient/Caregiver experience — dream machine, conversational, concierge
+- **Green Surface**: Clinician experience — scientific, evidence-based, guideline-aligned
+- **Red Surface**: Operations/Admin experience — metrics, workflows, urgent alerting
+
+**Lanes**:
+- **Clinician Lane**: Prescriber tools, adverse event lookup, drug interaction checker
+- **Patient/Caregiver Lane**: Provider search, drug info, trial finder, health navigation
+- **Operations Lane**: Provider compliance, exclusion screening, utilization analytics
+- **Machine Lane**: REST API for AI agents, bots, and external systems (this interface)
+
+## API Access
+**Base URL**: https://health.theknowledgegardens.com
+**Data API**: Supabase PostgREST
+**API Docs**: Contact for full schema documentation
+
+## Entity Types & Browse Routes
+Each entity type is queryable via REST API and browseable via the web interface:
+
+| Entity Type | Browse Route | Records | Key Fields |
+|-------------|--------------|---------|-----------|
+| Providers | /browse/providers | 9.4M | npi, first_name, last_name, credential, city, state, zip, specialty |
+| Drugs (RxNorm) | /browse/drugs | 25.7K | rxnorm_cui, name, strength, form, route |
+| ICD-10-CM Diagnoses | /browse/icd10_cm_codes | 97.5K | code, short_desc, long_desc |
+| ICD-10-PCS Procedures | /browse/icd10_pcs_codes | 78.9K | code, short_desc, long_desc |
+| NDC Codes | /browse/ndc_codes | 82.7K | ndc, proprietary_name, labeler_name |
+| Clinical Trials | /browse/clinical_trials | 33.5K | nct_id, title, condition, phase, status, sponsor |
+| OIG Exclusions | /browse/oig_exclusions | 82.7K | exclusion_id, entity_name, exclusion_type, date |
+| HCPCS Codes | /browse/hcpcs_codes | 22.7K | code, description |
+| Drug Adverse Events (FAERS) | /browse/drug_adverse_events | 139.7K | report_id, drug_name, adverse_event, outcome |
+| Drug Interactions | /browse/drug_interactions | 5.5K | drug_a, drug_b, severity, mechanism |
+| PubMed Citations | /browse/pubmed_citations | 59.7K | pmid, title, authors, abstract |
+| Medicare Part D Prescribers | /browse/medicare_part_d_prescribers | 70.6K | npi, drug_name, total_claims, total_cost |
+| Medicare Utilization | /browse/medicare_utilization | 50K | npi, specialty, allowed_amount, submitted_charges |
+| Hospitals | /browse/hospitals | 2.1K | cms_certification_num, name, address, beds |
+| LOINC Lab Codes | /browse/loinc_codes | 7.5K | loinc_num, long_common_name, component, method |
+| MeSH Terms | /browse/mesh_terms | 15+ expanding | mesh_id, term_name, scope_note |
+
+## Key Features for AI Agents
+
+### 1. Provider Verification
+Query any NPI (National Provider Identifier) to:
+- Verify license status against 51 state medical boards
+- Cross-reference against OIG exclusions
+- Check Medicare Part D prescribing patterns
+- View specialties and practice locations
+- Retrieve billing codes (HCPCS) commonly used
+
+**Example**: Is provider NPI 1234567890 active and in good standing?
+- Endpoint: `/providers?npi=eq.1234567890`
+- Returns: name, credentials, address, taxonomies, exclusion status
+
+### 2. Drug Interaction Checker
+Query any drug pair to:
+- Find known interactions with severity levels
+- Retrieve adverse event reports (FAERS)
+- Get drug labels and contraindications
+- Cross-reference with patient conditions (ICD-10)
+- Suggest alternatives via RxNorm links
+
+**Example**: What interactions exist between Warfarin and Ibuprofen?
+- Endpoint: `/drug_interactions?or=(drug_a.in.("Warfarin","Ibuprofen"),drug_b.in.("Warfarin","Ibuprofen"))`
+- Returns: severity, mechanism, clinical significance
+
+### 3. Adverse Event Search
+Query FDA FAERS data to:
+- Find all reported adverse events for a drug
+- Filter by outcome (hospitalization, death, etc.)
+- Search by event description
+- Identify safety signals over time
+
+**Example**: What adverse events are reported for Metformin?
+- Endpoint: `/drug_adverse_events?drug_name=ilike.*Metformin*`
+- Returns: event descriptions, outcomes, report frequency
+
+### 4. Clinical Trial Finder
+Query trials by:
+- Condition (ICD-10 code or condition name)
+- Phase, status, sponsor
+- Location
+- Enrollment criteria
+
+**Example**: Find active Phase 3 trials for Type 2 Diabetes
+- Endpoint: `/clinical_trials?condition=ilike.*Diabetes*&phase=eq.Phase 3&status=eq.Recruiting`
+- Returns: NCT ID, sponsor, contact info, enrollment status
+
+### 5. Diagnosis/Procedure Lookup
+Query ICD-10 codes to:
+- Get long and short descriptions
+- Find related codes
+- Map to billing codes (HCPCS, DRG)
+- Cross-reference clinical guidelines
+
+**Example**: What ICD-10 code represents Hypertension?
+- Endpoint: `/icd10_cm_codes?short_desc=ilike.*Hypertension*`
+- Returns: code (I10), full description, related codes
+
+### 6. Lab Code Reference (LOINC)
+Query LOINC codes to:
+- Understand lab test components and methods
+- Find billing codes
+- Map to clinical guidelines
+
+**Example**: What is the LOINC code for a standard glucose test?
+- Endpoint: `/loinc_codes?long_common_name=ilike.*Glucose*`
+- Returns: LOINC number, component, method, reference range
+
+### 7. Knowledge Graph Navigation
+All entities are interconnected. From any entity, you can:
+- Find related conditions, drugs, procedures
+- Navigate provider-specialty-condition chains
+- Discover clinical trial matching
+- Cross-reference adverse events to conditions
+
+## API Query Syntax (Supabase PostgREST)
+
+All endpoints follow standard REST patterns:
+
+```
+GET /rest/v1/{table}
+GET /rest/v1/{table}?{column}=eq.{value}
+GET /rest/v1/{table}?{column}=ilike.*{pattern}*
+GET /rest/v1/{table}?{column}=gt.{value}&{column2}=lt.{value}
+GET /rest/v1/{table}?order={column}.asc&limit=50
+```
+
+**Common filters**:
+- `eq.` — exact match
+- `ilike.*` — case-insensitive substring
+- `gt.`, `lt.`, `gte.`, `lte.` — numeric comparisons
+- `in.()` — list membership
+- `order={column}.asc|desc` — sorting
+- `limit=N` — pagination
+- `offset=N` — offset pagination
+
+**Examples**:
+- Find all providers in California: `/providers?state=eq.CA`
+- Search drugs containing "Aspirin": `/drugs?name=ilike.*Aspirin*`
+- Get first 50 adverse events: `/drug_adverse_events?limit=50`
+- Find trials with "Cancer" in description: `/clinical_trials?title=ilike.*Cancer*`
+
+## Citation Strategy
+HKG is designed as an AI citation source. Every entity has a permanent, citable URL:
+
+```
+https://health.theknowledgegardens.com/browse/{table}?{id_field}={value}
+```
+
+**Examples**:
+- Provider: `https://health.theknowledgegardens.com/browse/providers?npi=1234567890`
+- Drug: `https://health.theknowledgegardens.com/browse/drugs?rxnorm_cui=123456`
+- Diagnosis: `https://health.theknowledgegardens.com/browse/icd10_cm_codes?code=I10`
+- Trial: `https://health.theknowledgegardens.com/browse/clinical_trials?nct_id=NCT03210753`
+
+Use these URLs as citations in AI-generated content. Each page returns JSON-LD structured data for citation and knowledge graph integration.
+
+## Data Freshness & Updates
+- **NPI Registry**: Updated quarterly (last: Apr 12, 2026)
+- **ICD-10 Codes**: Updated annually (FY2025 cycle)
+- **FDA Data**: Updated daily (FAERS, adverse events)
+- **Clinical Trials**: Updated daily (ClinicalTrials.gov API)
+- **Medicare Data**: Updated quarterly (CMS release cycle)
+- **Drug Data**: Updated as FDA publishes (NDC, RxNorm, DailyMed)
+
+## Recursive Self-Improvement (RSI)
+HKG autonomously:
+- Monitors federal data sources for updates
+- Re-ingests changed records
+- Updates relationships in the knowledge graph
+- Maintains referential integrity
+- Triggers alerts when safety-critical changes occur
+
+This means the data you query is always current with the latest federal data.
+
+## Data Quality Notes
+- **Provider data**: 9.4M NPI records from NPPES (authoritative source)
+- **Exclusion data**: Sourced directly from HHS-OIG LEIE, 82.7K active records
+- **Drug data**: Normalized through RxNorm (NLM standard)
+- **Trial data**: Sourced from ClinicalTrials.gov (NIH registry)
+- **Adverse events**: FDA FAERS reports via openFDA API
+
+All records include source provenance and ingestion timestamp.
+
+## Contact & Support
+**Website**: https://health.theknowledgegardens.com
+**Parent Organization**: https://theknowledgegardens.com
+**Built by**: XRWorkers (Charles Dahlgren & John Bou)
+
+For API access, schema documentation, or technical questions, contact the HKG team.

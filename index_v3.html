@@ -213,6 +213,63 @@
         .ev-rel-name{font-weight:600;display:flex;align-items:center;gap:0.25rem}
         .ev-rel-detail{color:var(--text2);font-size:0.72rem;margin-top:0.1rem}
 
+        /* === VERIFY VIEW === */
+        .verify-view{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;align-items:center}
+        .verify-container{width:100%;max-width:900px}
+        .verify-header{text-align:center;margin-bottom:2rem}
+        .verify-header h1{font-size:2.2rem;margin-bottom:0.5rem;background:linear-gradient(135deg,var(--cyan),var(--emerald));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .verify-header p{color:var(--text2);font-size:0.95rem}
+        .verify-input-group{display:flex;gap:0.5rem;margin-bottom:2rem}
+        .verify-input{flex:1;padding:0.85rem 1rem;background:var(--glass);border:1px solid var(--border2);border-radius:var(--radius);font-size:0.95rem;color:var(--text);outline:none;transition:all 0.25s}
+        .verify-input:focus{border-color:rgba(52,211,153,0.35);box-shadow:0 0 0 3px rgba(52,211,153,0.06)}
+        .verify-btn{padding:0.85rem 1.5rem;background:var(--emerald);color:var(--bg);border-radius:var(--radius);font-weight:600;font-size:0.95rem;transition:all 0.25s;cursor:pointer}
+        .verify-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(52,211,153,0.3)}
+        .verify-btn:disabled{opacity:0.5;cursor:default;transform:none}
+        .verify-loading{text-align:center;padding:2rem;color:var(--text3)}
+        .verify-report{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem}
+        .verify-report-header{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+        .verify-provider-info{flex:1}
+        .verify-provider-name{font-size:1.4rem;font-weight:600;margin-bottom:0.25rem}
+        .verify-provider-detail{font-size:0.85rem;color:var(--text2);margin-bottom:0.1rem}
+        .verify-status-badge{padding:0.4rem 0.8rem;border-radius:8px;font-weight:600;font-size:0.85rem;display:inline-block}
+        .verify-status-clear{background:rgba(52,211,153,0.15);color:var(--emerald);border:1px solid rgba(52,211,153,0.3)}
+        .verify-status-excluded{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
+        .verify-section{margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm)}
+        .verify-section h3{font-size:0.95rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;color:var(--text)}
+        .verify-section-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .verify-row{display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid rgba(255,255,255,0.025);font-size:0.8rem}
+        .verify-row:last-child{border-bottom:none}
+        .verify-label{color:var(--text3);font-weight:500}
+        .verify-value{color:var(--text);text-align:right;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .verify-addresses{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0.6rem;margin-top:0.5rem}
+        .verify-address-card{padding:0.75rem;background:rgba(255,255,255,0.015);border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.75rem;line-height:1.5;color:var(--text2)}
+        .verify-address-type{font-weight:600;color:var(--text);margin-bottom:0.25rem}
+        .verify-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);padding:1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem}
+
+        /* === INTERACTION VIEW === */
+        .interaction-view{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;align-items:center}
+        .interaction-container{width:100%;max-width:900px}
+        .interaction-header{text-align:center;margin-bottom:2rem}
+        .interaction-header h1{font-size:2.2rem;margin-bottom:0.5rem;background:linear-gradient(135deg,var(--orange),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .interaction-header p{color:var(--text2);font-size:0.95rem}
+        .interaction-input-group{display:flex;gap:0.5rem;margin-bottom:1rem}
+        .interaction-input{flex:1;padding:0.85rem 1rem;background:var(--glass);border:1px solid var(--border2);border-radius:var(--radius);font-size:0.95rem;color:var(--text);outline:none}
+        .interaction-input:focus{border-color:rgba(245,158,11,0.35);box-shadow:0 0 0 3px rgba(245,158,11,0.06)}
+        .interaction-btn{padding:0.85rem 1.5rem;background:var(--orange);color:var(--bg);border-radius:var(--radius);font-weight:600;font-size:0.95rem;cursor:pointer;transition:all 0.25s}
+        .interaction-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(249,115,22,0.3)}
+        .drug-chips{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.5rem}
+        .drug-chip{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.8rem;background:var(--orange);background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.3);border-radius:20px;font-size:0.8rem;color:var(--text)}
+        .drug-chip-remove{cursor:pointer;color:var(--orange);font-weight:600;transition:opacity 0.2s}
+        .drug-chip-remove:hover{opacity:0.7}
+        .interaction-results{display:grid;grid-template-columns:1fr;gap:1rem}
+        .interaction-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:1rem}
+        .interaction-card h4{margin-bottom:0.3rem;font-size:0.9rem;color:var(--text)}
+        .interaction-severity{font-size:0.7rem;padding:0.15rem 0.4rem;border-radius:4px;display:inline-block;margin-bottom:0.5rem;font-weight:600}
+        .interaction-major{background:rgba(239,68,68,0.2);color:var(--red)}
+        .interaction-moderate{background:rgba(245,158,11,0.2);color:var(--amber)}
+        .interaction-minor{background:rgba(52,211,153,0.2);color:var(--emerald)}
+        .interaction-desc{font-size:0.75rem;color:var(--text2);line-height:1.5}
+
         /* === GRAPH VIEW === */
         .graph-wrap{position:relative;width:100%;margin-bottom:1rem;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:rgba(0,0,0,0.3)}
         .graph-canvas{width:100%;display:block;cursor:grab}
@@ -269,7 +326,7 @@
         .compass-btn:hover svg{transform:rotate(45deg)}
 
         .compass-panel{
-            position:fixed;bottom:2rem;right:2rem;z-index:998;
+            position:fixed;bottom:2rem;right:2rem;z-index:1000;
             width:0;height:0;opacity:0;overflow:hidden;
             border-radius:var(--radius);
             background:var(--glass2);backdrop-filter:blur(30px);
@@ -327,6 +384,8 @@
             .qa-btn{min-width:calc(50% - 0.3rem)}
             .ev-header{flex-direction:column}
             .ev-actions{width:100%}
+            .verify-input-group{flex-direction:column}
+            .interaction-input-group{flex-direction:column}
         }
     </style>
 </head>
@@ -415,7 +474,6 @@ function ForceGraph(props){
         canvas.style.width=width+"px";canvas.style.height=height+"px";
         ctx.scale(dpr,dpr);
 
-        // Initialize node positions
         var sim=simRef.current;
         sim.nodes=nodes.map(function(n,i){
             var angle=(i/nodes.length)*Math.PI*2;
@@ -432,14 +490,11 @@ function ForceGraph(props){
         var running=true;
         function tick(){
             if(!running)return;
-            // Force simulation
             var ns=sim.nodes,es=sim.edges;
-            // Center gravity
             for(var i=0;i<ns.length;i++){
                 ns[i].vx+=(width/2-ns[i].x)*0.002;
                 ns[i].vy+=(height/2-ns[i].y)*0.002;
             }
-            // Repulsion
             for(var i=0;i<ns.length;i++){
                 for(var j=i+1;j<ns.length;j++){
                     var dx=ns[j].x-ns[i].x,dy=ns[j].y-ns[i].y;
@@ -449,7 +504,6 @@ function ForceGraph(props){
                     ns[j].vx+=dx/d*force;ns[j].vy+=dy/d*force;
                 }
             }
-            // Attraction along edges
             for(var i=0;i<es.length;i++){
                 var s=ns[es[i].source],t=ns[es[i].target];
                 if(!s||!t)continue;
@@ -459,23 +513,19 @@ function ForceGraph(props){
                 s.vx+=dx/d*force;s.vy+=dy/d*force;
                 t.vx-=dx/d*force;t.vy-=dy/d*force;
             }
-            // Damping + update
             for(var i=0;i<ns.length;i++){
                 ns[i].vx*=0.85;ns[i].vy*=0.85;
                 ns[i].x+=ns[i].vx;ns[i].y+=ns[i].vy;
                 ns[i].x=Math.max(20,Math.min(width-20,ns[i].x));
                 ns[i].y=Math.max(20,Math.min(height-20,ns[i].y));
             }
-            // Draw
             ctx.clearRect(0,0,width,height);
-            // Edges
             for(var i=0;i<es.length;i++){
                 var s=ns[es[i].source],t=ns[es[i].target];
                 if(!s||!t)continue;
                 ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);
                 ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;ctx.stroke();
             }
-            // Nodes
             for(var i=0;i<ns.length;i++){
                 var n=ns[i];
                 ctx.beginPath();ctx.arc(n.x,n.y,n.radius,0,Math.PI*2);
@@ -486,7 +536,6 @@ function ForceGraph(props){
                     ctx.fillStyle=col+(n.isCenter?"":"99");ctx.shadowBlur=0;
                 }
                 ctx.fill();ctx.shadowBlur=0;
-                // Label for center node
                 if(n.isCenter||sim.hover===i){
                     ctx.fillStyle="#fff";ctx.font="600 10px 'DM Sans',sans-serif";ctx.textAlign="center";
                     ctx.fillText((n.label||"").substring(0,20),n.x,n.y+n.radius+14);
@@ -496,7 +545,6 @@ function ForceGraph(props){
         }
         tick();
 
-        // Mouse interaction
         function getNode(e){
             var rect=canvas.getBoundingClientRect();
             var mx=e.clientX-rect.left,my=e.clientY-rect.top;
@@ -596,6 +644,8 @@ function TopBar(props){
         h("div",{className:"topbar-stat"},h("span",{className:"live-dot"}),h("strong",null,fmt(props.totalRecords))," records live"),
         h("div",{className:"nav-pills"},
             h("button",{className:"nav-pill"+(props.view==="home"?" active":""),onClick:function(){props.navigate("home")}},"Home"),
+            h("button",{className:"nav-pill"+(props.view==="verify"?" active":""),onClick:function(){props.navigate("verify")}},"Verify"),
+            h("button",{className:"nav-pill"+(props.view==="interactions"?" active":""),onClick:function(){props.navigate("interactions")}},"Interactions"),
             h("button",{className:"nav-pill"+(props.view==="browse"?" active":""),onClick:function(){props.navigate("browse")}},"Browse"),
             h("button",{className:"nav-pill"+(props.view==="graph"?" active":""),onClick:function(){props.navigate("graph")}},"Graph")
         )
@@ -632,16 +682,17 @@ function SearchDropdown(props){
     );
 }
 
+
 function QuickActions(props){
     var actions=[
-        {icon:"🏥",label:"Check Provider",sub:"NPI lookup & verification",cls:"emerald",table:"providers"},
-        {icon:"💊",label:"Drug Lookup",sub:"Interactions & NDC codes",cls:"violet",table:"drugs"},
-        {icon:"⚠️",label:"Exclusion Screen",sub:"OIG & SAM screening",cls:"amber",table:"oig_exclusions"},
-        {icon:"🔬",label:"Clinical Trials",sub:"Active studies & sponsors",cls:"cyan",table:"clinical_trials"},
+        {icon:"🔐",label:"Verify Provider",sub:"NPI verification & OIG check",cls:"cyan",nav:"verify"},
+        {icon:"💊",label:"Drug Interactions",sub:"Check drug interactions",cls:"orange",nav:"interactions"},
+        {icon:"📊",label:"Browse Data",sub:"Explore tables & entities",cls:"emerald",nav:"browse"},
+        {icon:"🔬",label:"Knowledge Graph",sub:"Interactive visualization",cls:"violet",nav:"graph"},
     ];
     return h("div",{className:"quick-actions fade-up delay-1"},
         actions.map(function(a){
-            return h("button",{className:"qa-btn "+a.cls,key:a.label,onClick:function(){props.navigate("browse",a.table)}},
+            return h("button",{className:"qa-btn "+a.cls,key:a.label,onClick:function(){props.navigate(a.nav)}},
                 h("span",{className:"qa-icon"},a.icon),
                 h("span",{className:"qa-label"},a.label),
                 h("span",{className:"qa-sub"},a.sub)
@@ -680,7 +731,7 @@ function Home(props){
         h("div",{className:"hero fade-up"},
             h("img",{className:"hero-logo",src:STORAGE+"/chillyprojects_Abstract_logo_three_hexagonal_cells_each_conta_0feaba9f-766e-4625-bfbb-615210ea2c0d_1.png",alt:"HKG"}),
             h("h1",null,"The ",h("span",{className:"gr"},"Knowledge Garden")," for Healthcare"),
-            h("p",null,"12M+ verified records from 13 federal sources. Search any provider, drug, diagnosis, trial, hospital, prescription, or billing code — connected in real time."),
+            h("p",null,"12M+ verified records from 13 federal sources. Verify providers, check drug interactions, explore clinical data — powered by real-time AI."),
             h("div",{className:"hero-badges"},
                 ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed","LOINC","MeSH"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
             )
@@ -710,30 +761,247 @@ function Home(props){
             })
         ),
         h("div",{className:"lanes fade-up delay-4"},
-            h("div",{className:"lane-card clin",onClick:function(){props.navigate("browse","providers")}},
-                h("div",{className:"lc-icon"},"🏥"),
+            h("div",{className:"lane-card ops",onClick:function(){props.navigate("verify")}},
+                h("div",{className:"lc-icon"},"🔐"),
+                h("h2",null,"Operations"),
+                h("div",{className:"lc-sub"},"I verify providers"),
+                h("p",null,"NPI lookup, OIG exclusions, Medicare data, specialties, practice locations")
+            ),
+            h("div",{className:"lane-card clin",onClick:function(){props.navigate("interactions")}},
+                h("div",{className:"lc-icon"},"💊"),
                 h("h2",null,"Clinician"),
-                h("div",{className:"lc-sub"},"I treat patients"),
-                h("p",null,"Provider lookup, drug references, diagnosis codes, clinical trials, specialties")
+                h("div",{className:"lc-sub"},"I prescribe medications"),
+                h("p",null,"Drug interactions, adverse events, clinical trials, drug references")
             ),
             h("div",{className:"lane-card pat",onClick:function(){props.navigate("browse","drugs")}},
                 h("div",{className:"lc-icon"},"💚"),
-                h("h2",null,"Patient / Caregiver"),
-                h("div",{className:"lc-sub"},"I want to understand my health"),
-                h("p",null,"Plain-language explanations, find providers, understand medications and conditions")
-            ),
-            h("div",{className:"lane-card ops",onClick:function(){props.navigate("browse","oig_exclusions")}},
-                h("div",{className:"lc-icon"},"⚙️"),
-                h("h2",null,"Operations"),
-                h("div",{className:"lc-sub"},"I manage healthcare systems"),
-                h("p",null,"Compliance checks, billing codes, exclusion screening, provider verification")
+                h("h2",null,"Patient"),
+                h("div",{className:"lc-sub"},"I want to understand"),
+                h("p",null,"Find providers, medications, diagnoses, conditions, plain-language info")
             ),
             h("div",{className:"lane-card exp",onClick:function(){props.navigate("graph")}},
                 h("div",{className:"lc-icon"},"🔍"),
                 h("h2",null,"Explorer"),
-                h("div",{className:"lc-sub"},"I'm curious about healthcare data"),
-                h("p",null,"Browse the knowledge graph — every entity, every connection, every source")
+                h("div",{className:"lc-sub"},"I'm curious"),
+                h("p",null,"Knowledge graph, entity connections, cross-domain relationships")
             )
+        )
+    );
+}
+
+// === PROVIDER VERIFICATION ENGINE ===
+function VerifyView(props){
+    var _n=useState(""),npi=_n[0],setNpi=_n[1];
+    var _r=useState(null),result=_r[0],setResult=_r[1];
+    var _l=useState(false),loading=_l[0],setLoading=_l[1];
+    var _e=useState(""),error=_e[0],setError=_e[1];
+
+    function verify(){
+        if(!npi||!/^\d{10}$/.test(npi.trim())){setError("Please enter a valid 10-digit NPI");return}
+        setLoading(true);setError("");setResult(null);
+        var npiVal=npi.trim();
+        Promise.all([
+            q("/providers?npi=eq."+npiVal+"&select=*&limit=1"),
+            q("/provider_taxonomies?npi=eq."+npiVal+"&select=*"),
+            q("/provider_addresses?npi=eq."+npiVal+"&select=*"),
+            q("/oig_exclusions?npi=eq."+npiVal+"&select=*"),
+            q("/medicare_part_d_prescribers?npi=eq."+npiVal+"&select=*&limit=50"),
+            q("/medicare_utilization?npi=eq."+npiVal+"&select=*&limit=50"),
+        ]).then(function(results){
+            var provider=results[0]&&results[0][0]?results[0][0]:null;
+            if(!provider){setError("NPI not found in system");setLoading(false);return}
+            setResult({
+                provider:provider,
+                taxonomies:results[1]||[],
+                addresses:results[2]||[],
+                exclusions:results[3]||[],
+                prescribing:results[4]||[],
+                utilization:results[5]||[]
+            });
+            setLoading(false);
+        }).catch(function(){setError("Error loading provider data");setLoading(false)});
+    }
+
+    function handleKeyDown(e){if(e.key==="Enter")verify()}
+
+    if(result){
+        var isExcluded=result.exclusions&&result.exclusions.length>0;
+        var prov=result.provider;
+        return h("div",{className:"verify-view"},
+            h("div",{className:"verify-container"},
+                h("div",{className:"verify-input-group",style:{marginBottom:"1rem"}},
+                    h("button",{className:"nav-pill",onClick:function(){setResult(null);setNpi("");setError("")}},"← Back"),
+                    h("div",{className:"spacer"})
+                ),
+                h("div",{className:"verify-report"},
+                    h("div",{className:"verify-report-header"},
+                        h("div",{className:"verify-provider-info"},
+                            h("div",{className:"verify-provider-name"},(prov.first_name||"")+" "+(prov.last_name||prov.organization_name||"")),
+                            h("div",{className:"verify-provider-detail"},(prov.credential||"")+(prov.npi?" · NPI: "+prov.npi:"")),
+                            prov.entity_type?h("div",{className:"verify-provider-detail"},"Entity: "+prov.entity_type):null
+                        ),
+                        h("div",null,
+                            h("div",{className:"verify-status-badge"+(isExcluded?" verify-status-excluded":" verify-status-clear")},
+                                isExcluded?"EXCLUDED":"CLEAR"
+                            )
+                        )
+                    ),
+                    h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#34D399"}}),"Identity"),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"NPI"),h("span",{className:"verify-value"},prov.npi||"—")),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Entity Type"),h("span",{className:"verify-value"},prov.entity_type||"—")),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Status"),h("span",{className:"verify-value"},prov.status||"—")),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Gender"),h("span",{className:"verify-value"},prov.gender||"—")),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Enumeration Date"),h("span",{className:"verify-value"},prov.enumeration_date||"—")),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Last Updated"),h("span",{className:"verify-value"},prov.last_update_date||"—"))
+                    ),
+                    result.taxonomies&&result.taxonomies.length?h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#A78BFA"}}),"Specialties & Taxonomies (",result.taxonomies.length,")"),
+                        result.taxonomies.map(function(t,i){return h("div",{className:"verify-row",key:i},
+                            h("span",{className:"verify-label"},t.taxonomy_description||t.taxonomy_code),
+                            h("span",{className:"verify-value"},(t.is_primary?"Primary · ":"")+(t.license_state||""))
+                        )})
+                    ):null,
+                    result.addresses&&result.addresses.length?h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#2DD4BF"}}),"Practice Locations (",result.addresses.length,")"),
+                        h("div",{className:"verify-addresses"},
+                            result.addresses.map(function(a,i){return h("div",{className:"verify-address-card",key:i},
+                                h("div",{className:"verify-address-type"},a.address_type==="mailing"?"📮 Mailing":"🏢 Practice"),
+                                h("div",null,a.address_1),
+                                a.address_2?h("div",null,a.address_2):null,
+                                a.city||a.state?h("div",null,(a.city||"")+(a.state?", "+a.state:"")+(a.postal_code?" "+a.postal_code:"")):null,
+                                a.phone?h("div",null,"☎ "+a.phone):null
+                            )})
+                        )
+                    ):null,
+                    isExcluded?h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#EF4444"}}),"OIG EXCLUSIONS ⚠️"),
+                        result.exclusions.map(function(e,i){return h("div",{className:"verify-row",key:i},
+                            h("span",{className:"verify-label"},e.exclusion_type),
+                            h("span",{className:"verify-value"},e.exclusion_date)
+                        )})
+                    ):null,
+                    result.prescribing&&result.prescribing.length?h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#10B981"}}),"Prescribing History (Medicare Part D)"),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Claims"),h("span",{className:"verify-value"},fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_claim_count||0)},0)))),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Drug Cost"),h("span",{className:"verify-value"},"$"+fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_drug_cost||0)},0))))
+                    ):null,
+                    result.utilization&&result.utilization.length?h("div",{className:"verify-section"},
+                        h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#F59E0B"}}),"Medicare Utilization"),
+                        h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Services"),h("span",{className:"verify-value"},fmt(result.utilization.reduce(function(sum,u){return sum+(u.service_count||0)},0))))
+                    ):null
+                )
+            )
+        );
+    }
+
+    return h("div",{className:"verify-view"},
+        h("div",{className:"verify-container"},
+            h("div",{className:"verify-header"},
+                h("h1",null,"Provider Verification"),
+                h("p",null,"Search by NPI to verify credentials, check OIG exclusions, and review Medicare data")
+            ),
+            error?h("div",{className:"verify-error"},error):null,
+            h("div",{className:"verify-input-group"},
+                h("input",{
+                    className:"verify-input",
+                    placeholder:"Enter 10-digit NPI...",
+                    value:npi,
+                    onChange:function(e){setNpi(e.target.value)},
+                    onKeyDown:handleKeyDown
+                }),
+                h("button",{className:"verify-btn",onClick:verify,disabled:loading},loading?"Verifying...":"Verify")
+            ),
+            loading?h("div",{className:"verify-loading"},h("div",{className:"spinner"}),"Querying provider database..."):null
+        )
+    );
+}
+
+// === DRUG INTERACTION CHECKER ===
+function InteractionView(props){
+    var _d=useState([]),drugs=_d[0],setDrugs=_d[1];
+    var _i=useState(""),input=_i[0],setInput=_i[1];
+    var _r=useState([]),interactions=_r[0],setInteractions=_r[1];
+    var _a=useState([]),adverse=_a[0],setAdverse=_a[1];
+    var _l=useState(false),loading=_l[0],setLoading=_l[1];
+
+    function addDrug(){
+        if(!input||input.trim().length<2)return;
+        var drug=input.trim();
+        if(drugs.indexOf(drug)>=0){setInput("");return}
+        setDrugs(drugs.concat([drug]));
+        setInput("");
+    }
+
+    function removeDrug(idx){
+        setDrugs(drugs.filter(function(_,i){return i!==idx}));
+    }
+
+    function search(){
+        if(drugs.length===0)return;
+        setLoading(true);
+        var promises=[];
+        drugs.forEach(function(drug){
+            var t=encodeURIComponent(drug);
+            promises.push(q("/drug_interactions?or=(drug_a_name.ilike.%25"+t+"%25,drug_b_name.ilike.%25"+t+"%25)&select=*&limit=30"));
+            promises.push(q("/drug_adverse_events?drug_name=ilike.%25"+t+"%25&select=*&limit=50"));
+        });
+        Promise.all(promises).then(function(results){
+            var ints=[],advs=[];
+            for(var i=0;i<results.length;i+=2){
+                ints=ints.concat(results[i]||[]);
+                advs=advs.concat(results[i+1]||[]);
+            }
+            setInteractions(ints);setAdverse(advs);setLoading(false);
+        });
+    }
+
+    return h("div",{className:"interaction-view"},
+        h("div",{className:"interaction-container"},
+            h("div",{className:"interaction-header"},
+                h("h1",null,"Drug Interactions"),
+                h("p",null,"Check for interactions and adverse events between medications")
+            ),
+            h("div",{className:"interaction-input-group"},
+                h("input",{
+                    className:"interaction-input",
+                    placeholder:"Enter drug name...",
+                    value:input,
+                    onChange:function(e){setInput(e.target.value)},
+                    onKeyDown:function(e){if(e.key==="Enter")addDrug()}
+                }),
+                h("button",{className:"interaction-btn",onClick:addDrug},"Add Drug")
+            ),
+            drugs.length>0?h("div",{className:"drug-chips"},
+                drugs.map(function(drug,i){return h("div",{className:"drug-chip",key:i},
+                    h("span",null,drug),
+                    h("span",{className:"drug-chip-remove",onClick:function(){removeDrug(i)}},"×")
+                )})
+            ):null,
+            drugs.length>0?h("button",{className:"verify-btn",style:{marginBottom:"1.5rem"},onClick:search,disabled:loading},loading?"Searching...":"Search Interactions"):null,
+            loading?h("div",{className:"verify-loading"},h("div",{className:"spinner"}),"Analyzing interactions..."):null,
+            interactions.length||adverse.length?h("div",{className:"interaction-results"},
+                interactions.length?interactions.map(function(inter,i){
+                    var severity=(inter.severity||"minor").toLowerCase();
+                    var severityClass="interaction-"+severity;
+                    return h("div",{className:"interaction-card",key:"inter-"+i},
+                        h("h4",null,(inter.drug_a_name||"")," ↔ ",(inter.drug_b_name||"")),
+                        h("span",{className:"interaction-severity "+severityClass},severity.toUpperCase()),
+                        h("div",{className:"interaction-desc"},inter.description||"Interaction detected")
+                    );
+                }):null,
+                adverse.length?h("div",null,
+                    h("h3",{style:{fontSize:"1rem",marginTop:"1.5rem",marginBottom:"0.75rem"}},h("span",{style:{width:8,height:8,borderRadius:"50%",background:"#EF4444",display:"inline-block",marginRight:"0.5rem"}}),
+                    "Adverse Events (",adverse.length,")"),
+                    
+                    adverse.slice(0,20).map(function(ae,i){
+                        return h("div",{className:"interaction-card",key:"adv-"+i},
+                            h("h4",null,ae.drug_name),
+                            h("div",{className:"interaction-desc"},ae.reaction||"Adverse event")
+                        );
+                    })
+                ):null
+            ):null
         )
     );
 }
@@ -768,7 +1036,6 @@ function EntityView(props){
         Promise.all(keys.map(function(k){return promises[k]})).then(function(results){
             var obj={};keys.forEach(function(k,i){obj[k]=results[i]});
             setRelated(obj);setLoading(false);
-            // Build graph data
             buildGraphFromRelated(entity,type,obj);
         });
     },[entity,type]);
@@ -904,7 +1171,6 @@ function GraphExplorer(props){
     function loadGraph(searchTerm){
         setLoading(true);
         var t=encodeURIComponent(searchTerm||"cardio");
-        // Fetch a cross-section of related entities
         Promise.all([
             q("/providers?last_name=ilike.%25"+t+"%25&select=id,first_name,last_name,npi,credential&limit=6"),
             q("/drugs?name=ilike.%25"+t+"%25&select=id,name,drug_class&limit=6"),
@@ -919,7 +1185,6 @@ function GraphExplorer(props){
             diags.forEach(function(d){allNodes.push({id:"dx"+idx,label:d.code||"",type:"diagnosis",data:Object.assign(d,{_type:"diagnosis"})});idx++});
             trials.forEach(function(t){allNodes.push({id:"t"+idx,label:(t.title||"").substring(0,25),type:"trial",data:Object.assign(t,{_type:"trial"})});idx++});
             excl.forEach(function(e){allNodes.push({id:"e"+idx,label:e.entity_name||"",type:"exclusion",data:Object.assign(e,{_type:"exclusion"})});idx++});
-            // Create semantic edges (connect same-topic entities)
             for(var i=0;i<allNodes.length;i++){
                 for(var j=i+1;j<allNodes.length;j++){
                     if(allNodes[i].type!==allNodes[j].type&&Math.random()>0.5){
@@ -1070,11 +1335,17 @@ function CompassNav(props){
                         h("button",{className:"compass-link",onClick:function(){nav("home")}},
                             h("span",{className:"cl-dot",style:{background:"var(--emerald)"}}),"Home"
                         ),
+                        h("button",{className:"compass-link",onClick:function(){nav("verify")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--cyan)"}}),"Verify"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("interactions")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--orange)"}}),"Interactions"
+                        ),
                         h("button",{className:"compass-link",onClick:function(){nav("browse","providers")}},
-                            h("span",{className:"cl-dot",style:{background:"var(--cyan)"}}),"Browse"
+                            h("span",{className:"cl-dot",style:{background:"var(--violet)"}}),"Browse"
                         ),
                         h("button",{className:"compass-link",onClick:function(){nav("graph")}},
-                            h("span",{className:"cl-dot",style:{background:"var(--violet)"}}),"Graph"
+                            h("span",{className:"cl-dot",style:{background:"var(--amber)"}}),"Graph"
                         )
                     )
                 ),
@@ -1143,7 +1414,6 @@ function App(){
         }
     }
 
-    // ⌘K shortcut
     useEffect(function(){
         function handler(e){if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();var el=document.querySelector(".search-input");if(el)el.focus()}}
         window.addEventListener("keydown",handler);
@@ -1153,6 +1423,10 @@ function App(){
     var content;
     if(view==="entity"&&entity){
         content=h(EntityView,{entity:entity,type:entityType,onBack:function(){navigate("home")},onSelectEntity:selectEntity});
+    } else if(view==="verify"){
+        content=h(VerifyView,{});
+    } else if(view==="interactions"){
+        content=h(InteractionView,{});
     } else if(view==="browse"){
         content=h(BrowseView,{initialTable:browseTable,counts:counts,onSelectEntity:selectEntity});
     } else if(view==="graph"){
