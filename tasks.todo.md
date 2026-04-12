@@ -4,7 +4,8 @@
 **MLP Focus**: Administrator Lane (Credentialing) → Patient & Public Lane (Acquisition) → Doctor Lane & Machine Lane (Foundations)  
 **Target Launch**: 20 weeks  
 **Tech Stack**: Next.js/React, Three.js, Neo4j + PostgreSQL, Claude API, MCP, Stripe, Custom RBAC Auth  
-**Regulatory**: HIPAA, FDA CDS Awareness, HL7 FHIR Readiness
+**Regulatory**: HIPAA, FDA CDS Awareness, HL7 FHIR Readiness  
+**Current State**: 12.1M+ records across 23+ tables, 4-lane platform live at health.theknowledgegardens.com
 
 ---
 
@@ -42,12 +43,12 @@
 - [x] NPI providers (weekly): 34,809 providers + 67,866 addresses + 46,723 taxonomies
 - [x] HCPCS billing codes: 22,700 records from CMS Level II
 - [x] DRG codes: 863 MS-DRG v42 codes from CMS
-- [x] NPI full bulk load: Initial load via sandbox (~572K). Backfill script running on Mac via UPSERT — 814K loaded so far, targeting 9.4M.
+- [x] NPI full bulk load: COMPLETE — 9,427,624 providers loaded from NPPES (Apr 12, 2026)
 - [ ] OIG-NPI reconciliation: ~2,900 matched so far, ~7,214 remaining. Run: `cd scripts/ingestion && python3 apply_oig_matches.py`
 - [x] Provider addresses: 1,175,202 extracted (Apr 11, 2026)
 - [x] Provider taxonomies: 778,330 extracted (Apr 11, 2026)
 
-### Frontend (Built in BKG Project — Apr 10, 2026)
+### Frontend v3 (Live — Apr 10-12, 2026)
 - [x] Single-file React 18 UMD app — zero build step
 - [x] 4 lanes: Clinician, Patient/Caregiver, Operations, Explorer
 - [x] Live data browsing with tabbed interface (providers, drugs, diagnoses, trials, billing, exclusions, NDC)
@@ -59,6 +60,30 @@
 - [ ] Merge BKG project's HKG lessons (PostgREST gotchas, React UMD patterns) into tasks.lessons.md
 - [ ] Reconcile project_hkg_backend.md and project_hkg_frontend.md into HKG repo docs
 
+## Platform Build (Apr 12, 2026)
+
+### Frontend v3 — 4-Lane Revenue Platform
+- [x] Provider Verification Engine (Admin Lane): NPI lookup with parallel 6-table cross-reference (providers, taxonomies, addresses, OIG exclusions, Medicare Part D, Medicare utilization). CLEAR/EXCLUDED status badges.
+- [x] Drug Interaction Checker (Patient Gravity Well): Multi-drug input with severity-coded interactions + FAERS adverse event data.
+- [x] 4-Lane homepage redesign: Operations, Clinician, Patient, Explorer entry cards replacing generic quick actions.
+- [x] TopBar navigation expanded: Verify + Interactions buttons added.
+- [x] Compass navigation updated with all new views.
+- [x] Provider count fix: Changed count=exact to count=estimated (exact times out on 9.4M rows).
+- [x] 5 new data cards: Medicare Part D, Utilization, LOINC, Hospitals, MeSH Terms.
+- [x] Hero updated: "12M+ verified records from 13 federal sources"
+
+### Machine Lane Infrastructure
+- [x] llms.txt: AI agent discovery file with data sources, entity types, features
+- [x] llms-full.txt: Comprehensive data dictionary with field schemas for all 22 tables
+- [x] robots.txt: Explicitly welcomes GPTBot, ClaudeBot, PerplexityBot, all AI crawlers
+- [x] 404.html: Branded error page for GitHub Pages SPA routing
+
+### Database Tables Created (Apr 12, 2026)
+- [x] medicare_part_d_prescribers table
+- [x] medicare_utilization table
+- [x] hospitals table
+- [x] mesh_terms table
+
 ### Data Ingestion Sprint (P1 — Apr 9, 2026)
 - [x] ClinicalTrials.gov: 33,593 interventional trials via API v2
 - [x] PubMed/MEDLINE citations: 59,798 records across 20 healthcare topics (NCBI E-Utilities)
@@ -68,15 +93,16 @@
 - [ ] DailyMed drug labels (FDA): IN PROGRESS — fetching from NLM DailyMed API
 - [ ] SAM.gov federal exclusions: API returned 404s — 5 test records only, needs real API access
 
-### Data Ingestion Sprint (P0b — Ready, Needs Table Creation)
+### Data Ingestion Sprint (P0b — COMPLETED)
 - [x] Medicare Part D prescribers: 70,600 records ingested (Apr 12, 2026). CMS API endpoint: dataset/9552739e-3d05-4c1b-8eff-ecabf391e2e5/data. Fields mapped: NPI, provider name/state, specialty, drug name/generic, claim counts, costs, beneficiary count, year.
-- [ ] Hospital Quality (CMS Hospital Compare): ~5K hospitals with quality ratings. Create `hospitals` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_hospital_quality.py`
-- [ ] Medicare Utilization: ~50K provider payment records. Create `medicare_utilization` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_medicare_utilization.py`
+- [x] Hospital Quality (CMS Hospital Compare): 2,058 unique hospitals from CMS Hospital All Owners (Apr 12, 2026)
+- [x] Medicare Utilization: 50,000 records from CMS Medicare Physician & Other Practitioners (Apr 12, 2026)
 
-### Data Ingestion Sprint (P2 — Future)
+### Data Ingestion Sprint (P2 — COMPLETED/IN PROGRESS)
 - [ ] SAM.gov full exclusions (when API becomes available)
-- [x] Drug adverse events (FDA FAERS): 113K+ records loaded from openFDA API (Q1 2023 through Q2 2024+). Script uses date partitioning and 1 req/sec rate limiting.
-- [ ] LOINC lab codes
+- [x] Drug adverse events (FDA FAERS): 139,798 records loaded from openFDA API (through Q4 2024)
+- [x] LOINC lab codes: 7,498 records loaded via NLM Clinical Tables API prefix drilling (Apr 12, 2026). Targeting 108K.
+- [x] MeSH Terms: 15 seed descriptors loaded from NCBI E-Utilities (Apr 12, 2026)
 - [ ] Conditions reference table (from ICD-10 + MeSH crosswalk)
 - [ ] Provider credentials (mock data for MLP demo)
 - [ ] Organizations reference table

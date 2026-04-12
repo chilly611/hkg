@@ -10,8 +10,11 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 - URL: https://health.theknowledgegardens.com/
 - Single-file React 18 UMD app (index.html) — zero build step
 - 4 lanes: Clinician, Patient/Caregiver, Operations, Explorer
+- **Provider Verification Engine** (Admin Lane): NPI → parallel 6-table cross-reference with CLEAR/EXCLUDED status
+- **Drug Interaction Checker** (Patient Gravity Well): Multi-drug input with severity-coded interactions + FAERS data
+- **4-Lane Homepage**: Operations, Clinician, Patient, Explorer entry cards
 - **Knowledge Graph**: Interactive force-directed canvas visualization (entity detail + full explorer)
-- **Quick Actions**: Provider Check, Drug Lookup, Exclusion Screen, Clinical Trials
+- **Compass Navigation**: Fixed bottom-right bloom-from-circle nav with all views + 14 data table links
 - Federated search across 13 data types with categorized dropdown
 - Browse view with paginated tables, entity detail with relationship drilling
 - Animated counters, particle canvas background, skeleton loaders
@@ -62,6 +65,9 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 - SAM.gov exclusions (needs registered API key)
 
 ### Recently Completed (Apr 12, 2026)
+- **4-Lane Revenue Platform**: Provider Verification Engine, Drug Interaction Checker, lane-based homepage
+- **Machine Lane Infrastructure**: llms.txt, llms-full.txt, robots.txt, 404.html
+- **Compass Navigation**: Bloom-from-circle nav with all views + data tables
 - **NPI Full Backfill**: 9.4M providers loaded from NPPES (complete!)
 - **FAERS Adverse Events**: 139,798 records from openFDA API
 - **Medicare Part D**: 70,600 prescriber-drug records from CMS
@@ -69,6 +75,7 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 - **Hospital Quality**: 2,058 unique facilities from CMS Hospital All Owners
 - **LOINC Lab Codes**: 7,498 loaded (ongoing)
 - **4 new tables created**: medicare_part_d_prescribers, mesh_terms, hospitals, medicare_utilization
+- **Investor Briefing**: HKG_Investor_Briefing_Apr2026.docx — 17-page seed pitch document
 
 ### Cross-Project Note
 Frontend was built in the BKG (Builder's Knowledge Garden) project and deployed to health.theknowledgegardens.com. The index.html needs to be migrated into this repo. The BKG project also created HKG-specific markdown files (project_hkg_backend.md, project_hkg_frontend.md) that should be merged here.
@@ -78,6 +85,10 @@ Frontend was built in the BKG (Builder's Knowledge Garden) project and deployed 
 - `tasks.lessons.md` — Accumulated lessons from BKG/OKG/HKG (MUST READ before major decisions)
 - `supabase_schema.sql` — 28-table schema (source of truth)
 - `scripts/ingestion/` — All data ingestion scripts (Python, stdlib only)
+- `HKG_Investor_Briefing_Apr2026.docx` — 17-page investor pitch document (seed round)
+- `llms.txt` — AI agent discovery file (Machine Lane)
+- `llms-full.txt` — Comprehensive data dictionary for AI agents
+- `robots.txt` — AI crawler welcome mat
 - `HKG_Data_Architecture.md` — Full data architecture design
 - `HKG_Technical_Implementation_Guide.md` — Technical implementation details
 - `HKG_AI_Citation_Strategy.md` — The llms.txt / JSON-LD / entity URL strategy

@@ -90,6 +90,31 @@ The `drug_adverse_events` table existed from the original schema with columns li
 
 **Action:** Before writing any ingestion script, query the actual table columns first. Don't assume from docs or SQL files.
 
+### count=exact Times Out on Large Tables — Use count=estimated
+The `Prefer: count=exact` header on Supabase PostgREST queries times out on tables with millions of rows (9.4M providers). The `.catch()` in the frontend returned 0, making it look like zero providers existed.
+
+**Action:** For tables with >100K rows, always use `Prefer: count=estimated`. Estimated is fast and accurate enough for display (returned 9,427,624 within <1s). Only use exact for small tables.
+
+### NLM Clinical Tables API Caps at 500 Results Per Query
+The NLM Clinical Tables API (`clinicaltables.nlm.nih.gov`) ignores the `start` parameter for paginating beyond 500 results. The `offset` parameter works but the API still caps total results at 500 for blank-term searches.
+
+**Action:** Use recursive prefix drilling: search by numeric prefix (100-999), then letter prefixes (LP, LA). If any prefix returns 500+ results, subdivide into deeper prefixes (1000-1009, etc.). This is the only reliable way to extract the full LOINC dataset (~108K codes).
+
+### CMS Data API Endpoint Discovery
+CMS frequently deprecates dataset IDs — old endpoints return 404 or 410. The working approach is to search the CMS data catalog at `data.cms.gov/data.json` for current dataset UUIDs.
+
+**Action:** Before writing any CMS ingestion script, verify the dataset endpoint is live by searching `data.cms.gov/data.json` for the dataset title. Keep working endpoint UUIDs in CLAUDE.md and data_sources table for future reference.
+
+### Git Lock Files Persist in Sandbox
+The sandbox cannot delete `.git/index.lock` or `.git/HEAD.lock` files due to filesystem permissions. These accumulate from interrupted git operations and block subsequent commits.
+
+**Action:** When git operations fail with "index.lock exists", the user must run `rm -f .git/index.lock .git/HEAD.lock` from their local Mac terminal before retrying. The sandbox `rm -f` will fail silently.
+
+### GitHub Push Requires Local Mac — Sandbox Has No Git Credentials
+The sandbox cannot authenticate with GitHub (no SSH keys, no HTTPS tokens). All git push operations must happen from the user's Mac terminal.
+
+**Action:** After making changes in the sandbox, instruct the user to run `cd ~/Documents/Claude/Projects/Health\ Knowledge\ Garden && git add -A && git commit -m "message" && git push origin main` from their terminal.
+
 ---
 
 ## Architecture Lessons (from BKG/OKG)
