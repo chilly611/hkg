@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Knowledge Garden</title>
     <meta property="og:title" content="Health Knowledge Garden — The Operating System for Healthcare">
-    <meta property="og:description" content="3.8M+ verified healthcare entities. Connected, verified, queryable in real time.">
+    <meta property="og:description" content="12M+ verified healthcare entities. Connected, verified, queryable in real time.">
     <meta property="og:url" content="https://health.theknowledgegardens.com/">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -252,6 +252,69 @@
         .loading{display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:2.5rem;color:var(--text3);font-size:0.82rem}
         .spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--emerald);border-radius:50%;animation:spin 0.8s linear infinite}
 
+        /* === COMPASS NAV === */
+        .compass-btn{
+            position:fixed;bottom:2rem;right:2rem;z-index:999;
+            width:52px;height:52px;border-radius:50%;
+            background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(167,139,250,0.15));
+            border:1px solid rgba(52,211,153,0.3);
+            backdrop-filter:blur(20px);
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 0 0 rgba(52,211,153,0.2);
+        }
+        .compass-btn:hover{transform:scale(1.08);box-shadow:0 6px 32px rgba(0,0,0,0.4),0 0 20px rgba(52,211,153,0.15)}
+        .compass-btn.open{opacity:0;pointer-events:none;transform:scale(0.5)}
+        .compass-btn svg{width:26px;height:26px;color:var(--emerald);transition:transform 0.8s cubic-bezier(0.4,0,0.2,1)}
+        .compass-btn:hover svg{transform:rotate(45deg)}
+
+        .compass-panel{
+            position:fixed;bottom:2rem;right:2rem;z-index:998;
+            width:0;height:0;opacity:0;overflow:hidden;
+            border-radius:var(--radius);
+            background:var(--glass2);backdrop-filter:blur(30px);
+            border:1px solid var(--border2);
+            box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 0 1px rgba(52,211,153,0.08);
+            transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+            display:flex;flex-direction:column;
+        }
+        .compass-panel.open{
+            width:340px;height:auto;max-height:min(520px,80vh);opacity:1;
+            bottom:2rem;right:2rem;
+        }
+        .compass-header{
+            padding:0.85rem 1rem 0.6rem;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid var(--border);flex-shrink:0;
+        }
+        .compass-header h3{font-size:1rem;color:var(--text);margin:0;display:flex;align-items:center;gap:0.5rem}
+        .compass-header h3 svg{width:18px;height:18px;color:var(--emerald)}
+        .compass-close{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all 0.2s}
+        .compass-close:hover{background:rgba(255,255,255,0.06);color:var(--text)}
+
+        .compass-section{padding:0.6rem 0.8rem 0.3rem;flex-shrink:0}
+        .compass-section-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:0.4rem;font-weight:600}
+        .compass-links{display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.4rem}
+        .compass-link{
+            padding:0.35rem 0.65rem;border-radius:6px;font-size:0.72rem;
+            color:var(--text2);border:1px solid var(--border);
+            transition:all 0.2s;display:flex;align-items:center;gap:0.35rem;
+            white-space:nowrap;
+        }
+        .compass-link:hover{background:var(--emerald-dim);border-color:rgba(52,211,153,0.25);color:var(--emerald)}
+        .compass-link .cl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .compass-body{overflow-y:auto;flex:1;padding-bottom:0.5rem}
+
+        .compass-ext{
+            padding:0.5rem 0.8rem;border-top:1px solid var(--border);flex-shrink:0;
+        }
+        .compass-ext a{
+            display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.65rem;
+            border-radius:8px;font-size:0.75rem;color:var(--text2);
+            border:1px solid var(--border);transition:all 0.2s;text-decoration:none;
+        }
+        .compass-ext a:hover{background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.25);color:var(--violet)}
+        .compass-ext a svg{width:14px;height:14px;color:var(--violet)}
+
         /* === RESPONSIVE === */
         @media(max-width:768px){
             .hero h1{font-size:2rem}
@@ -285,7 +348,7 @@ var TYPE_LABELS={provider:"Provider",drug:"Drug",diagnosis:"Diagnosis",trial:"Cl
 
 // === API HELPERS ===
 function q(p,opts){return fetch(API+p,Object.assign({headers:HDR},opts||{})).then(function(r){return r.json()}).catch(function(){return[]})}
-function cnt(table){return fetch(API+"/"+table+"?select=id&limit=0",{headers:Object.assign({},HDR,{Prefer:"count=exact"})}).then(function(r){var g=r.headers.get("content-range");return g?parseInt(g.split("/")[1]||"0",10):0}).catch(function(){return 0})}
+function cnt(table){return fetch(API+"/"+table+"?select=id&limit=0",{headers:Object.assign({},HDR,{Prefer:"count=estimated"})}).then(function(r){var g=r.headers.get("content-range");return g?parseInt(g.split("/")[1]||"0",10):0}).catch(function(){return 0})}
 function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(n>=1e4?0:1)+"K";return n.toString()}
 
 // === BACKGROUND CANVAS ===
@@ -603,8 +666,13 @@ function Home(props){
         {key:"hcpcs_codes",label:"Billing Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
         {key:"drug_interactions",label:"Interactions",color:"#FB923C",src:"RxNorm",accentColor:"#FB923C"},
         {key:"drug_adverse_events",label:"Adverse Events",color:"var(--red)",src:"FDA FAERS",accentColor:"#EF4444"},
+        {key:"medicare_part_d_prescribers",label:"Prescriptions",color:"#10B981",src:"CMS Part D",accentColor:"#10B981"},
+        {key:"medicare_utilization",label:"Utilization",color:"var(--amber)",src:"CMS Medicare",accentColor:"#F59E0B"},
+        {key:"loinc_codes",label:"Lab Codes",color:"#6EE7B7",src:"LOINC",accentColor:"#6EE7B7"},
+        {key:"hospitals",label:"Hospitals",color:"#38BDF8",src:"CMS",accentColor:"#38BDF8"},
         {key:"drg_codes",label:"DRG Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
         {key:"drug_labels",label:"Drug Labels",color:"var(--orange)",src:"DailyMed",accentColor:"#F97316"},
+        {key:"mesh_terms",label:"MeSH Terms",color:"#818CF8",src:"NLM",accentColor:"#818CF8"},
         {key:"state_medical_boards",label:"State Boards",color:"var(--violet)",src:"Registry",accentColor:"#A78BFA"},
     ];
 
@@ -612,9 +680,9 @@ function Home(props){
         h("div",{className:"hero fade-up"},
             h("img",{className:"hero-logo",src:STORAGE+"/chillyprojects_Abstract_logo_three_hexagonal_cells_each_conta_0feaba9f-766e-4625-bfbb-615210ea2c0d_1.png",alt:"HKG"}),
             h("h1",null,"The ",h("span",{className:"gr"},"Knowledge Garden")," for Healthcare"),
-            h("p",null,"Verified healthcare entities from authoritative federal sources. Search any provider, drug, diagnosis, trial, or billing code — connected in real time."),
+            h("p",null,"12M+ verified records from 13 federal sources. Search any provider, drug, diagnosis, trial, hospital, prescription, or billing code — connected in real time."),
             h("div",{className:"hero-badges"},
-                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
+                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed","LOINC","MeSH"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
             )
         ),
         h(QuickActions,{navigate:props.navigate}),
@@ -897,8 +965,13 @@ var BROWSE_TABLES={
     drug_interactions:{label:"Interactions",color:"#FB923C",cols:["drug_a_name","drug_b_name","severity","description"],select:"id,drug_a_name,drug_b_name,severity,description"},
     pubmed_citations:{label:"PubMed",color:"#6366F1",cols:["title","journal","publication_date"],select:"id,title,journal,publication_date"},
     drug_adverse_events:{label:"Adverse Events",color:"var(--red)",cols:["drug_name","reaction","outcome","serious"],select:"id,drug_name,reaction,outcome,serious,event_date,source_quarter"},
+    medicare_part_d_prescribers:{label:"Prescriptions",color:"#10B981",cols:["npi","provider_last_name","drug_name","generic_name","total_claim_count"],select:"id,npi,provider_last_name,provider_first_name,provider_state,drug_name,generic_name,total_claim_count,total_drug_cost,bene_count"},
+    medicare_utilization:{label:"Utilization",color:"var(--amber)",cols:["npi","provider_last_name","hcpcs_code","hcpcs_description","service_count"],select:"id,npi,provider_last_name,provider_first_name,provider_type,provider_state,hcpcs_code,hcpcs_description,service_count,avg_medicare_payment"},
+    loinc_codes:{label:"Lab Codes",color:"#6EE7B7",cols:["loinc_num","long_common_name","component","class"],select:"id,loinc_num,long_common_name,component,property,system,class,scale_type,status"},
+    hospitals:{label:"Hospitals",color:"#38BDF8",cols:["facility_name","city","state","hospital_type","overall_rating"],select:"id,facility_id,facility_name,city,state,hospital_type,hospital_ownership,overall_rating,emergency_services"},
     drg_codes:{label:"DRG Codes",color:"var(--cyan)",cols:["code","description","drg_type","weight"],select:"id,code,description,drg_type,weight,geometric_mean_los,arithmetic_mean_los"},
     drug_labels:{label:"Drug Labels",color:"var(--orange)",cols:["name","effective_date","version"],select:"id,name,set_id,effective_date,version,indications"},
+    mesh_terms:{label:"MeSH Terms",color:"#818CF8",cols:["mesh_id","name","category"],select:"id,mesh_id,name,category,scope_note"},
     state_medical_boards:{label:"State Boards",color:"var(--violet)",cols:["state_name","board_name","board_url","compact_member"],select:"id,state_code,state_name,board_name,board_url,lookup_url,compact_member"},
 };
 
@@ -918,7 +991,7 @@ function BrowseView(props){
         setLoading(true);setPage(p);
         q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset="+(p*pageSize)+"&order=id").then(function(r){setData(r);setLoading(false)});
     }
-    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event"};
+    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event",medicare_part_d_prescribers:"prescription",medicare_utilization:"utilization",loinc_codes:"lab_code",hospitals:"hospital",mesh_terms:"mesh"};
 
     return h("div",{className:"browse"},
         h("div",{className:"browse-tabs"},

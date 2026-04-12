@@ -22,15 +22,15 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 ## Supabase Database (LIVE)
 - Project: opbrzaegvfyjpyyrmdfe
 - 28-table schema deployed with RLS, triggers, GIN indexes
-- ~3.8M+ records across 18 populated tables (as of Apr 11, 2026)
-- NPI backfill in progress: 814K loaded, 9M target (Pro plan, no limit)
+- ~12.1M+ records across 23 populated tables (as of Apr 12, 2026)
+- NPI backfill COMPLETE: 9.4M providers loaded (Pro plan)
 - Connection details in .env (see .env.example)
 - Schema source of truth: supabase_schema.sql
 
 ### Current Data State
 | Table | Records | Source |
 |-------|---------|--------|
-| providers | 814,381 (backfilling to 9M) | NPPES NPI Registry |
+| providers | 9,427,624 | NPPES NPI Registry (full backfill complete Apr 12, 2026) |
 | provider_addresses | 1,175,202 | NPPES (full bulk addr extraction Apr 11, 2026) |
 | provider_taxonomies | 778,330 | NPPES (full bulk taxonomy extraction Apr 11, 2026) |
 | icd10_cm_codes | 97,584 | CMS FY2025 |
@@ -39,24 +39,36 @@ AI-native operating system for the global healthcare ecosystem. 4 lanes (Admin/D
 | icd10_pcs_codes | 78,948 | CMS FY2025 |
 | pubmed_citations | 59,798 | NCBI E-Utilities |
 | clinical_trials | 33,593 | ClinicalTrials.gov API v2 |
-| drug_adverse_events | 126,000+ (still loading) | FDA FAERS openFDA API |
+| drug_adverse_events | 139,798 | FDA FAERS openFDA API |
+| medicare_part_d_prescribers | 70,600 | CMS Medicare Part D (Apr 12, 2026) |
+| medicare_utilization | 50,000 | CMS Medicare Physician & Other Practitioners (Apr 12, 2026) |
 | drugs | 25,790 | NLM RxNorm |
 | hcpcs_codes | 22,700 | CMS Level II |
+| loinc_codes | 7,498+ (loading) | LOINC/Regenstrief via NLM Clinical Tables |
 | drug_interactions | 5,500 | RxNorm-linked |
+| hospitals | 2,058 | CMS Hospital All Owners (Apr 12, 2026) |
 | drg_codes | 863 | CMS MS-DRG v42 |
 | drug_labels | 700 | NLM DailyMed (in progress) |
 | state_medical_boards | 51 | 50 states + DC |
+| mesh_terms | 15 (seed, expanding) | NLM MeSH (Apr 12, 2026) |
 | data_sources | 10 | Registry |
 | sam_exclusions | 5 | SAM.gov (API issues — needs real key) |
 
 ### Pending Data Work
-- **NPI backfill**: Run `cd scripts/ingestion && python3 npi_backfill.py` on local Mac (9M target, uses UPSERT)
-- **FAERS adverse events**: 106K+ loaded (continuing to grow via sandbox runs)
-- **Hospital Quality**: Create `hospitals` table (see create_new_tables.sql), then run `python3 ingest_hospital_quality.py`
-- **Medicare Utilization**: Create `medicare_utilization` table, then run `python3 ingest_medicare_utilization.py`
+- **LOINC lab codes**: 7,498 loaded, targeting 108K (NLM Clinical Tables API, prefix-drilling pagination)
+- **MeSH terms**: 15 seed records loaded, full ingestion via NCBI E-Utilities targets 30K+
 - OIG-NPI reconciliation: ~2,900 of ~9,120 matched. Run `python3 apply_oig_matches.py`
 - DailyMed drug labels (5,500 target, ~700 loaded so far)
 - SAM.gov exclusions (needs registered API key)
+
+### Recently Completed (Apr 12, 2026)
+- **NPI Full Backfill**: 9.4M providers loaded from NPPES (complete!)
+- **FAERS Adverse Events**: 139,798 records from openFDA API
+- **Medicare Part D**: 70,600 prescriber-drug records from CMS
+- **Medicare Utilization**: 50,000 provider payment records from CMS
+- **Hospital Quality**: 2,058 unique facilities from CMS Hospital All Owners
+- **LOINC Lab Codes**: 7,498 loaded (ongoing)
+- **4 new tables created**: medicare_part_d_prescribers, mesh_terms, hospitals, medicare_utilization
 
 ### Cross-Project Note
 Frontend was built in the BKG (Builder's Knowledge Garden) project and deployed to health.theknowledgegardens.com. The index.html needs to be migrated into this repo. The BKG project also created HKG-specific markdown files (project_hkg_backend.md, project_hkg_frontend.md) that should be merged here.

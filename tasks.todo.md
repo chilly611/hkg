@@ -69,6 +69,7 @@
 - [ ] SAM.gov federal exclusions: API returned 404s — 5 test records only, needs real API access
 
 ### Data Ingestion Sprint (P0b — Ready, Needs Table Creation)
+- [x] Medicare Part D prescribers: 70,600 records ingested (Apr 12, 2026). CMS API endpoint: dataset/9552739e-3d05-4c1b-8eff-ecabf391e2e5/data. Fields mapped: NPI, provider name/state, specialty, drug name/generic, claim counts, costs, beneficiary count, year.
 - [ ] Hospital Quality (CMS Hospital Compare): ~5K hospitals with quality ratings. Create `hospitals` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_hospital_quality.py`
 - [ ] Medicare Utilization: ~50K provider payment records. Create `medicare_utilization` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_medicare_utilization.py`
 

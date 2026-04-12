@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Knowledge Garden</title>
     <meta property="og:title" content="Health Knowledge Garden — The Operating System for Healthcare">
-    <meta property="og:description" content="3.8M+ verified healthcare entities. Connected, verified, queryable in real time.">
+    <meta property="og:description" content="12M+ verified healthcare entities. Connected, verified, queryable in real time.">
     <meta property="og:url" content="https://health.theknowledgegardens.com/">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -603,8 +603,13 @@ function Home(props){
         {key:"hcpcs_codes",label:"Billing Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
         {key:"drug_interactions",label:"Interactions",color:"#FB923C",src:"RxNorm",accentColor:"#FB923C"},
         {key:"drug_adverse_events",label:"Adverse Events",color:"var(--red)",src:"FDA FAERS",accentColor:"#EF4444"},
+        {key:"medicare_part_d_prescribers",label:"Prescriptions",color:"#10B981",src:"CMS Part D",accentColor:"#10B981"},
+        {key:"medicare_utilization",label:"Utilization",color:"var(--amber)",src:"CMS Medicare",accentColor:"#F59E0B"},
+        {key:"loinc_codes",label:"Lab Codes",color:"#6EE7B7",src:"LOINC",accentColor:"#6EE7B7"},
+        {key:"hospitals",label:"Hospitals",color:"#38BDF8",src:"CMS",accentColor:"#38BDF8"},
         {key:"drg_codes",label:"DRG Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
         {key:"drug_labels",label:"Drug Labels",color:"var(--orange)",src:"DailyMed",accentColor:"#F97316"},
+        {key:"mesh_terms",label:"MeSH Terms",color:"#818CF8",src:"NLM",accentColor:"#818CF8"},
         {key:"state_medical_boards",label:"State Boards",color:"var(--violet)",src:"Registry",accentColor:"#A78BFA"},
     ];
 
@@ -612,9 +617,9 @@ function Home(props){
         h("div",{className:"hero fade-up"},
             h("img",{className:"hero-logo",src:STORAGE+"/chillyprojects_Abstract_logo_three_hexagonal_cells_each_conta_0feaba9f-766e-4625-bfbb-615210ea2c0d_1.png",alt:"HKG"}),
             h("h1",null,"The ",h("span",{className:"gr"},"Knowledge Garden")," for Healthcare"),
-            h("p",null,"Verified healthcare entities from authoritative federal sources. Search any provider, drug, diagnosis, trial, or billing code — connected in real time."),
+            h("p",null,"12M+ verified records from 13 federal sources. Search any provider, drug, diagnosis, trial, hospital, prescription, or billing code — connected in real time."),
             h("div",{className:"hero-badges"},
-                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
+                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed","LOINC","MeSH"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
             )
         ),
         h(QuickActions,{navigate:props.navigate}),
@@ -897,8 +902,13 @@ var BROWSE_TABLES={
     drug_interactions:{label:"Interactions",color:"#FB923C",cols:["drug_a_name","drug_b_name","severity","description"],select:"id,drug_a_name,drug_b_name,severity,description"},
     pubmed_citations:{label:"PubMed",color:"#6366F1",cols:["title","journal","publication_date"],select:"id,title,journal,publication_date"},
     drug_adverse_events:{label:"Adverse Events",color:"var(--red)",cols:["drug_name","reaction","outcome","serious"],select:"id,drug_name,reaction,outcome,serious,event_date,source_quarter"},
+    medicare_part_d_prescribers:{label:"Prescriptions",color:"#10B981",cols:["npi","provider_last_name","drug_name","generic_name","total_claim_count"],select:"id,npi,provider_last_name,provider_first_name,provider_state,drug_name,generic_name,total_claim_count,total_drug_cost,bene_count"},
+    medicare_utilization:{label:"Utilization",color:"var(--amber)",cols:["npi","provider_last_name","hcpcs_code","hcpcs_description","service_count"],select:"id,npi,provider_last_name,provider_first_name,provider_type,provider_state,hcpcs_code,hcpcs_description,service_count,avg_medicare_payment"},
+    loinc_codes:{label:"Lab Codes",color:"#6EE7B7",cols:["loinc_num","long_common_name","component","class"],select:"id,loinc_num,long_common_name,component,property,system,class,scale_type,status"},
+    hospitals:{label:"Hospitals",color:"#38BDF8",cols:["facility_name","city","state","hospital_type","overall_rating"],select:"id,facility_id,facility_name,city,state,hospital_type,hospital_ownership,overall_rating,emergency_services"},
     drg_codes:{label:"DRG Codes",color:"var(--cyan)",cols:["code","description","drg_type","weight"],select:"id,code,description,drg_type,weight,geometric_mean_los,arithmetic_mean_los"},
     drug_labels:{label:"Drug Labels",color:"var(--orange)",cols:["name","effective_date","version"],select:"id,name,set_id,effective_date,version,indications"},
+    mesh_terms:{label:"MeSH Terms",color:"#818CF8",cols:["mesh_id","name","category"],select:"id,mesh_id,name,category,scope_note"},
     state_medical_boards:{label:"State Boards",color:"var(--violet)",cols:["state_name","board_name","board_url","compact_member"],select:"id,state_code,state_name,board_name,board_url,lookup_url,compact_member"},
 };
 
@@ -918,7 +928,7 @@ function BrowseView(props){
         setLoading(true);setPage(p);
         q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset="+(p*pageSize)+"&order=id").then(function(r){setData(r);setLoading(false)});
     }
-    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event"};
+    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event",medicare_part_d_prescribers:"prescription",medicare_utilization:"utilization",loinc_codes:"lab_code",hospitals:"hospital",mesh_terms:"mesh"};
 
     return h("div",{className:"browse"},
         h("div",{className:"browse-tabs"},

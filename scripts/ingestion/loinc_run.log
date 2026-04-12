@@ -1,0 +1,665 @@
+======================================================================
+LOINC Code Ingestion Script
+======================================================================
+
+Fetching LOINC codes from NLM Clinical Tables API...
+
+  Fetching from offset 0... ✓ Got 500 records (fetched: 500/108248)
+  Fetching from offset 500... ✓ Got 500 records (fetched: 1000/108248)
+  Fetching from offset 1000... ✓ Got 500 records (fetched: 1500/108248)
+  Fetching from offset 1500... ✓ Got 500 records (fetched: 2000/108248)
+  Fetching from offset 2000... ✓ Got 500 records (fetched: 2500/108248)
+  Fetching from offset 2500... ✓ Got 500 records (fetched: 3000/108248)
+  Fetching from offset 3000... ✓ Got 500 records (fetched: 3500/108248)
+  Fetching from offset 3500... ✓ Got 500 records (fetched: 4000/108248)
+  Fetching from offset 4000... ✓ Got 500 records (fetched: 4500/108248)
+  Fetching from offset 4500... ✓ Got 500 records (fetched: 5000/108248)
+  Fetching from offset 5000... ✓ Got 500 records (fetched: 5500/108248)
+  Fetching from offset 5500... ✓ Got 500 records (fetched: 6000/108248)
+  Fetching from offset 6000... ✓ Got 500 records (fetched: 6500/108248)
+  Fetching from offset 6500... ✓ Got 500 records (fetched: 7000/108248)
+  Fetching from offset 7000... ✓ Got 500 records (fetched: 7500/108248)
+  Fetching from offset 7500... ✓ Got 500 records (fetched: 8000/108248)
+  Fetching from offset 8000... ✓ Got 500 records (fetched: 8500/108248)
+  Fetching from offset 8500... ✓ Got 500 records (fetched: 9000/108248)
+  Fetching from offset 9000... ✓ Got 500 records (fetched: 9500/108248)
+  Fetching from offset 9500... ✓ Got 500 records (fetched: 10000/108248)
+  Fetching from offset 10000... ✓ Got 500 records (fetched: 10500/108248)
+  Fetching from offset 10500... ✓ Got 500 records (fetched: 11000/108248)
+  Fetching from offset 11000... ✓ Got 500 records (fetched: 11500/108248)
+  Fetching from offset 11500... ✓ Got 500 records (fetched: 12000/108248)
+  Fetching from offset 12000... ✓ Got 500 records (fetched: 12500/108248)
+  Fetching from offset 12500... ✓ Got 500 records (fetched: 13000/108248)
+  Fetching from offset 13000... ✓ Got 500 records (fetched: 13500/108248)
+  Fetching from offset 13500... ✓ Got 500 records (fetched: 14000/108248)
+  Fetching from offset 14000... ✓ Got 500 records (fetched: 14500/108248)
+  Fetching from offset 14500... ✓ Got 500 records (fetched: 15000/108248)
+  Fetching from offset 15000... ✓ Got 500 records (fetched: 15500/108248)
+  Fetching from offset 15500... ✓ Got 500 records (fetched: 16000/108248)
+  Fetching from offset 16000... ✓ Got 500 records (fetched: 16500/108248)
+  Fetching from offset 16500... ✓ Got 500 records (fetched: 17000/108248)
+  Fetching from offset 17000... ✓ Got 500 records (fetched: 17500/108248)
+  Fetching from offset 17500... ✓ Got 500 records (fetched: 18000/108248)
+  Fetching from offset 18000... ✓ Got 500 records (fetched: 18500/108248)
+  Fetching from offset 18500... ✓ Got 500 records (fetched: 19000/108248)
+  Fetching from offset 19000... ✓ Got 500 records (fetched: 19500/108248)
+  Fetching from offset 19500... ✓ Got 500 records (fetched: 20000/108248)
+  Fetching from offset 20000... ✓ Got 500 records (fetched: 20500/108248)
+  Fetching from offset 20500... ✓ Got 500 records (fetched: 21000/108248)
+  Fetching from offset 21000... ✓ Got 500 records (fetched: 21500/108248)
+  Fetching from offset 21500... ✓ Got 500 records (fetched: 22000/108248)
+  Fetching from offset 22000... ✓ Got 500 records (fetched: 22500/108248)
+  Fetching from offset 22500... ✓ Got 500 records (fetched: 23000/108248)
+  Fetching from offset 23000... ✓ Got 500 records (fetched: 23500/108248)
+  Fetching from offset 23500... ✓ Got 500 records (fetched: 24000/108248)
+  Fetching from offset 24000... ✓ Got 500 records (fetched: 24500/108248)
+  Fetching from offset 24500... ✓ Got 500 records (fetched: 25000/108248)
+  Fetching from offset 25000... ✓ Got 500 records (fetched: 25500/108248)
+  Fetching from offset 25500... ✓ Got 500 records (fetched: 26000/108248)
+  Fetching from offset 26000... ✓ Got 500 records (fetched: 26500/108248)
+  Fetching from offset 26500... ✓ Got 500 records (fetched: 27000/108248)
+  Fetching from offset 27000... ✓ Got 500 records (fetched: 27500/108248)
+  Fetching from offset 27500... ✓ Got 500 records (fetched: 28000/108248)
+  Fetching from offset 28000... ✓ Got 500 records (fetched: 28500/108248)
+  Fetching from offset 28500... ✓ Got 500 records (fetched: 29000/108248)
+  Fetching from offset 29000... ✓ Got 500 records (fetched: 29500/108248)
+  Fetching from offset 29500... ✓ Got 500 records (fetched: 30000/108248)
+  Fetching from offset 30000... ✓ Got 500 records (fetched: 30500/108248)
+  Fetching from offset 30500... ✓ Got 500 records (fetched: 31000/108248)
+  Fetching from offset 31000... ✓ Got 500 records (fetched: 31500/108248)
+  Fetching from offset 31500... ✓ Got 500 records (fetched: 32000/108248)
+  Fetching from offset 32000... ✓ Got 500 records (fetched: 32500/108248)
+  Fetching from offset 32500... ✓ Got 500 records (fetched: 33000/108248)
+  Fetching from offset 33000... ✓ Got 500 records (fetched: 33500/108248)
+  Fetching from offset 33500... ✓ Got 500 records (fetched: 34000/108248)
+  Fetching from offset 34000... ✓ Got 500 records (fetched: 34500/108248)
+  Fetching from offset 34500... ✓ Got 500 records (fetched: 35000/108248)
+  Fetching from offset 35000... ✓ Got 500 records (fetched: 35500/108248)
+  Fetching from offset 35500... ✓ Got 500 records (fetched: 36000/108248)
+  Fetching from offset 36000... ✓ Got 500 records (fetched: 36500/108248)
+  Fetching from offset 36500... ✓ Got 500 records (fetched: 37000/108248)
+  Fetching from offset 37000... ✓ Got 500 records (fetched: 37500/108248)
+  Fetching from offset 37500... ✓ Got 500 records (fetched: 38000/108248)
+  Fetching from offset 38000... ✓ Got 500 records (fetched: 38500/108248)
+  Fetching from offset 38500... ✓ Got 500 records (fetched: 39000/108248)
+  Fetching from offset 39000... ✓ Got 500 records (fetched: 39500/108248)
+  Fetching from offset 39500... ✓ Got 500 records (fetched: 40000/108248)
+  Fetching from offset 40000... ✓ Got 500 records (fetched: 40500/108248)
+  Fetching from offset 40500... ✓ Got 500 records (fetched: 41000/108248)
+  Fetching from offset 41000... ✓ Got 500 records (fetched: 41500/108248)
+  Fetching from offset 41500... ✓ Got 500 records (fetched: 42000/108248)
+  Fetching from offset 42000... ✓ Got 500 records (fetched: 42500/108248)
+  Fetching from offset 42500... ✓ Got 500 records (fetched: 43000/108248)
+  Fetching from offset 43000... ✓ Got 500 records (fetched: 43500/108248)
+  Fetching from offset 43500... ✓ Got 500 records (fetched: 44000/108248)
+  Fetching from offset 44000... ✓ Got 500 records (fetched: 44500/108248)
+  Fetching from offset 44500... ✓ Got 500 records (fetched: 45000/108248)
+  Fetching from offset 45000... ✓ Got 500 records (fetched: 45500/108248)
+  Fetching from offset 45500... ✓ Got 500 records (fetched: 46000/108248)
+  Fetching from offset 46000... ✓ Got 500 records (fetched: 46500/108248)
+  Fetching from offset 46500... ✓ Got 500 records (fetched: 47000/108248)
+  Fetching from offset 47000... ✓ Got 500 records (fetched: 47500/108248)
+  Fetching from offset 47500... ✓ Got 500 records (fetched: 48000/108248)
+  Fetching from offset 48000... ✓ Got 500 records (fetched: 48500/108248)
+  Fetching from offset 48500... ✓ Got 500 records (fetched: 49000/108248)
+  Fetching from offset 49000... ✓ Got 500 records (fetched: 49500/108248)
+  Fetching from offset 49500... ✓ Got 500 records (fetched: 50000/108248)
+  Fetching from offset 50000... ✓ Got 500 records (fetched: 50500/108248)
+  Fetching from offset 50500... ✓ Got 500 records (fetched: 51000/108248)
+  Fetching from offset 51000... ✓ Got 500 records (fetched: 51500/108248)
+  Fetching from offset 51500... ✓ Got 500 records (fetched: 52000/108248)
+  Fetching from offset 52000... ✓ Got 500 records (fetched: 52500/108248)
+  Fetching from offset 52500... ✓ Got 500 records (fetched: 53000/108248)
+  Fetching from offset 53000... ✓ Got 500 records (fetched: 53500/108248)
+  Fetching from offset 53500... ✓ Got 500 records (fetched: 54000/108248)
+  Fetching from offset 54000... ✓ Got 500 records (fetched: 54500/108248)
+  Fetching from offset 54500... ✓ Got 500 records (fetched: 55000/108248)
+  Fetching from offset 55000... ✓ Got 500 records (fetched: 55500/108248)
+  Fetching from offset 55500... ✓ Got 500 records (fetched: 56000/108248)
+  Fetching from offset 56000... ✓ Got 500 records (fetched: 56500/108248)
+  Fetching from offset 56500... ✓ Got 500 records (fetched: 57000/108248)
+  Fetching from offset 57000... ✓ Got 500 records (fetched: 57500/108248)
+  Fetching from offset 57500... ✓ Got 500 records (fetched: 58000/108248)
+  Fetching from offset 58000... ✓ Got 500 records (fetched: 58500/108248)
+  Fetching from offset 58500... ✓ Got 500 records (fetched: 59000/108248)
+  Fetching from offset 59000... ✓ Got 500 records (fetched: 59500/108248)
+  Fetching from offset 59500... ✓ Got 500 records (fetched: 60000/108248)
+  Fetching from offset 60000... ✓ Got 500 records (fetched: 60500/108248)
+  Fetching from offset 60500... ✓ Got 500 records (fetched: 61000/108248)
+  Fetching from offset 61000... ✓ Got 500 records (fetched: 61500/108248)
+  Fetching from offset 61500... ✓ Got 500 records (fetched: 62000/108248)
+  Fetching from offset 62000... ✓ Got 500 records (fetched: 62500/108248)
+  Fetching from offset 62500... ✓ Got 500 records (fetched: 63000/108248)
+  Fetching from offset 63000... ✓ Got 500 records (fetched: 63500/108248)
+  Fetching from offset 63500... ✓ Got 500 records (fetched: 64000/108248)
+  Fetching from offset 64000... ✓ Got 500 records (fetched: 64500/108248)
+  Fetching from offset 64500... ✓ Got 500 records (fetched: 65000/108248)
+  Fetching from offset 65000... ✓ Got 500 records (fetched: 65500/108248)
+  Fetching from offset 65500... ✓ Got 500 records (fetched: 66000/108248)
+  Fetching from offset 66000... ✓ Got 500 records (fetched: 66500/108248)
+  Fetching from offset 66500... ✓ Got 500 records (fetched: 67000/108248)
+  Fetching from offset 67000... ✓ Got 500 records (fetched: 67500/108248)
+  Fetching from offset 67500... ✓ Got 500 records (fetched: 68000/108248)
+  Fetching from offset 68000... ✓ Got 500 records (fetched: 68500/108248)
+  Fetching from offset 68500... ✓ Got 500 records (fetched: 69000/108248)
+  Fetching from offset 69000... ✓ Got 500 records (fetched: 69500/108248)
+  Fetching from offset 69500... ✓ Got 500 records (fetched: 70000/108248)
+  Fetching from offset 70000... ✓ Got 500 records (fetched: 70500/108248)
+  Fetching from offset 70500... ✓ Got 500 records (fetched: 71000/108248)
+  Fetching from offset 71000... ✓ Got 500 records (fetched: 71500/108248)
+  Fetching from offset 71500... ✓ Got 500 records (fetched: 72000/108248)
+  Fetching from offset 72000... ✓ Got 500 records (fetched: 72500/108248)
+  Fetching from offset 72500... ✓ Got 500 records (fetched: 73000/108248)
+  Fetching from offset 73000... ✓ Got 500 records (fetched: 73500/108248)
+  Fetching from offset 73500... ✓ Got 500 records (fetched: 74000/108248)
+  Fetching from offset 74000... ✓ Got 500 records (fetched: 74500/108248)
+  Fetching from offset 74500... ✓ Got 500 records (fetched: 75000/108248)
+  Fetching from offset 75000... ✓ Got 500 records (fetched: 75500/108248)
+  Fetching from offset 75500... ✓ Got 500 records (fetched: 76000/108248)
+  Fetching from offset 76000... ✓ Got 500 records (fetched: 76500/108248)
+  Fetching from offset 76500... ✓ Got 500 records (fetched: 77000/108248)
+  Fetching from offset 77000... ✓ Got 500 records (fetched: 77500/108248)
+  Fetching from offset 77500... ✓ Got 500 records (fetched: 78000/108248)
+  Fetching from offset 78000... ✓ Got 500 records (fetched: 78500/108248)
+  Fetching from offset 78500... ✓ Got 500 records (fetched: 79000/108248)
+  Fetching from offset 79000... ✓ Got 500 records (fetched: 79500/108248)
+  Fetching from offset 79500... ✓ Got 500 records (fetched: 80000/108248)
+  Fetching from offset 80000... ✓ Got 500 records (fetched: 80500/108248)
+  Fetching from offset 80500... ✓ Got 500 records (fetched: 81000/108248)
+  Fetching from offset 81000... ✓ Got 500 records (fetched: 81500/108248)
+  Fetching from offset 81500... ✓ Got 500 records (fetched: 82000/108248)
+  Fetching from offset 82000... ✓ Got 500 records (fetched: 82500/108248)
+  Fetching from offset 82500... ✓ Got 500 records (fetched: 83000/108248)
+  Fetching from offset 83000... ✓ Got 500 records (fetched: 83500/108248)
+  Fetching from offset 83500... ✓ Got 500 records (fetched: 84000/108248)
+  Fetching from offset 84000... ✓ Got 500 records (fetched: 84500/108248)
+  Fetching from offset 84500... ✓ Got 500 records (fetched: 85000/108248)
+  Fetching from offset 85000... ✓ Got 500 records (fetched: 85500/108248)
+  Fetching from offset 85500... ✓ Got 500 records (fetched: 86000/108248)
+  Fetching from offset 86000... ✓ Got 500 records (fetched: 86500/108248)
+  Fetching from offset 86500... ✓ Got 500 records (fetched: 87000/108248)
+  Fetching from offset 87000... ✓ Got 500 records (fetched: 87500/108248)
+  Fetching from offset 87500... ✓ Got 500 records (fetched: 88000/108248)
+  Fetching from offset 88000... ✓ Got 500 records (fetched: 88500/108248)
+  Fetching from offset 88500... ✓ Got 500 records (fetched: 89000/108248)
+  Fetching from offset 89000... ✓ Got 500 records (fetched: 89500/108248)
+  Fetching from offset 89500... ✓ Got 500 records (fetched: 90000/108248)
+  Fetching from offset 90000... ✓ Got 500 records (fetched: 90500/108248)
+  Fetching from offset 90500... ✓ Got 500 records (fetched: 91000/108248)
+  Fetching from offset 91000... ✓ Got 500 records (fetched: 91500/108248)
+  Fetching from offset 91500... ✓ Got 500 records (fetched: 92000/108248)
+  Fetching from offset 92000... ✓ Got 500 records (fetched: 92500/108248)
+  Fetching from offset 92500... ✓ Got 500 records (fetched: 93000/108248)
+  Fetching from offset 93000... ✓ Got 500 records (fetched: 93500/108248)
+  Fetching from offset 93500... ✓ Got 500 records (fetched: 94000/108248)
+  Fetching from offset 94000... ✓ Got 500 records (fetched: 94500/108248)
+  Fetching from offset 94500... ✓ Got 500 records (fetched: 95000/108248)
+  Fetching from offset 95000... ✓ Got 500 records (fetched: 95500/108248)
+  Fetching from offset 95500... ✓ Got 500 records (fetched: 96000/108248)
+  Fetching from offset 96000... ✓ Got 500 records (fetched: 96500/108248)
+  Fetching from offset 96500... ✓ Got 500 records (fetched: 97000/108248)
+  Fetching from offset 97000... ✓ Got 500 records (fetched: 97500/108248)
+  Fetching from offset 97500... ✓ Got 500 records (fetched: 98000/108248)
+  Fetching from offset 98000... ✓ Got 500 records (fetched: 98500/108248)
+  Fetching from offset 98500... ✓ Got 500 records (fetched: 99000/108248)
+  Fetching from offset 99000... ✓ Got 500 records (fetched: 99500/108248)
+  Fetching from offset 99500... ✓ Got 500 records (fetched: 100000/108248)
+  Fetching from offset 100000... ✓ Got 500 records (fetched: 100500/108248)
+  Fetching from offset 100500... ✓ Got 500 records (fetched: 101000/108248)
+  Fetching from offset 101000... ✓ Got 500 records (fetched: 101500/108248)
+  Fetching from offset 101500... ✓ Got 500 records (fetched: 102000/108248)
+  Fetching from offset 102000... ✓ Got 500 records (fetched: 102500/108248)
+  Fetching from offset 102500... ✓ Got 500 records (fetched: 103000/108248)
+  Fetching from offset 103000... ✓ Got 500 records (fetched: 103500/108248)
+  Fetching from offset 103500... ✓ Got 500 records (fetched: 104000/108248)
+  Fetching from offset 104000... ✓ Got 500 records (fetched: 104500/108248)
+  Fetching from offset 104500... ✓ Got 500 records (fetched: 105000/108248)
+  Fetching from offset 105000... ✓ Got 500 records (fetched: 105500/108248)
+  Fetching from offset 105500... ✓ Got 500 records (fetched: 106000/108248)
+  Fetching from offset 106000... ✓ Got 500 records (fetched: 106500/108248)
+  Fetching from offset 106500... ✓ Got 500 records (fetched: 107000/108248)
+  Fetching from offset 107000... ✓ Got 500 records (fetched: 107500/108248)
+  Fetching from offset 107500... ✓ Got 500 records (fetched: 108000/108248)
+  Fetching from offset 108000... ✓ Got 500 records (fetched: 108500/108248)
+
+✓ Fetched total 108500 LOINC codes
+
+Inserting 108500 records into Supabase...
+  Batch 1: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 2: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 3: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 4: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 5: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 6: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 7: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 8: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 9: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 10: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 11: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 12: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 13: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 14: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 15: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 16: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 17: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 18: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 19: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 20: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 21: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 22: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 23: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 24: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 25: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 26: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 27: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 28: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 29: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 30: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 31: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 32: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 33: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 34: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 35: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 36: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 37: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 38: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 39: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 40: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 41: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 42: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 43: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 44: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 45: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 46: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 47: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 48: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 49: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 50: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 51: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 52: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 53: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 54: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 55: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 56: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 57: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 58: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 59: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 60: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 61: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 62: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 63: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 64: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 65: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 66: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 67: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 68: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 69: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 70: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 71: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 72: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 73: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 74: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 75: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 76: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 77: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 78: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 79: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 80: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 81: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 82: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 83: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 84: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 85: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 86: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 87: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 88: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 89: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 90: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 91: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 92: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 93: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 94: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 95: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 96: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 97: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 98: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 99: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 100: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 101: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 102: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 103: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 104: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 105: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 106: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 107: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 108: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 109: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 110: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 111: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 112: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 113: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 114: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 115: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 116: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 117: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 118: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 119: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 120: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 121: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 122: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 123: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 124: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 125: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 126: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 127: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 128: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 129: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 130: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 131: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 132: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 133: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 134: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 135: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 136: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 137: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 138: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 139: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 140: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 141: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 142: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 143: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 144: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 145: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 146: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 147: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 148: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 149: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 150: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 151: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 152: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 153: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 154: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 155: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 156: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 157: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 158: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 159: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 160: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 161: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 162: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 163: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 164: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 165: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 166: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 167: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 168: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 169: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 170: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 171: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 172: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 173: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 174: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 175: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 176: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 177: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 178: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 179: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 180: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 181: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 182: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 183: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 184: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 185: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 186: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 187: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 188: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 189: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 190: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 191: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 192: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 193: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 194: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 195: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 196: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 197: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 198: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 199: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 200: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 201: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 202: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 203: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 204: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 205: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 206: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 207: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 208: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 209: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 210: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 211: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 212: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 213: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 214: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 215: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 216: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+  Batch 217: Inserting 500 records... ✗ HTTP error 409
+    Response: {"code":"23505","details":"Key (loinc_num)=(100000-9) already exists.","hint":null,"message":"duplicate key value violates unique constraint \"loinc_codes_loinc_num_key\""}
+
+======================================================================
+SUCCESS: 0 LOINC codes loaded into Supabase
+======================================================================
