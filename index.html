@@ -1019,6 +1019,87 @@ function BrowseView(props){
     );
 }
 
+// === COMPASS NAV ===
+function CompassNav(props){
+    var _o=useState(false),open=_o[0],setOpen=_o[1];
+
+    var compassSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        h("circle",{cx:12,cy:12,r:10}),
+        h("polygon",{points:"16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88",fill:"currentColor",stroke:"currentColor",strokeWidth:1})
+    );
+
+    var closeSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,width:16,height:16},
+        h("line",{x1:18,y1:6,x2:6,y2:18}),h("line",{x1:6,y1:6,x2:18,y2:18})
+    );
+
+    var externalSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2},
+        h("path",{d:"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"}),
+        h("polyline",{points:"15 3 21 3 21 9"}),h("line",{x1:10,y1:14,x2:21,y2:3})
+    );
+
+    var browseLinks=[
+        {key:"providers",label:"Providers",color:"#34D399",count:props.counts.providers},
+        {key:"drugs",label:"Drugs",color:"#F97316",count:props.counts.drugs},
+        {key:"icd10_cm_codes",label:"Diagnoses",color:"#EF4444",count:props.counts.icd10_cm_codes},
+        {key:"clinical_trials",label:"Trials",color:"#F59E0B",count:props.counts.clinical_trials},
+        {key:"drug_adverse_events",label:"Adverse Events",color:"#EF4444",count:props.counts.drug_adverse_events},
+        {key:"medicare_part_d_prescribers",label:"Prescriptions",color:"#10B981",count:props.counts.medicare_part_d_prescribers},
+        {key:"medicare_utilization",label:"Utilization",color:"#F59E0B",count:props.counts.medicare_utilization},
+        {key:"hospitals",label:"Hospitals",color:"#38BDF8",count:props.counts.hospitals},
+        {key:"oig_exclusions",label:"Exclusions",color:"#F472B6",count:props.counts.oig_exclusions},
+        {key:"loinc_codes",label:"Lab Codes",color:"#6EE7B7",count:props.counts.loinc_codes},
+        {key:"hcpcs_codes",label:"Billing Codes",color:"#22D3EE",count:props.counts.hcpcs_codes},
+        {key:"pubmed_citations",label:"PubMed",color:"#6366F1",count:props.counts.pubmed_citations},
+        {key:"ndc_codes",label:"NDC Codes",color:"#8B5CF6",count:props.counts.ndc_codes},
+        {key:"drug_interactions",label:"Interactions",color:"#FB923C",count:props.counts.drug_interactions},
+    ];
+
+    function nav(view,table){setOpen(false);props.navigate(view,table)}
+
+    return h("div",null,
+        h("button",{className:"compass-btn"+(open?" open":""),onClick:function(){setOpen(true)},title:"Navigate"},compassSvg),
+        h("div",{className:"compass-panel"+(open?" open":"")},
+            h("div",{className:"compass-header"},
+                h("h3",null,compassSvg," Navigate"),
+                h("button",{className:"compass-close",onClick:function(){setOpen(false)}},closeSvg)
+            ),
+            h("div",{className:"compass-body"},
+                h("div",{className:"compass-section"},
+                    h("div",{className:"compass-section-label"},"Views"),
+                    h("div",{className:"compass-links"},
+                        h("button",{className:"compass-link",onClick:function(){nav("home")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--emerald)"}}),"Home"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("browse","providers")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--cyan)"}}),"Browse"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("graph")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--violet)"}}),"Graph"
+                        )
+                    )
+                ),
+                h("div",{className:"compass-section"},
+                    h("div",{className:"compass-section-label"},"Data ("+browseLinks.length+" tables)"),
+                    h("div",{className:"compass-links"},
+                        browseLinks.map(function(l){
+                            return h("button",{className:"compass-link",key:l.key,onClick:function(){nav("browse",l.key)}},
+                                h("span",{className:"cl-dot",style:{background:l.color}}),
+                                l.label,
+                                l.count?h("span",{style:{color:"var(--text3)",fontSize:"0.65rem",marginLeft:"0.15rem"}},fmt(l.count)):null
+                            )
+                        })
+                    )
+                )
+            ),
+            h("div",{className:"compass-ext"},
+                h("a",{href:"https://theknowledgegardens.com",target:"_blank"},
+                    externalSvg," The Knowledge Gardens"
+                )
+            )
+        )
+    );
+}
+
 // === MAIN APP ===
 function App(){
     var _v=useState("home"),view=_v[0],setView=_v[1];
@@ -1089,7 +1170,8 @@ function App(){
             h("span",null,"NPPES · CMS · FDA · NIH · HHS-OIG"),
             h("div",{className:"spacer"}),
             h("a",{href:"https://health.theknowledgegardens.com",target:"_blank"},"health.theknowledgegardens.com")
-        )
+        ),
+        h(CompassNav,{counts:counts,navigate:navigate})
     );
 }
 
