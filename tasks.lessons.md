@@ -75,6 +75,21 @@ The /allconcepts endpoint returns all concepts for given TTYs in a single call. 
 
 **Action:** For initial drug population, use /allconcepts with TTY filters. Enrich with individual properties (NDC codes, drug class, interactions) in a separate pass after the base records exist.
 
+### Verify Actual Record Counts After Bulk Load — Don't Trust Script Output
+The NPI bulk load script reported inserting 9,078,000 records, but actual API count showed only 572,351. The sandbox kept killing the process at ~30 minutes, and the script was re-run multiple times. The "9M inserted" count was likely the script reading through the CSV and counting processed rows, but the POST requests were failing silently or the process was killed before batches were committed.
+
+**Action:** After any bulk load, ALWAYS verify the actual record count via `cnt(table)` API call or Supabase dashboard. Never trust the script's self-reported count. For loads exceeding 30 min, use the local Mac with the `npi_backfill.py` UPSERT script which safely resumes.
+
+### openFDA API URL Encoding
+The openFDA search API requires brackets `[` and `]` to be URL-encoded as `%5B` and `%5D`. Using `urllib.parse.urlencode` double-encodes them, causing 500 errors. Build the URL manually with pre-encoded brackets.
+
+**Action:** For openFDA date range queries, construct URLs like: `search=receivedate:%5B20230101+TO+20230331%5D&limit=100`
+
+### Existing Schema May Differ From Script Expectations
+The `drug_adverse_events` table existed from the original schema with columns like `event_date`, `source_quarter`, `rxcui` — NOT `safety_report_id`, `patient_age`, `drug_indication` that a new script might expect. Always check `information_schema.columns` or test with a `?select=*&limit=0` query before writing ingestion scripts.
+
+**Action:** Before writing any ingestion script, query the actual table columns first. Don't assume from docs or SQL files.
+
 ---
 
 ## Architecture Lessons (from BKG/OKG)

@@ -42,10 +42,10 @@
 - [x] NPI providers (weekly): 34,809 providers + 67,866 addresses + 46,723 taxonomies
 - [x] HCPCS billing codes: 22,700 records from CMS Level II
 - [x] DRG codes: 863 MS-DRG v42 codes from CMS
-- [x] NPI full bulk load: 9,078,000 of 9,415,363 providers loaded (84 min, 1,801 rec/s). Batch 4540 failed on varchar(10) overflow — ~2K records to backfill after column fix.
+- [x] NPI full bulk load: Initial load via sandbox (~572K). Backfill script running on Mac via UPSERT — 814K loaded so far, targeting 9.4M.
 - [ ] OIG-NPI reconciliation: ~2,900 matched so far, ~7,214 remaining. Run: `cd scripts/ingestion && python3 apply_oig_matches.py`
-- [x] Provider addresses: 1,107,336 extracted (Apr 11, 2026)
-- [x] Provider taxonomies: 731,907 extracted (Apr 11, 2026)
+- [x] Provider addresses: 1,175,202 extracted (Apr 11, 2026)
+- [x] Provider taxonomies: 778,330 extracted (Apr 11, 2026)
 
 ### Frontend (Built in BKG Project — Apr 10, 2026)
 - [x] Single-file React 18 UMD app — zero build step
@@ -68,9 +68,13 @@
 - [ ] DailyMed drug labels (FDA): IN PROGRESS — fetching from NLM DailyMed API
 - [ ] SAM.gov federal exclusions: API returned 404s — 5 test records only, needs real API access
 
+### Data Ingestion Sprint (P0b — Ready, Needs Table Creation)
+- [ ] Hospital Quality (CMS Hospital Compare): ~5K hospitals with quality ratings. Create `hospitals` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_hospital_quality.py`
+- [ ] Medicare Utilization: ~50K provider payment records. Create `medicare_utilization` table (see `scripts/ingestion/create_new_tables.sql`), then run `python3 ingest_medicare_utilization.py`
+
 ### Data Ingestion Sprint (P2 — Future)
 - [ ] SAM.gov full exclusions (when API becomes available)
-- [ ] Drug adverse events (FDA FAERS)
+- [x] Drug adverse events (FDA FAERS): 113K+ records loaded from openFDA API (Q1 2023 through Q2 2024+). Script uses date partitioning and 1 req/sec rate limiting.
 - [ ] LOINC lab codes
 - [ ] Conditions reference table (from ICD-10 + MeSH crosswalk)
 - [ ] Provider credentials (mock data for MLP demo)

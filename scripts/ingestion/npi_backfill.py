@@ -39,14 +39,15 @@ def convert_bool(v):
 
 def map_entity(c):
     c = (c or "").strip()
-    return "individual" if c == "1" else ("organization" if c == "2" else None)
+    # Schema requires NOT NULL + CHECK (individual/organization)
+    return "individual" if c == "1" else ("organization" if c == "2" else "individual")
 
 def get_status(deact_date, deact_code):
     if not deact_date: return "active"
     code = str(deact_code or "").strip()
     return "deactivated_for_cause" if code in ("02","04") else "deactivated"
 
-def upsert_batch(batch, batch_num):
+def upsert_batch(batch, batch_num, depth=0):
     if not batch: return 0
     try:
         body = json.dumps(batch).encode("utf-8")
@@ -55,16 +56,17 @@ def upsert_batch(batch, batch_num):
         return len(batch)
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8","replace")[:200]
-        print(f"  [Batch {batch_num}] HTTP {e.code}: {err_body}")
-        # On error, try smaller sub-batches
-        inserted = 0
-        mid = len(batch) // 2
-        if mid > 0:
-            inserted += upsert_batch(batch[:mid], batch_num)
-            inserted += upsert_batch(batch[mid:], batch_num)
-        return inserted
+        if depth == 0:
+            print(f"  [Batch {batch_num}] HTTP {e.code}: {err_body[:120]}")
+        # Split into halves up to 2 levels deep, then skip bad records
+        if depth < 2 and len(batch) > 10:
+            mid = len(batch) // 2
+            return upsert_batch(batch[:mid], batch_num, depth+1) + upsert_batch(batch[mid:], batch_num, depth+1)
+        # At max depth, skip the failing sub-batch silently
+        return 0
     except Exception as e:
-        print(f"  [Batch {batch_num}] Error: {e}")
+        if depth == 0:
+            print(f"  [Batch {batch_num}] Error: {e}")
         return 0
 
 def main():
@@ -116,7 +118,8 @@ def main():
             "source_url": "https://download.cms.gov/nppes/NPI_Files.html"
         }
 
-        if rec["npi"]:
+        npi = rec["npi"]
+        if npi and len(npi) == 10 and npi.isdigit():
             batch.append(rec)
 
         if len(batch) >= BATCH_SIZE:

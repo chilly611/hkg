@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Knowledge Garden</title>
     <meta property="og:title" content="Health Knowledge Garden — The Operating System for Healthcare">
-    <meta property="og:description" content="2.9M+ verified healthcare entities. Connected, verified, queryable in real time.">
+    <meta property="og:description" content="3.8M+ verified healthcare entities. Connected, verified, queryable in real time.">
     <meta property="og:url" content="https://health.theknowledgegardens.com/">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -602,6 +602,10 @@ function Home(props){
         {key:"drugs",label:"Drugs",color:"var(--orange)",src:"RxNorm",accentColor:"#F97316"},
         {key:"hcpcs_codes",label:"Billing Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
         {key:"drug_interactions",label:"Interactions",color:"#FB923C",src:"RxNorm",accentColor:"#FB923C"},
+        {key:"drug_adverse_events",label:"Adverse Events",color:"var(--red)",src:"FDA FAERS",accentColor:"#EF4444"},
+        {key:"drg_codes",label:"DRG Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
+        {key:"drug_labels",label:"Drug Labels",color:"var(--orange)",src:"DailyMed",accentColor:"#F97316"},
+        {key:"state_medical_boards",label:"State Boards",color:"var(--violet)",src:"Registry",accentColor:"#A78BFA"},
     ];
 
     return h("div",{className:"home"},
@@ -610,7 +614,7 @@ function Home(props){
             h("h1",null,"The ",h("span",{className:"gr"},"Knowledge Garden")," for Healthcare"),
             h("p",null,"Verified healthcare entities from authoritative federal sources. Search any provider, drug, diagnosis, trial, or billing code — connected in real time."),
             h("div",{className:"hero-badges"},
-                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
+                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
             )
         ),
         h(QuickActions,{navigate:props.navigate}),
@@ -892,6 +896,10 @@ var BROWSE_TABLES={
     ndc_codes:{label:"NDC Codes",color:"var(--purple)",cols:["ndc_code","proprietary_name","manufacturer"],select:"id,ndc_code,proprietary_name,manufacturer"},
     drug_interactions:{label:"Interactions",color:"#FB923C",cols:["drug_a_name","drug_b_name","severity","description"],select:"id,drug_a_name,drug_b_name,severity,description"},
     pubmed_citations:{label:"PubMed",color:"#6366F1",cols:["title","journal","publication_date"],select:"id,title,journal,publication_date"},
+    drug_adverse_events:{label:"Adverse Events",color:"var(--red)",cols:["drug_name","reaction","outcome","serious"],select:"id,drug_name,reaction,outcome,serious,event_date,source_quarter"},
+    drg_codes:{label:"DRG Codes",color:"var(--cyan)",cols:["code","description","drg_type","weight"],select:"id,code,description,drg_type,weight,geometric_mean_los,arithmetic_mean_los"},
+    drug_labels:{label:"Drug Labels",color:"var(--orange)",cols:["name","effective_date","version"],select:"id,name,set_id,effective_date,version,indications"},
+    state_medical_boards:{label:"State Boards",color:"var(--violet)",cols:["state_name","board_name","board_url","compact_member"],select:"id,state_code,state_name,board_name,board_url,lookup_url,compact_member"},
 };
 
 function BrowseView(props){
@@ -910,7 +918,7 @@ function BrowseView(props){
         setLoading(true);setPage(p);
         q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset="+(p*pageSize)+"&order=id").then(function(r){setData(r);setLoading(false)});
     }
-    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation"};
+    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event"};
 
     return h("div",{className:"browse"},
         h("div",{className:"browse-tabs"},
@@ -953,10 +961,10 @@ function App(){
         Promise.all(tables.map(function(t){return cnt(t)})).then(function(vals){
             var obj={},total=0;
             tables.forEach(function(t,i){obj[t]=vals[i];total+=vals[i]});
-            Promise.all([cnt("provider_addresses"),cnt("provider_taxonomies"),cnt("icd10_pcs_codes"),cnt("drg_codes")]).then(function(extras){
+            Promise.all([cnt("provider_addresses"),cnt("provider_taxonomies"),cnt("icd10_pcs_codes")]).then(function(extras){
                 obj.provider_addresses=extras[0];obj.provider_taxonomies=extras[1];
-                obj.icd10_pcs_codes=extras[2];obj.drg_codes=extras[3];
-                total+=extras[0]+extras[1]+extras[2]+extras[3];
+                obj.icd10_pcs_codes=extras[2];
+                total+=extras[0]+extras[1]+extras[2];
                 totalRecords.current=total;
                 setCounts(obj);
             });
