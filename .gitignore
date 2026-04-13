@@ -27,3 +27,7 @@ Thumbs.db
 *.csv.bak
 /tmp/
 Claude_export_*
+
+# Allow Garden Wars game assets
+!garden-wars/img/*.png
+!garden-wars/img/*.jpg
