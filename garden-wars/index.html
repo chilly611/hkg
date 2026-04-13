@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garden Wars — CEO Strategy RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#060608;color:#fff;font-family:'DM Sans','Helvetica Neue',sans-serif;overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.1)}50%{box-shadow:0 0 40px rgba(212,168,83,.25)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
+.pulse{animation:pulse 2s ease infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback,useMemo}=React;
+const serif="'Instrument Serif',Georgia,serif";
+const mono="'JetBrains Mono',monospace";
+const C={gold:"#D4A853",green:"#10B981",red:"#EF4444",purple:"#A78BFA",blue:"#3B8BD4",orange:"#F97316",cyan:"#06B6D4",pink:"#EC4899",lime:"#84CC16",amber:"#F59E0B",indigo:"#6366F1",teal:"#14B8A6",bg:"#060608",bg2:"#0C0C10",bg3:"#121218"};
+const ease="cubic-bezier(.16,1,.3,1)";
+const IM={tree:"./img/tree_roots_logo.png",hex:"./img/hex_logo_gold.png",heart:"./img/davinci_heart_emblem.png",toolTree:"./img/tool_tree.png",pillHeart:"./img/steel_pill_heart.png",hammer:"./img/hammer.png",gears:"./img/gears_mechanism.png",crane:"./img/crane.png",compass:"./img/compass_tool.png",drill:"./img/drill.png",theodolite:"./img/theodolite.png",drafting:"./img/drafting_tools.png",jackhammer:"./img/jackhammer.png",scraper:"./img/scraper_yellow.png",dental:"./img/dental_tools.jpg",stethV:"./img/vintage_stethoscope.jpg",medKit:"./img/medical_kit.jpg",stethG:"./img/green_stethoscope.jpg",syringe:"./img/syringe.jpg",microscope:"./img/microscope.jpg",dna:"./img/dna_hex.png",gear:"./img/gear_garden.png",bkg:"./img/bkg_tree.png",okg:"./img/okg_brain.png",hkg:"./img/hkg_heart.png",heartC:"./img/heart_circuit.png"};
+
+// ═══════════════════════════════════════════════════
+// DECISION ENGINE — All strategic decisions and their consequences
+// ═══════════════════════════════════════════════════
+const DECISIONS=[
+{id:"start_garden",phase:0,cat:"Foundation",title:"Which Garden Leads?",desc:"You have three gardens planted and nine more scoped. Where do you focus first? This decision shapes everything — your first revenue, your fundraising story, your competitive position.",img:IM.tree,
+options:[
+{id:"hkg_first",label:"Healthcare First",desc:"$12T market. 12.1M records loaded. John's network opens doors. Highest ceiling, highest complexity.",img:IM.pillHeart,
+effects:{arr_y1:0,arr_y3:25000,arr_y5:200000,risk:7,time_rev:8,team:4,capital:800,moat:9,regulatory:7},
+unlocks:["hkg_lane","hkg_revenue"],blocks:[],
+consequence:"Healthcare is the flagship. Massive TAM, mandatory compliance spend, and John's Modio network gives you warm intros to 1,000+ health systems. But: regulatory complexity is real, sales cycles are 6-12 months, and you're competing with well-funded incumbents. The 12.1M records are your unfair advantage — nobody else has this dataset from free public sources."},
+{id:"bkg_first",label:"Construction First",desc:"$17T market. Live product. Ship to paywall THIS WEEK. Fastest path to revenue. Rebar just validated with $14M.",img:IM.toolTree,
+effects:{arr_y1:200,arr_y3:8000,arr_y5:50000,risk:4,time_rev:2,team:2,capital:200,moat:7,regulatory:2},
+unlocks:["bkg_revenue","bkg_pricing"],blocks:[],
+consequence:"BKG is nearly done — flip the Stripe switch and you have paying customers in days, not months. 3.7M licensed contractors. Rebar's $14M Series A proves investor appetite. Lower ceiling than healthcare but MUCH faster to revenue. Revenue before raising = dramatically better fundraising terms."},
+{id:"dual_track",label:"Dual Track Blitz",desc:"Ship BKG for immediate revenue. Build HKG demo simultaneously. Raise on both. Maximum surface area.",img:IM.hex,
+effects:{arr_y1:200,arr_y3:20000,arr_y5:250000,risk:6,time_rev:3,team:3,capital:500,moat:8,regulatory:5},
+unlocks:["bkg_revenue","hkg_lane"],blocks:[],
+consequence:"Strategy C — the one you've been circling. BKG revenue proves you can ship and sell. HKG demo proves the healthcare thesis. Together they prove the PLATFORM thesis — the same architecture works across industries. Risk: split focus on a 2-person team. But: you build fast, and having both stories makes the fundraise dramatically more compelling."},
+{id:"okg_bridge",label:"OKG → Agriculture Play",desc:"Lean into the botanical garden. Ecuagenera partnership. Bridge to the $8T agriculture market. Unconventional but defensible.",img:IM.okg,
+effects:{arr_y1:100,arr_y3:5000,arr_y5:40000,risk:5,time_rev:4,team:2,capital:300,moat:6,regulatory:1},
+unlocks:["okg_revenue","ag_bridge"],blocks:[],
+consequence:"OKG is live and the RSI heartbeat is running. The Ecuagenera partnership is exclusive. No regulatory complexity. The bridge to agriculture ($8T) is natural. But: smaller TAM, harder fundraising story (investors want healthcare/AI), and you're leaving the healthcare gold rush on the table while competitors move."}
+]},
+
+{id:"hkg_lane",phase:1,cat:"Lane Selection",title:"Which HKG Lane Leads?",desc:"Healthcare has four lanes. Each serves a different stakeholder. Which one do you build first? This determines your initial customers, revenue model, and competitive positioning.",img:IM.heartC,
+requires:["hkg_first","dual_track"],
+options:[
+{id:"admin_lane",label:"Administrator Lane",desc:"Credentialing SaaS. John's wheelhouse. Mandatory spend. Enterprise contracts $50K-150K/yr. Slower sale, bigger checks.",img:IM.medKit,
+effects:{arr_y1:500,arr_y3:30000,arr_y5:80000,risk:5,time_rev:6,team:3,capital:400,moat:8,regulatory:4},
+unlocks:["admin_pricing","enterprise_sales"],blocks:[],
+consequence:"This is John's exact playbook from Modio — he built the #1 credentialing platform and knows every buyer by name. Hospitals MUST credential providers; it's legally required. $50K-150K/year contracts with 90%+ retention. The sales cycle is 3-6 months but these are sticky, high-margin customers. You'll need to build the Provider Verification Engine into a sellable MLP. The 9.4M NPI records give you instant credibility."},
+{id:"patient_lane",label:"Patient Gravity Well",desc:"Free tools pull millions in. Drug interaction checker, provider search, longevity content. Zero acquisition cost. Monetize through premium, affiliate, and advertising.",img:IM.syringe,
+effects:{arr_y1:100,arr_y3:15000,arr_y5:90000,risk:4,time_rev:3,team:2,capital:200,moat:7,regulatory:3},
+unlocks:["patient_scope","patient_revenue"],blocks:[],
+consequence:"The gravity well is the VOLUME play. Free drug interaction checker, OIG exclusion lookup, provider search — these tools already exist in your frontend. SEO drives organic traffic at scale (250K+ entity pages). GLP-1 patent expires March 2026 — millions will need drug info. Convert free users to premium ($9.99-29.99/month), earn affiliate commissions (10-50%), and sell health advertising ($15-50 RPM). GoodRx proved this model at $792M revenue."},
+{id:"doctor_lane",label:"Doctor Intelligence Hub",desc:"3-Point Verification. Liability-shielded AI for physicians. CME marketplace. Open Evidence hit $1.2B doing just the journal-connection piece.",img:IM.microscope,
+effects:{arr_y1:200,arr_y3:12000,arr_y5:60000,risk:6,time_rev:5,team:3,capital:350,moat:9,regulatory:6},
+unlocks:["doctor_pricing","cme_marketplace"],blocks:[],
+consequence:"Doctors are already using ChatGPT in exam rooms — taking massive malpractice risk. Your 3-Point Verification (clinical graph + journals + regulatory databases) solves this. Open Evidence raised $700M at $1.2B just connecting AI to journals. FDA's January 2026 CDS guidance loosened oversight for exactly this type of tool. But: doctors are hard to sell to (skeptical, time-poor), and you need deep clinical accuracy from day one. One wrong answer = reputational destruction."},
+{id:"machine_lane",label:"Machine Lane API",desc:"MCP server + JSON-LD + API tiers. Sell the data layer to other AI companies. $500-50,000/month per customer. The 'AWS for healthcare intelligence' play.",img:IM.dna,
+effects:{arr_y1:50,arr_y3:8000,arr_y5:60000,risk:5,time_rev:8,team:3,capital:300,moat:10,regulatory:2},
+unlocks:["api_pricing","mcp_strategy"],blocks:[],
+consequence:"This is the long game with the deepest moat. Every AI company building healthcare products needs structured, verified medical data. Your MCP server makes the knowledge graph natively accessible to any AI agent. The llms.txt + JSON-LD strategy means AI assistants cite HKG automatically — zero marginal distribution. But: API-first businesses are slow to start (you need the first 100 developer customers), and revenue lags behind enterprise SaaS. The payoff at scale is enormous — pure software margins on data that compounds daily."}
+]},
+
+{id:"patient_scope",phase:2,cat:"Scope",title:"Patient Lane: How Wide?",desc:"The patient gravity well can serve a narrow wedge or the full healthspan spectrum. Width determines TAM, complexity, regulatory exposure, and the types of revenue you can generate.",img:IM.pillHeart,
+requires:["patient_lane"],
+options:[
+{id:"scope_narrow",label:"Narrow Wedge: Drug Tools Only",desc:"Drug interaction checker + OIG exclusion lookup. Focused, fast, defensible. GoodRx model. Ship in weeks.",
+effects:{arr_y1:200,arr_y3:8000,arr_y5:40000,risk:2,time_rev:2,team:1,capital:100,moat:6,regulatory:2},
+unlocks:["drug_tool_revenue"],blocks:[],
+consequence:"Pure focus. The drug interaction checker already works. The OIG exclusion tool already works. Add GLP-1 comparison content (patent expires March 2026 = massive search volume). Monetize through pharma advertising ($30-100 RPM), PBM commissions (GoodRx model), and premium subscriptions for advanced features. You can ship this in 2 weeks and start generating revenue immediately. Risk: narrow positioning limits your story for investors."},
+{id:"scope_mainstream",label:"Mainstream Healthcare",desc:"Drug tools + provider search + condition info + telehealth referrals. WebMD meets GoodRx. Broad consumer health.",
+effects:{arr_y1:150,arr_y3:15000,arr_y5:70000,risk:4,time_rev:4,team:2,capital:250,moat:7,regulatory:4},
+unlocks:["telehealth_rev","provider_matching"],blocks:[],
+consequence:"The full consumer health play. 250K+ entity pages (one per ICD-10 code, drug, procedure). Provider search powered by 9.4M NPI records. Telehealth referrals at $35-110/booking (Zocdoc model). Condition content drives SEO. This is the WebMD/Healthline replacement — but AI-native, with verified data, and with a knowledge graph underneath. Takes longer to build but captures the broadest possible consumer health audience."},
+{id:"scope_full",label:"Full Spectrum: Wellness → Cutting Edge",desc:"Everything from NAD+ protocols and biohacking to mainstream medicine to experimental treatments and clinical trials. The entire healthspan economy.",
+effects:{arr_y1:100,arr_y3:20000,arr_y5:120000,risk:6,time_rev:6,team:3,capital:400,moat:9,regulatory:5},
+unlocks:["longevity_rev","clinical_trial_rev","highvalue_rev"],blocks:[],
+consequence:"The full $600B+ healthspan economy. Wellness & longevity (supplements, wearables, biohacking), mainstream healthcare (drugs, providers, conditions), AND cutting edge (clinical trials at $15K-50K/enrolled patient, stem cell therapy $5K-50K, NAD+ IV $250-1,500/session, concierge medicine $1,800-5K/year). This is where the HIGHEST per-transaction revenue lives — cash-pay longevity services carry zero anti-kickback risk. But: you're trying to be everything to everyone, content complexity is enormous, and FTC enforcement on wellness claims is active."},
+{id:"scope_longevity",label:"Longevity-First",desc:"Lead with healthspan. NAD+, GLP-1, peptides, biohacking, anti-aging. The aspirational entry point. Massive affiliate revenue. Then expand to mainstream.",
+effects:{arr_y1:180,arr_y3:12000,arr_y5:80000,risk:5,time_rev:3,team:2,capital:200,moat:7,regulatory:4},
+unlocks:["longevity_rev","supplement_affiliate"],blocks:[],
+consequence:"Longevity is the HOTTEST consumer health category. GLP-1 market: $53-66B. Biohacking: $24.5B. NAD+ supplements: $3.45B. Wearables: $82.3B. These consumers are passionate, high-income, and actively seeking trustworthy information. Supplement affiliate commissions run 10-50%. Wearable commissions 2-10%. Wellness retreat referrals $1,500/booking. The 'Gold Surface' (aspirational, concierge feel) is perfectly positioned for this audience. Risk: FTC is cracking down on unsubstantiated health claims. Your 3-Point Verification becomes your regulatory shield."}
+]},
+
+{id:"bkg_revenue",phase:1,cat:"Revenue",title:"BKG: Pricing & Launch",desc:"BKG is ready to ship. How do you price it and how do you get the first 100 paying customers?",img:IM.toolTree,
+requires:["bkg_first","dual_track"],
+options:[
+{id:"bkg_freemium",label:"Freemium → Paid",desc:"Free tier with basic estimating. $49/mo pro. $149/mo crew. Let the product sell itself through word-of-mouth in the trades.",
+effects:{arr_y1:100,arr_y3:6000,arr_y5:35000,risk:3,time_rev:1,team:1,capital:50,moat:6,regulatory:1},
+unlocks:["bkg_growth"],blocks:[],
+consequence:"Fastest adoption. Contractors talk — if the free estimating tool saves them time, they'll tell every sub on the job site. Conversion benchmarks: 2-5% freemium for productivity tools, higher in trades where the ROI is immediate (one estimate pays for a year of subscription). Risk: free tier must be genuinely useful but leave clear upgrade paths. Support burden on free users."},
+{id:"bkg_premium",label:"Premium-Only Launch",desc:"No free tier. $49-499/mo from day one. 14-day trial. Qualify customers by willingness to pay. Higher ARPU, fewer users.",
+effects:{arr_y1:250,arr_y3:8000,arr_y5:50000,risk:4,time_rev:2,team:1,capital:50,moat:6,regulatory:1},
+unlocks:["bkg_growth"],blocks:[],
+consequence:"Higher revenue per customer from day one. 14-day trial weeds out tire-kickers. Positions BKG as professional-grade, not a free tool. Rebar charges $199+/month for HVAC estimating alone. Your $49 entry point for solo contractors is aggressive. Risk: slower adoption without free tier viral loop. Need paid acquisition (Google Ads for 'contractor estimating software', Facebook for trade groups)."},
+{id:"bkg_enterprise",label:"Enterprise-First",desc:"Skip individual contractors. Go straight to large GCs. $499-2,499/mo. 10 accounts = more revenue than 1,000 solo contractors.",
+effects:{arr_y1:400,arr_y3:10000,arr_y5:50000,risk:5,time_rev:4,team:2,capital:150,moat:7,regulatory:1},
+unlocks:["bkg_growth"],blocks:[],
+consequence:"Higher ACV, fewer customers needed. Large GCs manage 50-500+ subs and desperately need license tracking and compliance tools. One enterprise GC at $2,499/month = $30K/year. Ten GCs = $300K ARR. But: enterprise sales cycles are longer (3-6 months), you need demos and pilots, and GCs will demand features (multi-user, project management, reporting) you may not have yet."}
+]},
+
+{id:"fundraise_timing",phase:2,cat:"Capital",title:"When Do You Raise?",desc:"Capital strategy shapes everything. Raise now on vision? Or get traction first and raise on better terms?",img:IM.hex,
+requires:["bkg_revenue","hkg_lane","okg_revenue","admin_pricing","patient_scope"],
+options:[
+{id:"raise_now",label:"Raise Immediately",desc:"$5-8M seed at $25-40M post. Demo + deck + John's network. Move fast before the window closes.",
+effects:{arr_y1:0,arr_y3:5000,arr_y5:20000,risk:3,time_rev:0,team:0,capital:6000,moat:2,regulatory:0},
+unlocks:["hire_plan","marketing_budget"],blocks:[],
+consequence:"The AI funding window is OPEN — $4B in Q1 2026. AI seed valuations carry 42% premium. John's healthcare investor network (Oak HC/FT, Transformation Capital) is warm. You have the demo (health.theknowledgegardens.com), the data (12.1M records), the deck, and the team story (built and sold the incumbent). Risk: pre-revenue raises at lower valuations. If market turns, window closes. Time to close: 3-6 months typical."},
+{id:"raise_traction",label:"Revenue First, Then Raise",desc:"Ship BKG + HKG Patient Lane. Get to $10-50K MRR. Then raise at 2-3x better terms. 3-6 month delay.",
+effects:{arr_y1:300,arr_y3:3000,arr_y5:10000,risk:4,time_rev:0,team:0,capital:0,moat:3,regulatory:0},
+unlocks:["traction_metrics"],blocks:[],
+consequence:"$10-50K MRR transforms the fundraise from 'betting on vision' to 'scaling what's working.' Seed valuations for companies with revenue are typically 30-50% higher. You prove product-market fit, prove you can ship, and prove customers will pay. Risk: 3-6 month delay means competitors move, the funding window could shift, and you're bootstrapping on personal runway. But: the terms difference could be $5-15M in dilution saved."},
+{id:"bootstrap",label:"Bootstrap It",desc:"No raise. Fund everything from BKG revenue + personal capital. Maintain 100% ownership. Slower growth, total control.",
+effects:{arr_y1:0,arr_y3:0,arr_y5:0,risk:6,time_rev:0,team:0,capital:0,moat:1,regulatory:0},
+unlocks:[],blocks:["hire_plan"],
+consequence:"Full ownership. No board meetings. No investor pressure. But: you're competing against companies with $14M (Rebar), $250M (OpenEvidence), and $575M (WHOOP). Healthcare enterprise sales requires credibility that funding provides. The platform thesis — deploying across multiple verticals — requires capital to execute at speed. Risk: competitors outrun you while you're bootstrapping. The knowledge graph compounds daily — but only if you can feed it."}
+]},
+
+{id:"hire_plan",phase:3,cat:"Team",title:"First Hire Priority",desc:"You have capital (or will soon). Two founders can't do everything. Who do you hire first?",img:IM.gear,
+requires:["raise_now","raise_traction"],
+options:[
+{id:"hire_eng",label:"VP of Engineering",desc:"Senior technical leader. Owns the platform architecture. Frees Chilly to focus on product vision and strategy.",
+effects:{arr_y1:0,arr_y3:5000,arr_y5:15000,risk:-2,time_rev:-2,team:1,capital:-250,moat:3,regulatory:0},
+unlocks:["eng_team"],blocks:[],
+consequence:"The highest-leverage hire. A strong VP Eng means Chilly stops being the bottleneck on every technical decision. They can build the engineering team, establish code quality standards, own the RSI heartbeat system, and manage the NPI data pipeline. Cost: $250-350K total comp (salary + equity). Timeline to effective: 3 months to find, 1 month to onboard."},
+{id:"hire_sales",label:"Head of Sales",desc:"Healthcare enterprise sales. Turns John's relationships into signed contracts. Owns the pipeline.",
+effects:{arr_y1:500,arr_y3:8000,arr_y5:20000,risk:-1,time_rev:-3,team:1,capital:-200,moat:1,regulatory:0},
+unlocks:["sales_pipeline"],blocks:[],
+consequence:"Revenue acceleration. A healthcare sales leader with existing hospital system relationships can close the first 10-50 enterprise contracts in months, not years. They know the procurement cycle, the compliance requirements, the budget holders. John opens doors; the sales lead closes them. Cost: $180-250K base + commission. High ROI if they close even 5 enterprise contracts in year one."},
+{id:"hire_data",label:"Data Scientist / ML Engineer",desc:"Owns the knowledge graph intelligence. Drug interaction algorithms. Clinical trial matching. The AI brain.",
+effects:{arr_y1:0,arr_y3:3000,arr_y5:12000,risk:-1,time_rev:0,team:1,capital:-200,moat:4,regulatory:0},
+unlocks:["ml_features"],blocks:[],
+consequence:"Deepens the moat. A strong ML engineer can build drug interaction severity scoring, clinical trial eligibility matching, provider recommendation algorithms, and the AI citation optimization system. These are the features that make the platform genuinely intelligent — not just a database with a search bar. Cost: $200-300K total comp. Longer payback period but dramatically increases platform value."},
+{id:"hire_nobody",label:"Stay Lean — No Hires Yet",desc:"Keep the team at 2. Move faster with less coordination overhead. Use contractors for specific sprints.",
+effects:{arr_y1:0,arr_y3:0,arr_y5:0,risk:1,time_rev:0,team:0,capital:0,moat:0,regulatory:0},
+unlocks:[],blocks:[],
+consequence:"Maximum capital efficiency. Two founders who can ship fast don't need a team to build an MLP. Use Claude Code and AI tooling aggressively. Hire contractors for specific deliverables (design, compliance review, data engineering sprints). Risk: you're a bus factor of 2. If either founder gets sick, everything stops. And scaling beyond the MLP requires humans."}
+]},
+
+{id:"partnership_strategy",phase:3,cat:"Partnerships",title:"Strategic Partnerships",desc:"Who do you partner with first? Partnerships can accelerate growth 10x — or drain focus and deliver nothing.",img:IM.drafting,
+requires:["admin_lane","patient_lane","doctor_lane","machine_lane","bkg_revenue"],
+options:[
+{id:"ehr_integrate",label:"EHR Integration (Epic/Cerner)",desc:"Embed HKG intelligence inside Epic and Cerner. 90%+ of US hospitals use one of these two. Massive distribution.",
+effects:{arr_y1:0,arr_y3:10000,arr_y5:40000,risk:5,time_rev:12,team:2,capital:300,moat:8,regulatory:3},
+unlocks:["ehr_revenue"],blocks:[],
+consequence:"The nuclear option for distribution. Epic covers ~38% of US hospital beds, Oracle Health (Cerner) ~25%. If HKG intelligence is embedded in the EHR workflow, every credentialing event and clinical decision goes through your system. But: EHR integrations are notoriously slow (12-18 months), require App Orchard/marketplace approval, and Epic/Oracle can build competing features. The relationship is inherently asymmetric."},
+{id:"insurer_partner",label:"Insurer Partnerships",desc:"Sell network accuracy to health plans. No Surprises Act compliance. Ghost network elimination. Mandatory spend.",
+effects:{arr_y1:200,arr_y3:15000,arr_y5:30000,risk:4,time_rev:6,team:1,capital:200,moat:7,regulatory:3},
+unlocks:["insurer_revenue"],blocks:[],
+consequence:"Regulatory-driven demand. Insurers MUST maintain accurate provider directories (No Surprises Act). 86% of mental health providers in NY directories are ghost listings. Your 9.4M NPI records can power directory accuracy verification at scale. Pricing: $1-10/provider/year (CAQH charges $1.68). 10 health plans at $500K/year = $5M ARR. John's CHG/Modio relationships include insurer contacts."},
+{id:"telehealth_partner",label:"Telehealth Platform Partnership",desc:"Partner with Teladoc, Amwell, or Sesame. Route patients from Gravity Well to telehealth visits. Revenue share.",
+effects:{arr_y1:100,arr_y3:5000,arr_y5:20000,risk:3,time_rev:3,team:1,capital:100,moat:5,regulatory:3},
+unlocks:["telehealth_rev"],blocks:[],
+consequence:"Straightforward referral economics. Patient uses drug interaction checker → discovers they need to talk to a doctor → routed to telehealth visit → you earn $29-110 per booking. Sesame + Costco does visits at $29. Zocdoc charges providers $35-110/booking. Your Gravity Well is the top of the funnel; telehealth partners are the conversion. AKS-friendly: Zocdoc model approved by OIG."},
+{id:"no_partners",label:"No Partnerships — Go Direct",desc:"Build everything yourself. Own the full stack. No dependency on partners who can change terms or compete with you.",
+effects:{arr_y1:0,arr_y3:0,arr_y5:0,risk:2,time_rev:0,team:0,capital:0,moat:2,regulatory:0},
+unlocks:[],blocks:[],
+consequence:"Maximum independence. Partnerships introduce dependency, complexity, and revenue sharing. Going direct means you own the customer relationship end-to-end. Build your own telehealth capability, your own provider marketplace, your own insurer compliance product. Risk: slower growth, higher capital requirements, and you're competing with established platforms for each function. But: every partnership you DON'T need is dilution you don't have."}
+]},
+
+{id:"frontier_next",phase:4,cat:"Expansion",title:"Next Garden on the Frontier",desc:"The architecture is proven. Which industry do you plant next? Each garden deploys faster than the last.",img:IM.tree,
+requires:["hire_plan","fundraise_timing"],
+options:[
+{id:"legal_next",label:"⚖️ Legal ($1.1T)",desc:"Attorney credentialing, case law graph. Bar databases fragmented across 51 jurisdictions. LexisNexis/Westlaw disruption.",
+effects:{arr_y1:0,arr_y3:5000,arr_y5:60000,risk:5,time_rev:6,team:2,capital:300,moat:8,regulatory:3},
+unlocks:[],blocks:[],
+consequence:"Legal is the closest analog to healthcare credentialing — mandatory bar compliance, fragmented state databases, legacy incumbents (Westlaw at $6B revenue). 1.3M active attorneys. Legal tech: $28B growing 9%. The same architecture works: Admin (bar compliance), Professional (legal intelligence), Public (legal information), Machine (legal data API). Deploy time: ~6 months with proven pattern."},
+{id:"realestate_next",label:"🏠 Real Estate ($3.7T)",desc:"Agent licensing across 50 states. Property knowledge graph. Transaction mapping. Title verification.",
+effects:{arr_y1:0,arr_y3:4000,arr_y5:45000,risk:4,time_rev:7,team:2,capital:250,moat:7,regulatory:2},
+unlocks:[],blocks:[],
+consequence:"1.5M active realtors, mandatory state licenses, CE credits every 2-4 years. Property data creates a compound asset — owner history, lien chains, transaction patterns. Lower regulatory risk than healthcare. MLS data integration could be challenging but the credential-tracking piece is straightforward."},
+{id:"finance_next",label:"🏦 Finance ($26T)",desc:"FINRA/SEC advisor credentialing. RegTech is $12B growing 20%. Bloomberg ($70B revenue) proves data-layer model.",
+effects:{arr_y1:0,arr_y3:2000,arr_y5:80000,risk:6,time_rev:12,team:3,capital:400,moat:9,regulatory:6},
+unlocks:[],blocks:[],
+consequence:"The largest TAM on the frontier. 630K registered financial advisors. Mandatory FINRA/SEC compliance. Real-time regulatory monitoring creates daily dependency. But: highly regulated, established incumbents (Bloomberg, Refinitiv), and longer sales cycles. The payoff at scale is enormous — finance pays premium for data infrastructure."},
+{id:"pharma_next",label:"💊 Pharma ($1.5T)",desc:"Clinical trial graph, drug interactions, regulatory tracking. You already have 33K trials + 60K PubMed citations loaded.",
+effects:{arr_y1:0,arr_y3:3000,arr_y5:70000,risk:5,time_rev:14,team:3,capital:400,moat:9,regulatory:4},
+unlocks:[],blocks:[],
+consequence:"You're ALREADY halfway there. 33K clinical trials and 60K PubMed citations are loaded in HKG. The drug-trial-outcome relationship graph is unique. Pharma companies pay $15K-50K per enrolled trial patient. Veeva ($35B market cap) does CRM for pharma sales; you do intelligence for pharma R&D. Complementary, not competitive. Longer to deploy but the data asset is partially built."}
+]}
+];
+
+// ═══════════════════════════════════════════════════
+// INITIAL STATE
+// ═══════════════════════════════════════════════════
+const initMetrics=()=>({
+  arr_y1:0,arr_y3:0,arr_y5:0,risk:5,time_rev:12,team:2,
+  capital:0,capital_spent:0,moat:5,regulatory:3,
+  gardens:["bkg","okg","hkg"],activeGarden:null,
+  decisions_made:0,turn:0
+});
+
+// ═══════════════════════════════════════════════════
+// COMPONENTS
+// ═══════════════════════════════════════════════════
+
+function MetricBar({label,value,max,color,prefix="",suffix="",fmt}){
+  const pct=Math.min((Math.abs(value)/max)*100,100);
+  const display=fmt?fmt(value):(prefix+(typeof value==='number'?value.toLocaleString():value)+suffix);
+  return(
+    <div style={{marginBottom:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:3}}>
+        <span style={{color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:".08em"}}>{label}</span>
+        <span style={{color:color,fontFamily:mono,fontWeight:500}}>{display}</span>
+      </div>
+      <div style={{height:4,background:"rgba(255,255,255,.04)",borderRadius:2,overflow:"hidden"}}>
+        <div style={{height:"100%",width:pct+"%",background:color,borderRadius:2,transition:"width .8s "+ease}}/>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({metrics,style}){
+  const arrFmt=(v)=>"$"+(v>=1000?(v/1000).toFixed(0)+"M":v+"K");
+  return(
+    <div style={{padding:"16px 18px",...style}}>
+      <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:".15em",color:C.gold,marginBottom:12,fontWeight:600}}>Mission Control</div>
+      <MetricBar label="Y1 ARR" value={metrics.arr_y1} max={2000} color={C.gold} fmt={arrFmt}/>
+      <MetricBar label="Y3 ARR" value={metrics.arr_y3} max={50000} color={C.green} fmt={arrFmt}/>
+      <MetricBar label="Y5 ARR" value={metrics.arr_y5} max={300000} color={C.blue} fmt={arrFmt}/>
+      <MetricBar label="Risk Level" value={metrics.risk} max={10} color={metrics.risk>7?C.red:metrics.risk>4?C.amber:C.green} suffix="/10"/>
+      <MetricBar label="Moat Depth" value={metrics.moat} max={10} color={C.purple} suffix="/10"/>
+      <MetricBar label="Months to Revenue" value={metrics.time_rev} max={18} color={metrics.time_rev>8?C.red:C.green} suffix=" mo"/>
+      <MetricBar label="Team Size" value={metrics.team} max={20} color={C.cyan} suffix=" people"/>
+      <MetricBar label="Capital Required" value={metrics.capital} max={8000} color={C.orange} fmt={(v)=>"$"+v+"K"}/>
+      <MetricBar label="Regulatory Load" value={metrics.regulatory} max={10} color={metrics.regulatory>6?C.red:C.amber} suffix="/10"/>
+    </div>
+  );
+}
+
+function DecisionCard({decision,onChoose,onResearch}){
+  const[hover,setHover]=useState(null);
+  return(
+    <div className="fade-up" style={{maxWidth:900,margin:"0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+        <span style={{fontSize:9,padding:"3px 10px",borderRadius:4,background:C.gold+"15",color:C.gold,fontWeight:600,textTransform:"uppercase",letterSpacing:".1em"}}>{decision.cat}</span>
+        <span style={{fontSize:9,color:"rgba(255,255,255,.25)"}}>Phase {decision.phase+1}</span>
+      </div>
+      <h2 style={{fontFamily:serif,fontSize:"clamp(24px,4vw,38px)",fontWeight:400,marginBottom:8,color:"#fff"}}>{decision.title}</h2>
+      <p style={{fontSize:14,color:"rgba(255,255,255,.45)",lineHeight:1.7,marginBottom:24,maxWidth:700}}>{decision.desc}</p>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(clamp(220px,40vw,280px),1fr))",gap:12}}>
+        {decision.options.map((opt,i)=>{
+          const isHov=hover===i;
+          return(
+            <div key={opt.id} onMouseEnter={()=>setHover(i)} onMouseLeave={()=>setHover(null)}
+              style={{borderRadius:14,overflow:"hidden",background:isHov?"rgba(255,255,255,.04)":"rgba(255,255,255,.02)",border:"1.5px solid "+(isHov?"rgba(255,255,255,.12)":"rgba(255,255,255,.05)"),transition:"all .3s "+ease,cursor:"pointer",display:"flex",flexDirection:"column"}}
+              onClick={()=>onChoose(opt)}>
+              {opt.img&&<div style={{height:100,overflow:"hidden",position:"relative",background:"#000"}}>
+                <img src={opt.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:isHov?.7:.4,transition:"opacity .3s"}}/>
+                <div style={{position:"absolute",bottom:0,left:0,right:0,height:"70%",background:"linear-gradient(transparent,rgba(0,0,0,.9))"}}/>
+              </div>}
+              <div style={{padding:"14px 16px",flex:1,display:"flex",flexDirection:"column"}}>
+                <div style={{fontSize:15,fontWeight:600,color:isHov?C.gold:"rgba(255,255,255,.85)",marginBottom:6,transition:"color .3s"}}>{opt.label}</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.4)",lineHeight:1.6,flex:1}}>{opt.desc}</div>
+                <div style={{marginTop:10,display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {opt.effects.arr_y5>0&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:C.green+"15",color:C.green}}>Y5: ${(opt.effects.arr_y5/1000).toFixed(0)}M</span>}
+                  {opt.effects.risk!==undefined&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:(opt.effects.risk>6?C.red:C.green)+"15",color:opt.effects.risk>6?C.red:C.green}}>Risk: {opt.effects.risk}/10</span>}
+                  {opt.effects.time_rev!==undefined&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:C.blue+"15",color:C.blue}}>{opt.effects.time_rev}mo</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{marginTop:16,textAlign:"center"}}>
+        <button onClick={onResearch} style={{padding:"8px 20px",borderRadius:8,border:"1px solid "+C.purple+"30",background:C.purple+"10",color:C.purple,fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"inherit"}}>
+          🔬 Research This Decision (AI Analysis)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConsequencePanel({choice,onContinue}){
+  return(
+    <div className="fade-up" style={{maxWidth:700,margin:"0 auto"}}>
+      <div style={{padding:"24px",borderRadius:16,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.06)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+          <span style={{fontSize:9,padding:"3px 10px",borderRadius:4,background:C.green+"15",color:C.green,fontWeight:600,textTransform:"uppercase",letterSpacing:".1em"}}>Decision Made</span>
+        </div>
+        <h3 style={{fontFamily:serif,fontSize:22,color:C.gold,marginBottom:8}}>{choice.label}</h3>
+        <div style={{fontSize:13,color:"rgba(255,255,255,.5)",lineHeight:1.8,marginBottom:20}}>{choice.consequence}</div>
+        
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>
+          <div style={{fontSize:10,color:"rgba(255,255,255,.3)",width:"100%",marginBottom:4}}>EFFECTS ON YOUR STRATEGY:</div>
+          {Object.entries(choice.effects).filter(([k,v])=>v!==0&&v!==undefined).map(([k,v])=>{
+            const labels={arr_y1:"Y1 ARR",arr_y3:"Y3 ARR",arr_y5:"Y5 ARR",risk:"Risk",time_rev:"Time to Revenue",team:"Team Size",capital:"Capital Need",moat:"Moat Depth",regulatory:"Regulatory Load"};
+            const isGood=(k==="risk"||k==="time_rev"||k==="capital"||k==="regulatory")?v<0:v>0;
+            return <span key={k} style={{fontSize:10,padding:"3px 10px",borderRadius:6,background:(isGood?C.green:C.amber)+"12",color:isGood?C.green:C.amber}}>
+              {labels[k]||k}: {v>0?"+":""}{k.includes("arr")?"$"+(v/1000).toFixed(0)+"M":v}
+            </span>;
+          })}
+        </div>
+        
+        {choice.unlocks&&choice.unlocks.length>0&&(
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:10,color:C.green,marginBottom:4}}>UNLOCKED:</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.4)"}}>
+              {choice.unlocks.map(u=>u.replace(/_/g," ")).join(" · ")}
+            </div>
+          </div>
+        )}
+        
+        <button onClick={onContinue} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:C.gold,color:"#000",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+          Continue to Next Decision →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ResearchPanel({decision,metrics,history,onClose}){
+  const[result,setResult]=useState(null);
+  const[loading,setLoading]=useState(true);
+  
+  useEffect(()=>{
+    const doResearch=async()=>{
+      try{
+        const context=`Current path: ${history.map(h=>h.label).join(" → ")||"No decisions yet"}
+Current metrics: Y1 ARR $${metrics.arr_y1}K, Y3 ARR $${metrics.arr_y3}K, Y5 ARR $${metrics.arr_y5}K, Risk ${metrics.risk}/10, Moat ${metrics.moat}/10, Time to Revenue ${metrics.time_rev} months, Team ${metrics.team}, Capital needed $${metrics.capital}K
+Decision facing: ${decision.title} — ${decision.desc}
+Options: ${decision.options.map(o=>o.label+": "+o.desc).join(" | ")}`;
+
+        const resp=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",max_tokens:1000,
+            messages:[{role:"user",content:`You are a healthcare/tech startup strategy advisor. A founder is playing a strategy simulation game for The Knowledge Gardens — a platform company building AI-native operating systems for trillion-dollar industries. They're at a decision point.
+
+${context}
+
+Give a crisp 200-word strategic analysis of this decision. Be specific about which option you'd recommend and why, given their current path. Include one data point or market insight they might not have considered. Be direct — no hedging. Format with a clear recommendation at the top.`}]
+          })
+        });
+        const data=await resp.json();
+        const text=data.content?.map(c=>c.text||"").join("")||"Research unavailable — make your best judgment call.";
+        setResult(text);
+      }catch(e){
+        setResult("Research connection unavailable. The AI advisor is offline — but you have all the data you need in the consequence panels. Trust your gut, CEO.");
+      }
+      setLoading(false);
+    };
+    doResearch();
+  },[]);
+  
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div className="fade-up" style={{maxWidth:600,width:"100%",padding:24,borderRadius:16,background:C.bg3,border:"1px solid "+C.purple+"25"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <span style={{fontSize:11,color:C.purple,fontWeight:600}}>🔬 AI STRATEGIC ANALYSIS</span>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.1)",borderRadius:6,color:"rgba(255,255,255,.4)",padding:"4px 10px",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>Close</button>
+        </div>
+        {loading?(
+          <div style={{textAlign:"center",padding:40}}>
+            <div className="pulse" style={{fontSize:14,color:C.purple}}>Analyzing your strategic position...</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.25)",marginTop:8}}>Claude is reviewing your decisions and market data</div>
+          </div>
+        ):(
+          <div style={{fontSize:13,color:"rgba(255,255,255,.6)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{result}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SaveManager({saves,onLoad,onDelete,onClose}){
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div className="fade-up" style={{maxWidth:500,width:"100%",padding:24,borderRadius:16,background:C.bg3,border:"1px solid rgba(255,255,255,.08)",maxHeight:"80vh",overflow:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <span style={{fontFamily:serif,fontSize:20,color:C.gold}}>Saved Strategies</span>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.1)",borderRadius:6,color:"rgba(255,255,255,.4)",padding:"4px 10px",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>Close</button>
+        </div>
+        {saves.length===0?(
+          <div style={{textAlign:"center",padding:40,color:"rgba(255,255,255,.25)",fontSize:13}}>No saved strategies yet. Make some decisions first!</div>
+        ):(
+          saves.map((s,i)=>(
+            <div key={i} style={{padding:14,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600,color:C.gold}}>{s.name}</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:2}}>{s.history.length} decisions · Y5: ${(s.metrics.arr_y5/1000).toFixed(0)}M · Risk: {s.metrics.risk}/10</div>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>onLoad(s)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.green+"30",background:C.green+"10",color:C.green,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Load</button>
+                  <button onClick={()=>onDelete(i)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.red+"30",background:C.red+"10",color:C.red,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                </div>
+              </div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:6}}}>Path: {s.history.map(h=>h.label).join(" → ")}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HistoryTimeline({history}){
+  if(history.length===0) return null;
+  return(
+    <div style={{marginBottom:20}}>
+      <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:".15em",color:"rgba(255,255,255,.25)",marginBottom:8}}>Your Path</div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+        {history.map((h,i)=>(
+          <React.Fragment key={i}>
+            <span style={{fontSize:10,padding:"3px 8px",borderRadius:4,background:C.gold+"10",color:C.gold,border:"1px solid "+C.gold+"20"}}>{h.label}</span>
+            {i<history.length-1&&<span style={{color:"rgba(255,255,255,.15)",fontSize:10,alignSelf:"center"}}>→</span>}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════
+function App(){
+  const[metrics,setMetrics]=useState(initMetrics());
+  const[history,setHistory]=useState([]);
+  const[showConsequence,setShowConsequence]=useState(null);
+  const[showResearch,setShowResearch]=useState(null);
+  const[showSaves,setShowSaves]=useState(false);
+  const[saves,setSaves]=useState(()=>{try{return JSON.parse(localStorage.getItem("gw_saves")||"[]")}catch(e){return[]}});
+  const[saveName,setSaveName]=useState("");
+  const[showSaveInput,setShowSaveInput]=useState(false);
+  const[started,setStarted]=useState(false);
+
+  const unlocked=useMemo(()=>{
+    const set=new Set();
+    history.forEach(h=>(h.unlocks||[]).forEach(u=>set.add(u)));
+    return set;
+  },[history]);
+
+  const currentDecision=useMemo(()=>{
+    if(showConsequence) return null;
+    const madeIds=new Set(history.map(h=>h._decisionId));
+    for(const d of DECISIONS){
+      if(madeIds.has(d.id)) continue;
+      if(d.requires){
+        const hasReq=d.requires.some(r=>history.some(h=>h.id===r));
+        if(!hasReq) continue;
+      }
+      return d;
+    }
+    return null;
+  },[history,showConsequence]);
+
+  const applyEffects=(effects)=>{
+    setMetrics(prev=>{
+      const m={...prev};
+      Object.entries(effects).forEach(([k,v])=>{
+        if(k in m&&typeof v==="number"){
+          if(k==="risk"||k==="moat"||k==="regulatory"||k==="time_rev") m[k]=Math.max(0,Math.min(10,v));
+          else m[k]=(m[k]||0)+v;
+        }
+      });
+      m.decisions_made++;
+      m.turn++;
+      return m;
+    });
+  };
+
+  const choose=(decision,option)=>{
+    const entry={...option,_decisionId:decision.id,_timestamp:Date.now()};
+    setHistory(prev=>[...prev,entry]);
+    applyEffects(option.effects);
+    setShowConsequence(entry);
+  };
+
+  const goBack=()=>{
+    if(history.length===0) return;
+    const last=history[history.length-1];
+    setHistory(prev=>prev.slice(0,-1));
+    setMetrics(prev=>{
+      const m={...prev};
+      Object.entries(last.effects).forEach(([k,v])=>{
+        if(k in m&&typeof v==="number"){
+          if(k==="risk"||k==="moat"||k==="regulatory"||k==="time_rev") m[k]=Math.max(0,Math.min(10,m[k]));
+          else m[k]=(m[k]||0)-v;
+        }
+      });
+      m.decisions_made=Math.max(0,m.decisions_made-1);
+      m.turn=Math.max(0,m.turn-1);
+      return m;
+    });
+    setShowConsequence(null);
+  };
+
+  const saveGame=()=>{
+    if(!saveName.trim()) return;
+    const save={name:saveName.trim(),metrics:{...metrics},history:[...history],timestamp:Date.now()};
+    const newSaves=[...saves,save];
+    setSaves(newSaves);
+    try{localStorage.setItem("gw_saves",JSON.stringify(newSaves))}catch(e){}
+    setSaveName("");
+    setShowSaveInput(false);
+  };
+
+  const loadGame=(save)=>{
+    setMetrics({...save.metrics});
+    setHistory([...save.history]);
+    setShowSaves(false);
+    setShowConsequence(null);
+    setStarted(true);
+  };
+
+  const deleteSave=(idx)=>{
+    const newSaves=saves.filter((_,i)=>i!==idx);
+    setSaves(newSaves);
+    try{localStorage.setItem("gw_saves",JSON.stringify(newSaves))}catch(e){}
+  };
+
+  const restart=()=>{
+    setMetrics(initMetrics());
+    setHistory([]);
+    setShowConsequence(null);
+    setShowResearch(null);
+  };
+
+  // ═══ TITLE SCREEN ═══
+  if(!started){
+    return(
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,background:"radial-gradient(ellipse at 50% 30%,rgba(212,168,83,.06) 0%,transparent 70%),#060608",textAlign:"center"}}>
+        <img src={IM.tree} alt="" style={{width:80,height:80,objectFit:"contain",marginBottom:20,opacity:.8}} className="fade-up"/>
+        <h1 className="fade-up" style={{fontFamily:serif,fontSize:"clamp(36px,8vw,64px)",fontWeight:400,lineHeight:1.05,animationDelay:".1s"}}>
+          Garden <span style={{fontStyle:"italic",color:C.gold}}>Wars</span>
+        </h1>
+        <p className="fade-up" style={{fontSize:15,color:"rgba(255,255,255,.35)",maxWidth:500,lineHeight:1.7,marginTop:12,animationDelay:".2s"}}>
+          CEO Strategy RPG for The Knowledge Gardens.<br/>
+          Make decisions. See consequences. Build your trillion-dollar empire.
+        </p>
+        <div className="fade-up" style={{marginTop:32,display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center",animationDelay:".4s"}}>
+          <button onClick={()=>setStarted(true)} style={{padding:"14px 32px",borderRadius:12,border:"none",background:C.gold,color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",animation:"glow 3s ease infinite"}}>
+            New Game
+          </button>
+          {saves.length>0&&<button onClick={()=>{setShowSaves(true);setStarted(true)}} style={{padding:"14px 32px",borderRadius:12,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.5)",fontWeight:500,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+            Load Save ({saves.length})
+          </button>}
+        </div>
+        <div className="fade-up" style={{marginTop:60,display:"flex",gap:20,opacity:.15,animationDelay:".6s"}}>
+          <img src={IM.hammer} alt="" style={{height:40,objectFit:"contain"}}/>
+          <img src={IM.stethV} alt="" style={{height:40,objectFit:"contain"}}/>
+          <img src={IM.microscope} alt="" style={{height:40,objectFit:"contain"}}/>
+          <img src={IM.compass} alt="" style={{height:40,objectFit:"contain"}}/>
+        </div>
+        <p style={{fontSize:10,color:"rgba(255,255,255,.12)",marginTop:20}}>Chilly Dahlgren & John Bou · The Knowledge Gardens · April 2026</p>
+      </div>
+    );
+  }
+
+  // ═══ GAME SCREEN ═══
+  const gameOver=!currentDecision&&!showConsequence;
+
+  return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      {/* TOP BAR */}
+      <div style={{position:"sticky",top:0,zIndex:50,background:"rgba(6,6,8,.95)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(255,255,255,.04)",padding:"8px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <img src={IM.hex} alt="" style={{width:24,height:24,objectFit:"contain",opacity:.7}}/>
+          <span style={{fontFamily:serif,fontSize:16,color:C.gold}}>Garden Wars</span>
+          <span style={{fontSize:10,color:"rgba(255,255,255,.2)"}}>Turn {metrics.turn}</span>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {history.length>0&&<button onClick={goBack} style={{padding:"5px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,.08)",background:"transparent",color:"rgba(255,255,255,.4)",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>← Back</button>}
+          {showSaveInput?(
+            <div style={{display:"flex",gap:4}}>
+              <input value={saveName} onChange={e=>setSaveName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveGame()} placeholder="Strategy name..." style={{padding:"5px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,.12)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:10,fontFamily:"inherit",width:140}}/>
+              <button onClick={saveGame} style={{padding:"5px 10px",borderRadius:6,border:"1px solid "+C.green+"30",background:C.green+"10",color:C.green,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+              <button onClick={()=>setShowSaveInput(false)} style={{padding:"5px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,.08)",background:"transparent",color:"rgba(255,255,255,.3)",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>×</button>
+            </div>
+          ):(
+            <button onClick={()=>setShowSaveInput(true)} style={{padding:"5px 12px",borderRadius:6,border:"1px solid "+C.green+"20",background:C.green+"08",color:C.green,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+          )}
+          <button onClick={()=>setShowSaves(true)} style={{padding:"5px 12px",borderRadius:6,border:"1px solid "+C.purple+"20",background:C.purple+"08",color:C.purple,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>📂 Load</button>
+          <button onClick={restart} style={{padding:"5px 12px",borderRadius:6,border:"1px solid "+C.red+"20",background:C.red+"08",color:C.red,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>↺ Restart</button>
+        </div>
+      </div>
+
+      {/* MAIN LAYOUT */}
+      <div style={{flex:1,display:"flex",flexDirection:"row",flexWrap:"wrap"}}>
+        {/* SIDEBAR — DASHBOARD */}
+        <div style={{width:"clamp(220px,25vw,280px)",borderRight:"1px solid rgba(255,255,255,.04)",background:"rgba(255,255,255,.01)",flexShrink:0,position:"sticky",top:48,height:"calc(100vh - 48px)",overflow:"auto"}}>
+          <Dashboard metrics={metrics}/>
+          <div style={{padding:"0 18px 16px"}}>
+            <HistoryTimeline history={history}/>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div style={{flex:1,padding:"clamp(20px,4vw,40px)",minWidth:0}}>
+          {showConsequence&&!showResearch&&(
+            <ConsequencePanel choice={showConsequence} onContinue={()=>setShowConsequence(null)}/>
+          )}
+          {!showConsequence&&currentDecision&&(
+            <DecisionCard decision={currentDecision} onChoose={(opt)=>choose(currentDecision,opt)} onResearch={()=>setShowResearch(currentDecision)}/>
+          )}
+          {gameOver&&(
+            <div className="fade-up" style={{textAlign:"center",maxWidth:600,margin:"60px auto"}}>
+              <img src={IM.tree} alt="" style={{width:80,margin:"0 auto 20px",display:"block",opacity:.6}}/>
+              <h2 style={{fontFamily:serif,fontSize:"clamp(28px,5vw,42px)",color:C.gold,marginBottom:12}}>Strategy Complete</h2>
+              <p style={{fontSize:14,color:"rgba(255,255,255,.4)",lineHeight:1.7,marginBottom:24}}>
+                You've mapped a path through the frontier. Save this strategy, compare it with alternatives, or start a new game to explore different decisions.
+              </p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:24}}>
+                <div style={{padding:14,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)"}}>
+                  <div style={{fontSize:24,fontWeight:700,color:C.gold,fontFamily:serif}}>${(metrics.arr_y5/1000).toFixed(0)}M</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>Y5 ARR</div>
+                </div>
+                <div style={{padding:14,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)"}}>
+                  <div style={{fontSize:24,fontWeight:700,color:metrics.risk>6?C.red:C.green,fontFamily:serif}}>{metrics.risk}/10</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>Risk</div>
+                </div>
+                <div style={{padding:14,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)"}}>
+                  <div style={{fontSize:24,fontWeight:700,color:C.purple,fontFamily:serif}}>{metrics.moat}/10</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,.3)"}}>Moat</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                <button onClick={()=>setShowSaveInput(true)} style={{padding:"12px 24px",borderRadius:10,border:"none",background:C.gold,color:"#000",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Save This Strategy</button>
+                <button onClick={restart} style={{padding:"12px 24px",borderRadius:10,border:"1px solid rgba(255,255,255,.12)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>New Game</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* MODALS */}
+      {showResearch&&<ResearchPanel decision={showResearch} metrics={metrics} history={history} onClose={()=>setShowResearch(null)}/>}
+      {showSaves&&<SaveManager saves={saves} onLoad={loadGame} onDelete={deleteSave} onClose={()=>setShowSaves(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
