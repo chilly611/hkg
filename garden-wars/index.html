@@ -31,6 +31,106 @@ const C={gold:"#D4A853",green:"#10B981",red:"#EF4444",purple:"#A78BFA",blue:"#3B
 const ez="cubic-bezier(.16,1,.3,1)";
 const I={tree:"./img/tree_roots_logo.png",hex:"./img/hex_logo_gold.png",pillH:"./img/steel_pill_heart.png",toolT:"./img/tool_tree.png",okg:"./img/okg_brain.png",hkg:"./img/hkg_heart.png",bkg:"./img/bkg_tree.png",dna:"./img/dna_hex.png",medK:"./img/medical_kit.jpg",syr:"./img/syringe.jpg",mic:"./img/microscope.jpg",ham:"./img/hammer.png",comp:"./img/compass_tool.png",stV:"./img/vintage_stethoscope.jpg",gear:"./img/gear_garden.png",draft:"./img/drafting_tools.png",heartC:"./img/heart_circuit.png",crane:"./img/crane.png"};
 
+// ═══ ALL 12 FRONTIER VERTICALS ═══
+const V=[
+{id:"bkg",n:"Construction",ic:"🏗️",tam:"$17T",tN:17000,c:C.orange,y5:50000,st:"live",deploy:"Deployed",
+w:"AI COO for contractors. Estimating, license tracking, compliance, project management for every trade — GC, roofer, HVAC, electrician, plumber, solar.",
+h:"7-step trade-specific onboarding. AI-powered estimates from project descriptions. License tracking with auto-renewal alerts. Morning Briefings replace dashboards.",
+why:"Contractors lose 10+ hrs/week on paperwork, miss bids, risk fines from expired licenses. Pays for itself in week one.",
+rev:"$49/mo solo · $149/mo crew · $499/mo enterprise GC — pure SaaS",
+mkt:"$17T global. 3.7M licensed US contractors. Rebar $14M Series A doing ONE trade. We do ALL trades.",
+moat:"Knowledge graph connects trades → materials → codes → permits → suppliers. Every contractor improves data for all others. Network effects Rebar can't match.",
+synergy:"Shares architecture with all gardens. Real estate garden shares contractor/permit data. Government garden shares licensing databases."},
+{id:"okg",n:"Botanical",ic:"🌿",tam:"$100B+",tN:100,c:C.green,y5:15000,st:"live",deploy:"Deployed",
+w:"Knowledge graph for botanical commerce. Growers, retailers, consumers, environmental sensors via Ecuagenera partnership.",
+h:"RSI heartbeat ingests growing conditions, species data, care protocols, pricing. Morning Briefings (5x engagement). Progressive disclosure for casual to commercial users.",
+why:"Growers optimize from demand signals. Retailers get curated networks. Consumers get verified provenance. Root to fruit transparency.",
+rev:"Affiliate commerce (15-25%) · Premium subscriptions · B2B data licensing · Sensor integrations",
+mkt:"$100B+ botanical/horticulture growing 8%. Rare plant market $5B+. No knowledge graph exists for this supply chain.",
+moat:"Ecuagenera = exclusive access to premier grower network. Species knowledge graph compounds. First-mover in botanical AI.",
+synergy:"Natural bridge to Agriculture garden ($8T). Sensor/IoT infrastructure extends to any environmental monitoring vertical."},
+{id:"hkg",n:"Healthcare",ic:"🏥",tam:"$12T",tN:12000,c:C.gold,y5:200000,st:"building",deploy:"Building (12.1M records)",
+w:"Operating system for $12T healthcare ecosystem. 4 lanes: admin credentialing, doctor AI intelligence, patient gravity well, machine API.",
+h:"28-table schema, 12.1M+ records, 17 federal databases. CV upload → AI parse → parallel verification vs NPI/state boards/DEA/OIG → same-day credentialing. 3-Point Verification.",
+why:"Hospitals legally require credentialing — $50-150K/yr mandatory spend. Current: 120 days manual. Free patient tools = zero-CAC gravity well.",
+rev:"Admin: $15-50/provider/mo · Doctor: CME affiliate 15-25% · Machine: API $99-$2,499/mo · Patient: Free → $9.99-29.99/mo premium",
+mkt:"$12T global. Credentialing: $2.3B. Healthcare AI: $45B by 2030. John Bou built KLAS #1 incumbent.",
+moat:"9.4M NPI records. JSON-LD = AI citation source. MCP server. RSI heartbeat. Co-founder built and sold the incumbent.",
+synergy:"Insurance garden shares provider network data. Pharma garden shares clinical trials + PubMed. Government garden shares SAM.gov data."},
+{id:"legal",n:"Legal",ic:"⚖️",tam:"$1.1T",tN:1100,c:"#8B5CF6",y5:60000,st:"future",deploy:"~6 months",
+w:"Attorney credentialing, bar status verification, case law relationship mapping, compliance monitoring, AI-powered legal research with citation provenance.",
+h:"Ingest state bar databases (50 states + DC), federal court records, case law. Graph: attorney → cases → courts → outcomes → specializations.",
+why:"Law firms spend $50K+/yr on Westlaw/LexisNexis that haven't changed in 20 years. Bar compliance is mandatory. AI-native research at fraction of cost.",
+rev:"$199-499/mo per attorney · $25-75K/yr enterprise · Legal AI API · Compliance SaaS",
+mkt:"$1.1T legal services. 1.3M attorneys. Legal tech $28B growing 9%. Westlaw/LexisNexis ripe for disruption.",
+moat:"Bar databases fragmented across 51 jurisdictions. Case law relationships reveal patterns flat databases miss. First knowledge graph: credentials → outcomes → regulatory.",
+synergy:"Closest analog to healthcare credentialing — same architecture, same mandatory compliance pattern. Government garden shares court/regulatory data."},
+{id:"edu",n:"Education",ic:"🎓",tam:"$7T",tN:7000,c:"#06B6D4",y5:40000,st:"future",deploy:"~8 months",
+w:"Teacher credentialing, certification tracking, curriculum mapping, student pathway optimization, accreditation monitoring across K-12 and higher ed.",
+h:"Ingest state teacher certification DBs, accreditation records, curriculum standards. Graph: teacher → certs → subjects → schools → outcomes.",
+why:"Teacher certification mandatory and fragmented across 50 states. Accreditation audits. Curriculum mapping is manual. AI credentialing saves hundreds of hours/yr.",
+rev:"$99-299/mo per school · $15-50K/yr per district · Curriculum marketplace · EdTech API",
+mkt:"$7T education. 3.7M US public school teachers. EdTech $340B. Teacher credentialing entirely manual in most states.",
+moat:"Even more fragmented than healthcare (50 state systems, zero interoperability). First to unify wins compliance layer. Curriculum graph creates switching costs.",
+synergy:"Government garden shares accreditation/compliance data. Healthcare garden shares professional credentialing infrastructure."},
+{id:"fin",n:"Finance",ic:"🏦",tam:"$26T",tN:26000,c:"#14B8A6",y5:80000,st:"future",deploy:"~12 months",
+w:"Advisor credentialing (FINRA, SEC, state), regulatory compliance mapping, risk relationship analysis, AI regulatory intelligence.",
+h:"Ingest FINRA BrokerCheck, SEC IARD, state registrations, enforcement data. Graph: advisor → licenses → firms → products → actions → outcomes.",
+why:"Mandatory FINRA/SEC registrations. Millions spent on compliance. Reg BI changes create constant monitoring burden. One failure = massive fines.",
+rev:"$299-999/mo per firm · $50-200K/yr enterprise · Regulatory API · Compliance SaaS",
+mkt:"$26T financial services. 630K advisors. RegTech $12B growing 20%. Bloomberg ($70B revenue) proves the model.",
+moat:"Regulatory graph connects advisors → actions → products → outcomes. Real-time monitoring creates daily dependency. First unified FINRA + SEC + state graph.",
+synergy:"Insurance garden shares regulatory/compliance infrastructure. Government garden shares enforcement data. Largest TAM on the frontier."},
+{id:"agri",n:"Agriculture",ic:"🌾",tam:"$8T",tN:8000,c:"#84CC16",y5:25000,st:"future",deploy:"~9 months",
+w:"Food supply chain — farm certification (organic, fair trade, GAP), supply chain provenance, food safety compliance, crop-to-consumer transparency.",
+h:"Ingest USDA organic cert, FDA food facility registrations, GAP/GHP audits, import/export. Graph: farm → certs → products → distributors → retailers → consumers.",
+why:"Food safety recalls cost $55B/yr. Organic fraud rampant. Retailers require documentation. One contamination = brand destruction.",
+rev:"$149-499/mo per farm · $25-100K/yr enterprise · Supply chain API · Consumer transparency SaaS",
+mkt:"$8T agriculture. $200B organic market growing 12%. Food safety tech $20B. EU Farm to Fork = regulatory mandate.",
+moat:"Provenance data compounds — every farm, shipment, certification builds the graph. OKG proves we can do agricultural knowledge graphs. Regulatory tailwinds.",
+synergy:"Direct extension of OKG (botanical). Shares supply chain + sensor infrastructure. Energy garden shares environmental/ESG data."},
+{id:"energy",n:"Energy",ic:"⚡",tam:"$6T",tN:6000,c:"#F59E0B",y5:35000,st:"future",deploy:"~10 months",
+w:"Operator certification, safety compliance, grid infrastructure mapping, regulatory monitoring, ESG tracking across utilities, renewables, oil & gas.",
+h:"Ingest FERC, NERC, state PUC, OSHA, EPA data. Graph: operator → certs → facilities → safety → regulatory → ESG metrics.",
+why:"Most regulated industry after healthcare. OSHA fines severe. ESG reporting becoming mandatory. Federal + state + local complexity.",
+rev:"$499-1,999/mo per operator · $50-200K/yr enterprise · ESG API · Regulatory monitoring SaaS",
+mkt:"$6T energy. $2T transition investment/yr. ESG reporting $1.5B growing 25%. Energy compliance $8B.",
+moat:"Spans FERC + NERC + state PUCs + EPA + OSHA — no platform unifies these. ESG requires our provenance/audit trail architecture.",
+synergy:"Agriculture garden shares environmental data. Government garden shares regulatory infrastructure. Insurance garden shares risk/compliance data."},
+{id:"re",n:"Real Estate",ic:"🏠",tam:"$3.7T",tN:3700,c:"#EC4899",y5:45000,st:"future",deploy:"~7 months",
+w:"Agent licensing, CE tracking, property knowledge graph, transaction relationship mapping, title/lien verification.",
+h:"Ingest state real estate commission DBs (50 states), MLS feeds, county recorder docs, title records. Graph: agent → licenses → transactions → properties → liens.",
+why:"Mandatory state licenses. CE credits every 2-4 yrs. Title searches manual and error-prone. Transaction graphs reveal invisible market patterns.",
+rev:"$99-299/mo per agent · $15-50K/yr per brokerage · Title verification API · Transaction analytics",
+mkt:"$3.7T real estate. 1.5M realtors. Real estate tech $18B. Licensing fragmented across 50+ jurisdictions — identical to healthcare.",
+moat:"Property knowledge graph compounds. Agent credential tracking is our core competency in a new domain. First comprehensive RE knowledge graph.",
+synergy:"Construction garden shares contractor/permit data. Finance garden shares transaction/lending data. Legal garden shares title/lien data."},
+{id:"pharma",n:"Pharma",ic:"💊",tam:"$1.5T",tN:1500,c:"#7C3AED",y5:70000,st:"future",deploy:"~14 months",
+w:"Clinical trial relationship mapping, drug interaction database, regulatory submission tracking, research synthesis across drug development lifecycle.",
+h:"Ingest ClinicalTrials.gov (33K+ loaded), FDA, PubMed (60K+ loaded), patent filings, FAERS. Graph: drug → trials → outcomes → interactions → patents → regulatory.",
+why:"Drug development costs $2.6B avg per approved drug. 90% fail. Pharma needs better intelligence on trial design, competitor pipelines, regulatory patterns.",
+rev:"$2,499-9,999/mo per pharma · $100-500K/yr enterprise · Research API · Clinical trial analytics",
+mkt:"$1.5T pharma. Drug development $200B. Clinical trial mgmt $48B. Veeva ($35B) proves pharma pays premium.",
+moat:"33K trials + 60K PubMed already loaded in HKG. Drug-trial-outcome graph is unique. Veeva does CRM; we do R&D intelligence. Complementary.",
+synergy:"Healthcare garden shares clinical data infrastructure. Insurance garden shares drug utilization data. Direct revenue from HKG's existing datasets."},
+{id:"ins",n:"Insurance",ic:"🛡️",tam:"$6T",tN:6000,c:"#0EA5E9",y5:50000,st:"future",deploy:"~11 months",
+w:"Underwriting intelligence, claims relationship analysis, provider network verification, regulatory compliance across P&C, health, life, specialty.",
+h:"Ingest state commission filings, NAIC data, provider directories, claims patterns. Graph: insurer → products → providers → claims → outcomes → regulatory.",
+why:"Insurance uses 1990s infrastructure. Claims fraud costs $80B/yr. Knowledge graph reveals relationship patterns flat data misses.",
+rev:"$999-4,999/mo per carrier · $100-500K/yr enterprise · Underwriting API · Claims intelligence",
+mkt:"$6T insurance. InsurTech $10B growing 30%. Claims fraud $80B/yr — 1% improvement = $800M value.",
+moat:"Provider → claims → outcomes → fraud graph improves with every data point. HKG provider network feeds directly. Cross-vertical synergy with healthcare.",
+synergy:"Shares provider graph with healthcare garden. Shares risk/compliance with energy and finance gardens. No Surprises Act creates mandatory directory spend."},
+{id:"gov",n:"Government",ic:"🏛️",tam:"$800B+",tN:800,c:"#6366F1",y5:40000,st:"future",deploy:"~16 months",
+w:"Security clearance credentialing, procurement relationship mapping, compliance automation, inter-agency intelligence sharing.",
+h:"Ingest SAM.gov (partially loaded), FPDS, OPM clearance frameworks, GSA schedules. Graph: contractor → clearances → contracts → agencies → performance.",
+why:"$800B+ procurement with months-long credentialing, manual compliance, no inter-agency data sharing. 200K+ clearance backlog.",
+rev:"$2,499-9,999/mo per contractor · $100-500K/yr enterprise · Procurement API · FedRAMP analytics",
+mkt:"$800B+ federal procurement. GovIT modernization $100B/yr. Palantir ($50B) proves government pays for intelligence.",
+moat:"SAM.gov/FPDS data is public but fragmented. Procurement graph reveals contracting patterns. FedRAMP = barrier to entry. Gov contracts are long-cycle sticky.",
+synergy:"Shares regulatory/compliance infrastructure with ALL other gardens. Healthcare garden shares provider/exclusion data. Legal garden shares court data."}
+];
+
 // ═══ DECISION DATA — Rich structured options ═══
 const D=[
 {id:"start",ph:0,cat:"Foundation",title:"Which Garden Leads?",desc:"Three gardens are planted. Nine more are scoped. This is the most important decision you'll make — it determines your first customers, your fundraising narrative, and which $trillion market you attack first.",
@@ -177,6 +277,8 @@ function App(){
   const[hist,setHist]=useState([]);
   const[preview,setPreview]=useState(null);// option being previewed before confirming
   const[showSaves,setShowSaves]=useState(false);
+  const[showFrontier,setShowFrontier]=useState(false);
+  const[planted,setPlanted]=useState(["bkg","okg","hkg"]);
   const[dashOpen,setDashOpen]=useState(false);
   const[compOpen,setCompOpen]=useState(false);
   const[started,setStarted]=useState(false);
@@ -236,6 +338,14 @@ function App(){
   const delFn=(i)=>{const ns=saves.filter((_,j)=>j!==i);setSaves(ns);try{localStorage.setItem("gw3",JSON.stringify(ns))}catch(e){}};
   const restart=()=>{if(!confirm("Start fresh? Unsaved progress lost."))return;setM(initM());setHist([]);setPreview(null)};
   
+  const plantGarden=(id)=>{
+    if(planted.includes(id)) return;
+    setPlanted(p=>[...p,id]);
+    const g=V.find(v=>v.id===id);
+    if(g){setM(p=>({...p,y5:p.y5+g.y5,cap:p.cap+300,team:p.team+2,moat:Math.min(10,p.moat+1)}))}
+    setShowFrontier(false);
+  };
+
   const sharePath=()=>{
     const path=hist.map((h,i)=>(i+1)+". "+h.label+" ("+h._cat+")").join("\n");
     const body=encodeURIComponent("Knowledge Gardens Strategy Path\n\nDecisions:\n"+path+"\n\nProjected Y5 ARR: $"+(m.y5/1000).toFixed(0)+"M\nRisk: "+m.risk+"/10\nMoat: "+m.moat+"/10\nTime to Revenue: "+m.rev+" months\n\nExplore interactively: https://garden-wars.vercel.app");
@@ -250,8 +360,9 @@ function App(){
 
   const af=(v)=>"$"+(v>=1000?(v/1000).toFixed(0)+"M":v+"K");
   const compassItems=[
-    {icon:"📊",label:"Dashboard",action:()=>setDashOpen(p=>!p),color:C.gold},
-    {icon:"💾",label:"Save",action:()=>setShowSaves(true),color:C.green},
+    {icon:"🗺️",label:"Frontier",action:()=>setShowFrontier(true),color:C.gold},
+    {icon:"📊",label:"Dashboard",action:()=>setDashOpen(p=>!p),color:C.green},
+    {icon:"💾",label:"Save",action:()=>setShowSaves(true),color:C.cyan},
     {icon:"📂",label:"Load",action:()=>setShowSaves(true),color:C.purple},
     {icon:"📧",label:"Share",action:sharePath,color:C.blue},
     {icon:"←",label:"Back",action:goBack,color:C.amber},
@@ -467,6 +578,74 @@ function App(){
 
       {/* SAVE MODAL */}
       {showSaves&&<SaveModal saves={saves} onSave={saveFn} onLoad={loadFn} onDelete={delFn} onClose={()=>setShowSaves(false)}/>}
+      {/* FRONTIER MAP */}
+      {showFrontier&&<FrontierMap onClose={()=>setShowFrontier(false)} planted={planted} onPlant={plantGarden}/>}
+    </div>
+  );
+}
+
+function FrontierMap({onClose,planted,onPlant}){
+  const[sel,setSel]=useState(null);
+  const v=sel?V.find(x=>x.id===sel):null;
+  const isPlanted=(id)=>planted.includes(id);
+  const Sec=({t,txt,c})=><div style={{marginBottom:10}}><div style={{fontSize:9,fontWeight:600,color:c,textTransform:"uppercase",letterSpacing:".08em",marginBottom:3}}>{t}</div><div style={{fontSize:11,color:"rgba(255,255,255,.5)",lineHeight:1.7}}>{txt}</div></div>;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(4,4,6,.97)",zIndex:100,overflow:"auto",padding:"0 0 40px"}}>
+      <div style={{position:"sticky",top:0,background:"rgba(4,4,6,.95)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(255,255,255,.06)",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:2}}>
+        <div><span style={{fontFamily:sf,fontSize:18,color:C.gold}}>Frontier Map</span><span style={{fontSize:10,color:"rgba(255,255,255,.2)",marginLeft:8}}>12 Gardens · {V.reduce((a,v)=>a+v.y5,0)/1000|0}M Combined Y5 ARR</span></div>
+        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.4)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Close ×</button>
+      </div>
+      {!sel?(
+        <div style={{maxWidth:1100,margin:"20px auto",padding:"0 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:10}}>
+          {V.map(g=>{
+            const ip=isPlanted(g.id);
+            return(
+              <div key={g.id} onClick={()=>setSel(g.id)}
+                style={{borderRadius:12,padding:14,background:ip?"rgba(255,255,255,.04)":"rgba(255,255,255,.015)",border:"1.5px solid "+(ip?g.c+"40":"rgba(255,255,255,.05)"),cursor:"pointer",transition:"all .3s "+ez,position:"relative"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=g.c+"60"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=ip?g.c+"40":"rgba(255,255,255,.05)"}>
+                {ip&&<div style={{position:"absolute",top:8,right:8,fontSize:7,padding:"2px 6px",borderRadius:4,background:g.c+"20",color:g.c,fontWeight:600}}>PLANTED</div>}
+                <div style={{fontSize:22,marginBottom:6}}>{g.ic}</div>
+                <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:2}}>{g.n}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginBottom:6}}>{g.tam} market · Y5: ${(g.y5/1000)|0}M ARR</div>
+                <div style={{fontSize:10,color:g.c}}>{g.deploy}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:6,lineHeight:1.5}}>{g.w.slice(0,100)}...</div>
+                <div style={{marginTop:8,fontSize:10,color:C.gold}}>Tap to explore →</div>
+              </div>
+            );
+          })}
+        </div>
+      ):(
+        <div className="fu" style={{maxWidth:720,margin:"20px auto",padding:"0 16px"}}>
+          <button onClick={()=>setSel(null)} style={{marginBottom:12,padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,.08)",background:"transparent",color:"rgba(255,255,255,.35)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← All Gardens</button>
+          <div style={{borderRadius:14,background:"rgba(255,255,255,.02)",border:"1px solid "+v.c+"20",overflow:"hidden"}}>
+            <div style={{padding:"20px 22px",borderBottom:"1px solid rgba(255,255,255,.04)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <div style={{fontSize:28,marginBottom:4}}>{v.ic}</div>
+                <div style={{fontFamily:sf,fontSize:26,color:v.c}}>{v.n} Knowledge Garden</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.35)",marginTop:4}}>{v.tam} global market · Year 5 Target: ${(v.y5/1000)|0}M ARR · Deploy: {v.deploy}</div>
+              </div>
+              {isPlanted(v.id)?<span style={{fontSize:10,padding:"4px 10px",borderRadius:6,background:v.c+"20",color:v.c,fontWeight:600}}>PLANTED</span>
+              :<button onClick={()=>{onPlant(v.id);setSel(null)}} style={{padding:"8px 16px",borderRadius:8,border:"none",background:v.c,color:"#000",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🌱 Plant This Garden</button>}
+            </div>
+            <div style={{padding:"16px 22px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+              <div>
+                <Sec t="What It Does" txt={v.w} c={v.c}/>
+                <Sec t="How It Works" txt={v.h} c={C.blue}/>
+                <Sec t="Why People Buy" txt={v.why} c={C.green}/>
+              </div>
+              <div>
+                <Sec t="Revenue Model" txt={v.rev} c={C.gold}/>
+                <Sec t="Market & Competition" txt={v.mkt} c={C.orange}/>
+                <Sec t="The Moat" txt={v.moat} c={C.purple}/>
+              </div>
+            </div>
+            <div style={{padding:"0 22px 16px"}}>
+              <Sec t="Cross-Garden Synergy" txt={v.synergy} c={C.cyan}/>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
