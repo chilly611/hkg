@@ -198,10 +198,136 @@
         .ev-section{padding:0.9rem;background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm)}
         .ev-section h3{font-size:0.92rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.35rem}
         .ev-section h3 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-        .ev-entity-link{display:flex;align-items:center;gap:0.5rem;padding:0.4rem;border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;margin-bottom:0.3rem}
-        .ev-entity-link:hover{border-color:rgba(52,211,153,0.4);background:rgba(52,211,153,0.04)}
-        .ev-entity-link-name{flex:1;font-size:0.8rem;font-weight:600}
-        .ev-entity-link-type{font-size:0.65rem;color:var(--text3)}
+        .ev-row{display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.025);font-size:0.8rem}
+        .ev-row:last-child{border-bottom:none}
+        .ev-label{color:var(--text3)}
+        .ev-value{color:var(--text);font-weight:500;text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .ev-related{grid-column:1/-1}
+        .ev-rel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;margin-top:0.4rem}
+        .ev-rel-card{
+            padding:0.6rem 0.8rem;background:rgba(255,255,255,0.015);
+            border:1px solid var(--border);border-radius:var(--radius-sm);
+            cursor:pointer;transition:all 0.2s;font-size:0.8rem;
+        }
+        .ev-rel-card:hover{border-color:var(--border3);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+        .ev-rel-name{font-weight:600;display:flex;align-items:center;gap:0.25rem}
+        .ev-rel-detail{color:var(--text2);font-size:0.72rem;margin-top:0.1rem}
+
+        /* === GRAPH VIEW === */
+        .graph-wrap{position:relative;width:100%;margin-bottom:1rem;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:rgba(0,0,0,0.3)}
+        .graph-canvas{width:100%;display:block;cursor:grab}
+        .graph-canvas:active{cursor:grabbing}
+        .graph-legend{position:absolute;bottom:0.6rem;left:0.6rem;display:flex;gap:0.6rem;padding:0.35rem 0.6rem;background:var(--glass2);border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.65rem}
+        .graph-legend-item{display:flex;align-items:center;gap:0.25rem;color:var(--text2)}
+        .graph-legend-dot{width:7px;height:7px;border-radius:50%}
+        .graph-tooltip{position:absolute;padding:0.4rem 0.6rem;background:var(--glass2);border:1px solid var(--border2);border-radius:6px;font-size:0.75rem;pointer-events:none;z-index:10;display:none;box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+        .graph-tooltip.visible{display:block}
+
+        /* === BROWSE VIEW === */
+        .browse{flex:1;overflow:hidden;display:flex;flex-direction:column}
+        .browse-tabs{display:flex;gap:0.35rem;padding:0.5rem 1.25rem;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0}
+        .browse-tab{padding:0.25rem 0.6rem;border-radius:5px;font-size:0.75rem;color:var(--text2);border:1px solid transparent;transition:all 0.15s}
+        .browse-tab:hover{background:rgba(255,255,255,0.04)}
+        .browse-tab.active{background:var(--emerald-dim);border-color:rgba(52,211,153,0.25);color:var(--emerald)}
+        .browse-content{flex:1;overflow-y:auto;padding:0.75rem 1.25rem}
+        .browse-table{width:100%;border-collapse:collapse;font-size:0.78rem}
+        .browse-table th{text-align:left;padding:0.5rem 0.55rem;border-bottom:1px solid var(--border2);color:var(--text3);font-weight:600;position:sticky;top:0;background:var(--bg);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em}
+        .browse-table td{padding:0.45rem 0.55rem;border-bottom:1px solid var(--border);color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .browse-table tr{cursor:pointer;transition:background 0.1s}
+        .browse-table tr:hover td{background:rgba(52,211,153,0.03);color:var(--text)}
+        .browse-nav{display:flex;align-items:center;gap:0.4rem;padding:0.6rem 1.25rem;border-top:1px solid var(--border);flex-shrink:0}
+        .browse-nav button{padding:0.25rem 0.6rem;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:5px;font-size:0.75rem;transition:all 0.15s}
+        .browse-nav button:hover{background:rgba(255,255,255,0.07)}
+        .browse-nav button:disabled{opacity:0.3;cursor:default}
+        .browse-info{font-size:0.72rem;color:var(--text3);flex:1;text-align:center}
+
+        /* === STATUS BAR === */
+        .status-bar{
+            height:26px;padding:0 1.25rem;display:flex;align-items:center;gap:0.75rem;
+            background:var(--glass2);border-top:1px solid var(--border);font-size:0.65rem;color:var(--text3);flex-shrink:0;
+        }
+        .status-bar a{color:var(--emerald);text-decoration:none}
+
+        /* === LOADING === */
+        .loading{display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:2.5rem;color:var(--text3);font-size:0.82rem}
+        .spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--emerald);border-radius:50%;animation:spin 0.8s linear infinite}
+
+        /* === COMPASS NAV === */
+        .compass-btn{
+            position:fixed;bottom:2rem;right:2rem;z-index:999;
+            width:52px;height:52px;border-radius:50%;
+            background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(167,139,250,0.15));
+            border:1px solid rgba(52,211,153,0.3);
+            backdrop-filter:blur(20px);
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 0 0 rgba(52,211,153,0.2);
+        }
+        .compass-btn:hover{transform:scale(1.08);box-shadow:0 6px 32px rgba(0,0,0,0.4),0 0 20px rgba(52,211,153,0.15)}
+        .compass-btn.open{opacity:0;pointer-events:none;transform:scale(0.5)}
+        .compass-btn svg{width:26px;height:26px;color:var(--emerald);transition:transform 0.8s cubic-bezier(0.4,0,0.2,1)}
+        .compass-btn:hover svg{transform:rotate(45deg)}
+
+        .compass-panel{
+            position:fixed;bottom:2rem;right:2rem;z-index:998;
+            width:0;height:0;opacity:0;overflow:hidden;
+            border-radius:var(--radius);
+            background:var(--glass2);backdrop-filter:blur(30px);
+            border:1px solid var(--border2);
+            box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 0 1px rgba(52,211,153,0.08);
+            transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+            display:flex;flex-direction:column;
+        }
+        .compass-panel.open{
+            width:340px;height:auto;max-height:min(520px,80vh);opacity:1;
+            bottom:2rem;right:2rem;
+        }
+        .compass-header{
+            padding:0.85rem 1rem 0.6rem;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:1px solid var(--border);flex-shrink:0;
+        }
+        .compass-header h3{font-size:1rem;color:var(--text);margin:0;display:flex;align-items:center;gap:0.5rem}
+        .compass-header h3 svg{width:18px;height:18px;color:var(--emerald)}
+        .compass-close{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all 0.2s}
+        .compass-close:hover{background:rgba(255,255,255,0.06);color:var(--text)}
+
+        .compass-section{padding:0.6rem 0.8rem 0.3rem;flex-shrink:0}
+        .compass-section-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:0.4rem;font-weight:600}
+        .compass-links{display:flex;flex-wrap:wrap;gap:0.3rem;margin-bottom:0.4rem}
+        .compass-link{
+            padding:0.35rem 0.65rem;border-radius:6px;font-size:0.72rem;
+            color:var(--text2);border:1px solid var(--border);
+            transition:all 0.2s;display:flex;align-items:center;gap:0.35rem;
+            white-space:nowrap;
+        }
+        .compass-link:hover{background:var(--emerald-dim);border-color:rgba(52,211,153,0.25);color:var(--emerald)}
+        .compass-link .cl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .compass-body{overflow-y:auto;flex:1;padding-bottom:0.5rem}
+
+        .compass-ext{
+            padding:0.5rem 0.8rem;border-top:1px solid var(--border);flex-shrink:0;
+        }
+        .compass-ext a{
+            display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.65rem;
+            border-radius:8px;font-size:0.75rem;color:var(--text2);
+            border:1px solid var(--border);transition:all 0.2s;text-decoration:none;
+        }
+        .compass-ext a:hover{background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.25);color:var(--violet)}
+        .compass-ext a svg{width:14px;height:14px;color:var(--violet)}
+
+        /* === RESPONSIVE === */
+        @media(max-width:768px){
+            .hero h1{font-size:2rem}
+            .lanes{grid-template-columns:1fr}
+            .pulse-grid{grid-template-columns:repeat(3,1fr)}
+            .ev-grid{grid-template-columns:1fr}
+            .topbar-stat{display:none}
+            .search-kbd{display:none}
+            .quick-actions{flex-wrap:wrap}
+            .qa-btn{min-width:calc(50% - 0.3rem)}
+            .ev-header{flex-direction:column}
+            .ev-actions{width:100%}
+        }
 
         /* === VERIFY VIEW === */
         .verify-view{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;align-items:center}
@@ -239,8 +365,7 @@
         .verify-contact-icon{color:var(--emerald);font-size:1rem;width:1.2rem;text-align:center;flex-shrink:0;margin-top:0.1rem}
         .verify-contact-label{color:var(--text3);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em}
         .verify-contact-value{color:var(--text);font-size:0.8rem;margin-top:0.15rem;word-break:break-word}
-        .verify-contact-link{color:var(--emerald);text-decoration:none;cursor:pointer}
-        .verify-contact-link:hover{text-decoration:underline}
+        .verify-contact-link{color:var(--emerald)}
         .verify-drug-table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:0.5rem}
         .verify-drug-table th{text-align:left;color:var(--text3);font-weight:500;padding:0.3rem 0.5rem;border-bottom:1px solid var(--border2);background:rgba(255,255,255,0.02)}
         .verify-drug-table td{padding:0.3rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.04)}
@@ -260,1073 +385,1253 @@
         .verify-tab:hover{background:rgba(255,255,255,0.05)}
         .verify-tab.active{background:rgba(52,211,153,0.12);color:var(--emerald);border-bottom:2px solid var(--emerald)}
         .verify-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);padding:1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem}
-
-        /* === BROWSE VIEW === */
-        .browse-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
-        .browse-controls{padding:1rem 1.5rem;background:var(--glass2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.8rem;flex-shrink:0}
-        .browse-search{position:relative;flex:1;max-width:300px}
-        .browse-search input{width:100%;padding:0.5rem 0.75rem 0.5rem 2rem;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;outline:none;transition:all 0.2s}
-        .browse-search input:focus{border-color:rgba(52,211,153,0.4);background:rgba(255,255,255,0.08)}
-        .browse-search::before{content:'🔍';position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);font-size:0.85rem;color:var(--text3)}
-        .browse-tabs{display:flex;gap:0.2rem}
-        .browse-tab{padding:0.4rem 0.8rem;border:1px solid transparent;border-radius:6px;font-size:0.8rem;cursor:pointer;color:var(--text2);transition:all 0.2s;white-space:nowrap}
-        .browse-tab:hover{color:var(--text)}
-        .browse-tab.active{border-color:rgba(52,211,153,0.4);background:var(--emerald-dim);color:var(--emerald)}
-        .browse-content{flex:1;overflow-y:auto;padding:1rem 1.5rem}
-        .browse-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-        .browse-header h2{font-size:1.1rem}
-        .browse-pagination{font-size:0.8rem;color:var(--text3)}
-        .browse-table{width:100%;border-collapse:collapse}
-        .browse-table th{text-align:left;padding:0.5rem;font-size:0.75rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border2)}
-        .browse-table td{padding:0.5rem;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.02)}
-        .browse-table tr:hover{background:rgba(255,255,255,0.02)}
-        .browse-table-link{color:var(--emerald);cursor:pointer;font-weight:500}
-        .browse-table-link:hover{text-decoration:underline}
-        .browse-no-results{text-align:center;padding:3rem 1rem;color:var(--text3)}
-
-        /* === GRAPH VIEW === */
-        .graph-view{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
-        .graph-canvas{flex:1;position:relative;overflow:hidden}
-        .graph-detail{position:absolute;top:1rem;right:1rem;width:350px;max-height:80vh;background:var(--glass2);border:1px solid var(--border);border-radius:var(--radius);backdrop-filter:blur(24px);padding:1.25rem;overflow-y:auto;z-index:50;box-shadow:0 16px 48px rgba(0,0,0,0.5);display:none}
-        .graph-detail.open{display:block}
-        .graph-detail-close{position:absolute;top:0.75rem;right:0.75rem;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:background 0.2s}
-        .graph-detail-close:hover{background:rgba(255,255,255,0.1)}
-        .graph-detail h3{font-size:1.1rem;margin-bottom:0.5rem}
-        .graph-detail p{font-size:0.8rem;line-height:1.6;margin-bottom:1rem;color:var(--text2)}
-        .graph-detail-section{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
-        .graph-detail-section h4{font-size:0.8rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem}
-        .graph-detail-link{display:flex;justify-content:space-between;align-items:center;padding:0.4rem;margin:0.2rem 0;border-radius:4px;background:rgba(255,255,255,0.03);font-size:0.75rem;cursor:pointer;transition:background 0.2s}
-        .graph-detail-link:hover{background:rgba(52,211,153,0.1)}
-        .graph-detail-label{font-weight:600}
-        .graph-detail-relation{color:var(--text3);font-size:0.7rem}
-        .graph-legend{position:absolute;bottom:1rem;left:1rem;background:var(--glass2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;backdrop-filter:blur(24px);font-size:0.75rem;z-index:50;max-width:250px}
-        .graph-legend-item{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem}
-        .graph-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-        .graph-legend-item:last-child{margin-bottom:0}
-
-        /* === RESPONSIVE === */
-        @media(max-width:768px){
-            .verify-input-group{flex-direction:column}
-            .verify-tabs{flex-wrap:wrap}
-            .verify-contact-grid{grid-template-columns:1fr}
-            .browse-controls{flex-wrap:wrap}
-            .browse-search{max-width:100%}
-        }
-
-        /* === UTILITIES === */
-        .spinner{width:20px;height:20px;border:2px solid rgba(52,211,153,0.2);border-top-color:var(--emerald);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+        @media(max-width:768px){.verify-tabs{flex-wrap:wrap}.verify-contact-grid{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    <canvas id="canvas-bg"></canvas>
+<canvas id="canvas-bg"></canvas>
+<div id="root"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script>
-        var h=React.createElement;
-        var useState=React.useState;
-        var useEffect=React.useEffect;
-        var useRef=React.useRef;
-        var useCallback=React.useCallback;
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+// === CONFIG ===
+var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback,useMemo=React.useMemo;
+var API="https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
+var STORAGE="https://opbrzaegvfyjpyyrmdfe.supabase.co/storage/v1/object/public/brand";
+var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTcxODE4NSwiZXhwIjoyMDkxMjk0MTg1fQ.43H90jIDQADS0qKKrAk3dkQEy6hba7pMj3VssdeAWS4";
+var HDR={apikey:KEY,Authorization:"Bearer "+KEY};
+var COLORS={provider:"#34D399",drug:"#F97316",diagnosis:"#EF4444",trial:"#F59E0B",code:"#22D3EE",exclusion:"#F472B6",taxonomy:"#A78BFA",ndc:"#8B5CF6",citation:"#6366F1",interaction:"#FB923C",address:"#2DD4BF",condition:"#EC4899"};
+var TYPE_LABELS={provider:"Provider",drug:"Drug",diagnosis:"Diagnosis",trial:"Clinical Trial",code:"Billing Code",exclusion:"OIG Exclusion",taxonomy:"Specialty",ndc:"NDC Code",citation:"PubMed",interaction:"Interaction",address:"Address",condition:"Condition"};
 
-        // === SUPABASE HELPER ===
-        var SB_URL="https://opbrzaegvfyjpyyrmdfe.supabase.co";
-        var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODk5Nzc1NzYsImV4cCI6MjAwNjE1MzU3Nn0.AyVIEhKEqn2aPKy9OXdmXwJmMCt23jLmVdS7rJW5pZI";
-        function q(endpoint){
-            return fetch(SB_URL+"/rest/v1"+endpoint,{
-                method:"GET",
-                headers:{"Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY}
-            }).then(function(r){return r.json()});
+// === API HELPERS ===
+function q(p,opts){return fetch(API+p,Object.assign({headers:HDR},opts||{})).then(function(r){return r.json()}).catch(function(){return[]})}
+function cnt(table){return fetch(API+"/"+table+"?select=id&limit=0",{headers:Object.assign({},HDR,{Prefer:"count=estimated"})}).then(function(r){var g=r.headers.get("content-range");return g?parseInt(g.split("/")[1]||"0",10):0}).catch(function(){return 0})}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(n>=1e4?0:1)+"K";return n.toString()}
+
+// === BACKGROUND CANVAS ===
+(function(){
+    var c=document.getElementById("canvas-bg"),ctx=c.getContext("2d");
+    var w,hh,particles=[];
+    function resize(){w=c.width=window.innerWidth;hh=c.height=window.innerHeight}
+    window.addEventListener("resize",resize);resize();
+    for(var i=0;i<50;i++)particles.push({x:Math.random()*w,y:Math.random()*hh,vx:(Math.random()-0.5)*0.2,vy:(Math.random()-0.5)*0.2,r:Math.random()*1.5+0.5,a:Math.random()*0.25+0.08});
+    function draw(){
+        ctx.clearRect(0,0,w,hh);
+        particles.forEach(function(p){
+            p.x+=p.vx;p.y+=p.vy;
+            if(p.x<0)p.x=w;if(p.x>w)p.x=0;if(p.y<0)p.y=hh;if(p.y>hh)p.y=0;
+            ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fillStyle="rgba(52,211,153,"+p.a+")";ctx.fill();
+        });
+        for(var i=0;i<particles.length;i++){
+            for(var j=i+1;j<particles.length;j++){
+                var dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
+                var dist=Math.sqrt(dx*dx+dy*dy);
+                if(dist<130){
+                    ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);
+                    ctx.lineTo(particles[j].x,particles[j].y);
+                    ctx.strokeStyle="rgba(52,211,153,"+(0.035*(1-dist/130))+")";
+                    ctx.lineWidth=0.5;ctx.stroke();
+                }
+            }
         }
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
 
-        // === FORMATTING ===
-        function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",")}
-        function toISO(d){var m=d.getMonth()+1,da=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(da<10?"0":"")+da}
+// === ANIMATED COUNTER ===
+function AnimNum(props){
+    var target=props.value||0,ref=useRef(null),started=useRef(false);
+    useEffect(function(){
+        if(!target||started.current)return;started.current=true;
+        var dur=1200,t0=Date.now();
+        function tick(){
+            var pct=Math.min((Date.now()-t0)/dur,1);
+            pct=1-Math.pow(1-pct,3);
+            if(ref.current)ref.current.textContent=fmt(Math.floor(target*pct));
+            if(pct<1)requestAnimationFrame(tick);
+        }
+        tick();
+    },[target]);
+    return h("span",{ref:ref},fmt(target));
+}
 
-        // === CANVAS BG ===
-        function initCanvas(){
-            var c=document.getElementById("canvas-bg");
-            if(!c)return;
-            var ctx=c.getContext("2d");
-            c.width=window.innerWidth;
-            c.height=window.innerHeight;
-            var particles=[];
-            for(var i=0;i<15;i++){
-                particles.push({
-                    x:Math.random()*c.width,
-                    y:Math.random()*c.height,
-                    r:Math.random()*80+30,
-                    vx:(Math.random()-0.5)*0.3,
-                    vy:(Math.random()-0.5)*0.3,
-                    color:["#34D399","#A78BFA","#22D3EE"][Math.floor(Math.random()*3)]
-                });
-            }
-            function draw(){
-                ctx.clearRect(0,0,c.width,c.height);
-                particles.forEach(function(p){
-                    p.x+=p.vx;
-                    p.y+=p.vy;
-                    if(p.x+p.r<0)p.x=c.width+p.r;
-                    if(p.x-p.r>c.width)p.x=-p.r;
-                    if(p.y+p.r<0)p.y=c.height+p.r;
-                    if(p.y-p.r>c.height)p.y=-p.r;
-                    ctx.fillStyle=p.color;
-                    ctx.globalAlpha=0.08;
-                    ctx.beginPath();
-                    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-                    ctx.fill();
-                });
-                requestAnimationFrame(draw);
-            }
-            draw();
-            window.addEventListener("resize",function(){
-                c.width=window.innerWidth;
-                c.height=window.innerHeight;
+// === FORCE GRAPH ===
+function ForceGraph(props){
+    var nodes=props.nodes||[],edges=props.edges||[],width=props.width||600,height=props.height||300;
+    var canvasRef=useRef(null),tooltip=useRef(null);
+    var simRef=useRef({nodes:[],edges:[],hover:null});
+
+    useEffect(function(){
+        if(!nodes.length)return;
+        var canvas=canvasRef.current;if(!canvas)return;
+        var ctx=canvas.getContext("2d");
+        var dpr=window.devicePixelRatio||1;
+        canvas.width=width*dpr;canvas.height=height*dpr;
+        canvas.style.width=width+"px";canvas.style.height=height+"px";
+        ctx.scale(dpr,dpr);
+
+        // Initialize node positions
+        var sim=simRef.current;
+        sim.nodes=nodes.map(function(n,i){
+            var angle=(i/nodes.length)*Math.PI*2;
+            var r=Math.min(width,height)*0.3;
+            return Object.assign({},n,{
+                x:width/2+Math.cos(angle)*r*(0.5+Math.random()*0.5),
+                y:height/2+Math.sin(angle)*r*(0.5+Math.random()*0.5),
+                vx:0,vy:0,
+                radius:n.isCenter?14:n.type==="provider"?10:8
             });
-        }
+        });
+        sim.edges=edges;
 
-        // === ANIMATED NUMBER ===
-        function AnimNum(props){
-            var _v=useState(0),v=_v[0],setV=_v[1];
-            useEffect(function(){
-                var target=props.value||0;
-                if(v===target)return;
-                var diff=target-v;
-                var step=Math.ceil(diff/20);
-                var timer=setInterval(function(){
-                    setV(function(cur){
-                        var next=Math.min(cur+step,target);
-                        if(next===target)clearInterval(timer);
-                        return next;
-                    });
-                },30);
-                return function(){clearInterval(timer)};
-            },[props.value,v]);
-            return h("span",null,fmt(v));
+        var running=true;
+        function tick(){
+            if(!running)return;
+            // Force simulation
+            var ns=sim.nodes,es=sim.edges;
+            // Center gravity
+            for(var i=0;i<ns.length;i++){
+                ns[i].vx+=(width/2-ns[i].x)*0.002;
+                ns[i].vy+=(height/2-ns[i].y)*0.002;
+            }
+            // Repulsion
+            for(var i=0;i<ns.length;i++){
+                for(var j=i+1;j<ns.length;j++){
+                    var dx=ns[j].x-ns[i].x,dy=ns[j].y-ns[i].y;
+                    var d=Math.sqrt(dx*dx+dy*dy)||1;
+                    var force=Math.min(800/(d*d),2);
+                    ns[i].vx-=dx/d*force;ns[i].vy-=dy/d*force;
+                    ns[j].vx+=dx/d*force;ns[j].vy+=dy/d*force;
+                }
+            }
+            // Attraction along edges
+            for(var i=0;i<es.length;i++){
+                var s=ns[es[i].source],t=ns[es[i].target];
+                if(!s||!t)continue;
+                var dx=t.x-s.x,dy=t.y-s.y;
+                var d=Math.sqrt(dx*dx+dy*dy)||1;
+                var force=(d-80)*0.003;
+                s.vx+=dx/d*force;s.vy+=dy/d*force;
+                t.vx-=dx/d*force;t.vy-=dy/d*force;
+            }
+            // Damping + update
+            for(var i=0;i<ns.length;i++){
+                ns[i].vx*=0.85;ns[i].vy*=0.85;
+                ns[i].x+=ns[i].vx;ns[i].y+=ns[i].vy;
+                ns[i].x=Math.max(20,Math.min(width-20,ns[i].x));
+                ns[i].y=Math.max(20,Math.min(height-20,ns[i].y));
+            }
+            // Draw
+            ctx.clearRect(0,0,width,height);
+            // Edges
+            for(var i=0;i<es.length;i++){
+                var s=ns[es[i].source],t=ns[es[i].target];
+                if(!s||!t)continue;
+                ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);
+                ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;ctx.stroke();
+            }
+            // Nodes
+            for(var i=0;i<ns.length;i++){
+                var n=ns[i];
+                ctx.beginPath();ctx.arc(n.x,n.y,n.radius,0,Math.PI*2);
+                var col=COLORS[n.type]||"#888";
+                if(sim.hover===i){
+                    ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=16;
+                } else {
+                    ctx.fillStyle=col+(n.isCenter?"":"99");ctx.shadowBlur=0;
+                }
+                ctx.fill();ctx.shadowBlur=0;
+                // Label for center node
+                if(n.isCenter||sim.hover===i){
+                    ctx.fillStyle="#fff";ctx.font="600 10px 'DM Sans',sans-serif";ctx.textAlign="center";
+                    ctx.fillText((n.label||"").substring(0,20),n.x,n.y+n.radius+14);
+                }
+            }
+            requestAnimationFrame(tick);
         }
+        tick();
 
-        // === SEARCH & FILTER ===
-        function SearchDropdown(props){
-            var hasCats=props.results&&props.results.length>0;
-            var cats=hasCats?Array.from(new Set(props.results.map(function(r){return r.type}))):[];
-            return h("div",{className:"search-dropdown"+(props.results&&props.results.length>0?" open":"")},
-                props.loading?h("div",{style:{padding:"1rem",textAlign:"center",color:"var(--text3)"}},
-                    h("div",{className:"spinner"})
-                ):cats.map(function(cat){
-                    var items=props.results.filter(function(r){return r.type===cat});
-                    return h("div",{key:cat},
-                        h("div",{className:"search-cat"},cat),
-                        items.slice(0,5).map(function(item){
-                            var colors={provider:"#34D399",drug:"#10B981",diagnosis:"#A78BFA",condition:"#8B5CF6",trial:"#EC4899"};
-                            return h("div",{className:"search-result",key:item.id,onClick:function(){props.onSelect(item)}},
-                                h("div",{className:"sr-dot",style:{backgroundColor:colors[item.type]||"#64748b"}}),
-                                h("div",{className:"sr-info"},
-                                    h("div",{className:"sr-name"},item.name),
-                                    item.detail?h("div",{className:"sr-detail"},item.detail):null
-                                ),
-                                h("div",{className:"sr-type",style:{borderColor:colors[item.type]||"#64748b",color:colors[item.type]||"#64748b"}},cat.slice(0,1).toUpperCase())
-                            );
-                        })
+        // Mouse interaction
+        function getNode(e){
+            var rect=canvas.getBoundingClientRect();
+            var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+            for(var i=0;i<sim.nodes.length;i++){
+                var n=sim.nodes[i],dx=n.x-mx,dy=n.y-my;
+                if(Math.sqrt(dx*dx+dy*dy)<n.radius+4)return i;
+            }
+            return -1;
+        }
+        function onMove(e){
+            var idx=getNode(e);
+            sim.hover=idx>=0?idx:null;
+            canvas.style.cursor=idx>=0?"pointer":"grab";
+            if(tooltip.current){
+                if(idx>=0){
+                    var n=sim.nodes[idx];
+                    tooltip.current.textContent=(TYPE_LABELS[n.type]||"")+": "+(n.label||"");
+                    tooltip.current.style.left=(e.clientX-canvas.getBoundingClientRect().left+10)+"px";
+                    tooltip.current.style.top=(e.clientY-canvas.getBoundingClientRect().top-30)+"px";
+                    tooltip.current.className="graph-tooltip visible";
+                } else {
+                    tooltip.current.className="graph-tooltip";
+                }
+            }
+        }
+        function onClick(e){
+            var idx=getNode(e);
+            if(idx>=0&&props.onNodeClick){
+                props.onNodeClick(sim.nodes[idx]);
+            }
+        }
+        canvas.addEventListener("mousemove",onMove);
+        canvas.addEventListener("click",onClick);
+        return function(){running=false;canvas.removeEventListener("mousemove",onMove);canvas.removeEventListener("click",onClick)};
+    },[nodes,edges,width,height]);
+
+    return h("div",{className:"graph-wrap",style:{height:height+"px"}},
+        h("canvas",{ref:canvasRef,className:"graph-canvas",style:{width:"100%",height:height+"px"}}),
+        h("div",{ref:tooltip,className:"graph-tooltip"}),
+        h("div",{className:"graph-legend"},
+            ["provider","drug","diagnosis","exclusion","taxonomy"].map(function(t){
+                return h("div",{className:"graph-legend-item",key:t},
+                    h("div",{className:"graph-legend-dot",style:{background:COLORS[t]}}),
+                    TYPE_LABELS[t]
+                );
+            })
+        )
+    );
+}
+
+// === FEDERATED SEARCH ===
+function useSearch(){
+    var _s=useState(""),query=_s[0],setQuery=_s[1];
+    var _r=useState([]),results=_r[0],setResults=_r[1];
+    var _l=useState(false),loading=_l[0],setLoading=_l[1];
+    var timer=useRef(null);
+    function search(text){
+        setQuery(text);
+        if(timer.current)clearTimeout(timer.current);
+        if(!text||text.length<2){setResults([]);return}
+        timer.current=setTimeout(function(){
+            setLoading(true);
+            var t=encodeURIComponent(text),isNPI=/^\d{10}$/.test(text.trim()),isCode=/^[A-Z]\d{2}/i.test(text.trim());
+            var promises=[];
+            if(isNPI){
+                promises.push(q("/providers?npi=eq."+text.trim()+"&select=id,npi,first_name,last_name,credential,entity_type,status&limit=5").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"provider"})})}));
+            } else {
+                promises.push(q("/providers?or=(last_name.ilike.%25"+t+"%25,first_name.ilike.%25"+t+"%25,organization_name.ilike.%25"+t+"%25)&select=id,npi,first_name,last_name,credential,entity_type,organization_name,status&limit=8").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"provider"})})}));
+            }
+            promises.push(q("/drugs?name=ilike.%25"+t+"%25&select=id,name,drug_class,dosage_form&limit=6").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"drug"})})}));
+            if(isCode){
+                promises.push(q("/icd10_cm_codes?or=(code.ilike."+t+"%25,description.ilike.%25"+t+"%25)&select=id,code,description,is_billable&limit=6").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"diagnosis"})})}));
+                promises.push(q("/hcpcs_codes?or=(code.ilike."+t+"%25,description.ilike.%25"+t+"%25)&select=id,code,description&limit=4").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"code"})})}));
+            } else {
+                promises.push(q("/icd10_cm_codes?description=ilike.%25"+t+"%25&select=id,code,description,is_billable&limit=6").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"diagnosis"})})}));
+                promises.push(q("/hcpcs_codes?description=ilike.%25"+t+"%25&select=id,code,description&limit=4").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"code"})})}));
+            }
+            promises.push(q("/clinical_trials?title=ilike.%25"+t+"%25&select=id,title,status,phase,sponsor&limit=4").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"trial"})})}));
+            promises.push(q("/oig_exclusions?entity_name=ilike.%25"+t+"%25&select=id,entity_name,exclusion_type,state&limit=4").then(function(r){return r.map(function(x){return Object.assign(x,{_type:"exclusion"})})}));
+            Promise.all(promises).then(function(arrays){
+                var all=[];arrays.forEach(function(a){all=all.concat(a)});
+                setResults(all.slice(0,20));setLoading(false);
+            });
+        },200);
+    }
+    return{query:query,results:results,loading:loading,search:search,setResults:setResults};
+}
+
+// === COMPONENTS ===
+function TopBar(props){
+    return h("div",{className:"topbar"},
+        h("div",{className:"topbar-logo"},
+            h("img",{src:STORAGE+"/chillyprojects_Abstract_logo_three_hexagonal_cells_each_conta_0feaba9f-766e-4625-bfbb-615210ea2c0d_1.png",alt:"HKG"})
+        ),
+        h("div",{className:"topbar-brand"},h("span",null,"Health")," Knowledge Garden"),
+        h("div",{className:"spacer"}),
+        h("div",{className:"topbar-stat"},h("span",{className:"live-dot"}),h("strong",null,fmt(props.totalRecords))," records live"),
+        h("div",{className:"nav-pills"},
+            h("button",{className:"nav-pill"+(props.view==="home"?" active":""),onClick:function(){props.navigate("home")}},"Home"),
+            h("button",{className:"nav-pill"+(props.view==="verify"?" active":""),onClick:function(){props.navigate("verify")}},"Verify"),
+            h("button",{className:"nav-pill"+(props.view==="interactions"?" active":""),onClick:function(){props.navigate("interactions")}},"Interactions"),
+            h("button",{className:"nav-pill"+(props.view==="browse"?" active":""),onClick:function(){props.navigate("browse")}},"Browse"),
+            h("button",{className:"nav-pill"+(props.view==="graph"?" active":""),onClick:function(){props.navigate("graph")}},"Graph")
+        )
+    );
+}
+
+function SearchDropdown(props){
+    var results=props.results,loading=props.loading,onSelect=props.onSelect;
+    if(!results.length&&!loading)return null;
+    var groups={};
+    results.forEach(function(r){var t=r._type;if(!groups[t])groups[t]=[];groups[t].push(r)});
+    return h("div",{className:"search-dropdown open"},
+        loading?h("div",{className:"loading"},h("div",{className:"spinner"}),"Searching..."):
+        Object.keys(groups).map(function(cat){
+            return h("div",{key:cat},
+                h("div",{className:"search-cat"},TYPE_LABELS[cat]||cat),
+                groups[cat].map(function(item,i){
+                    var name="",detail="",color=COLORS[cat]||"#888";
+                    if(cat==="provider"){name=(item.first_name||"")+" "+(item.last_name||item.organization_name||"");detail=(item.credential||"")+(item.npi?" · NPI: "+item.npi:"")}
+                    else if(cat==="drug"){name=item.name||"";detail=item.drug_class||""}
+                    else if(cat==="diagnosis"){name=item.code+" — "+item.description;detail=item.is_billable?"Billable":""}
+                    else if(cat==="trial"){name=(item.title||"").substring(0,80);detail=(item.phase||"")+" · "+(item.status||"")}
+                    else if(cat==="code"){name=item.code+" — "+(item.description||"").substring(0,60);detail="HCPCS"}
+                    else if(cat==="exclusion"){name=item.entity_name||"";detail=item.state||""}
+                    else{name=JSON.stringify(item).substring(0,60)}
+                    return h("div",{className:"search-result",key:cat+i,onClick:function(){onSelect(item,cat)}},
+                        h("div",{className:"sr-dot",style:{background:color}}),
+                        h("div",{className:"sr-info"},h("div",{className:"sr-name"},name),detail?h("div",{className:"sr-detail"},detail):null),
+                        h("span",{className:"sr-type",style:{color:color,borderColor:color}},cat)
                     );
                 })
             );
-        }
+        })
+    );
+}
 
-        // === FACETED SEARCH ENGINE ===
-        function SearchView(props){
-            var _q=useState(""),query=_q[0],setQuery=_q[1];
-            var _r=useState([]),results=_r[0],setResults=_r[1];
-            var _l=useState(false),loading=_l[0],setLoading=_l[1];
-
-            function search(q){
-                if(!q||q.length<2){setResults([]);return}
-                setLoading(true);
-                var searchKey=q.toLowerCase();
-                var MAX=5;
-                Promise.all([
-                    q("/providers?first_name=ilike.%25"+searchKey+"%25&select=npi,first_name,last_name,credential&limit="+MAX),
-                    q("/providers?last_name=ilike.%25"+searchKey+"%25&select=npi,first_name,last_name,credential&limit="+MAX),
-                    q("/drugs?name=ilike.%25"+searchKey+"%25&select=rxcui,name&limit="+MAX),
-                    q("/icd10_cm_codes?description=ilike.%25"+searchKey+"%25&select=code,description&limit="+MAX),
-                    q("/clinical_trials?condition=ilike.%25"+searchKey+"%25&select=nct_id,title,status&limit="+MAX)
-                ]).then(function(data){
-                    var combined=[];
-                    data[0].forEach(function(p){combined.push({type:"provider",id:p.npi,name:p.first_name+" "+p.last_name,detail:p.credential})});
-                    data[1].forEach(function(p){combined.push({type:"provider",id:p.npi,name:p.first_name+" "+p.last_name,detail:p.credential})});
-                    data[2].forEach(function(d){combined.push({type:"drug",id:d.rxcui,name:d.name})});
-                    data[3].forEach(function(c){combined.push({type:"diagnosis",id:c.code,name:c.code,detail:c.description})});
-                    data[4].forEach(function(t){combined.push({type:"trial",id:t.nct_id,name:t.title,detail:t.status})});
-                    setResults(combined);
-                    setLoading(false);
-                });
-            }
-            function handleChange(e){
-                var val=e.target.value;
-                setQuery(val);
-                if(val.length>=2)search(val);
-                else setResults([]);
-            }
-
-            return h("div",{className:"search-hero"},
-                h("div",{className:"search-box"},
-                    h("input",{
-                        className:"search-input",
-                        placeholder:"Search providers, drugs, diagnoses, trials...",
-                        value:query,
-                        onChange:handleChange,
-                        autoFocus:true
-                    }),
-                    h("span",{className:"search-icon"},"🔍"),
-                    h("span",{className:"search-kbd"},"⌘K"),
-                    h(SearchDropdown,{results:results,loading:loading,onSelect:props.onSelectEntity})
-                )
+function QuickActions(props){
+    var actions=[
+        {icon:"🏥",label:"Verify Provider",sub:"NPI lookup & 9-source verification",cls:"emerald",view:"verify"},
+        {icon:"💊",label:"Drug Interactions",sub:"Interactions, FAERS & adverse events",cls:"violet",view:"interactions"},
+        {icon:"⚠️",label:"Exclusion Screen",sub:"OIG & SAM screening",cls:"amber",table:"oig_exclusions"},
+        {icon:"🔬",label:"Clinical Trials",sub:"Active studies & sponsors",cls:"cyan",table:"clinical_trials"},
+    ];
+    return h("div",{className:"quick-actions fade-up delay-1"},
+        actions.map(function(a){
+            return h("button",{className:"qa-btn "+a.cls,key:a.label,onClick:function(){a.view?props.navigate(a.view):props.navigate("browse",a.table)}},
+                h("span",{className:"qa-icon"},a.icon),
+                h("span",{className:"qa-label"},a.label),
+                h("span",{className:"qa-sub"},a.sub)
             );
-        }
+        })
+    );
+}
 
-        // === HOME ===
-        var DATA_CARDS=[
-            {key:"providers",label:"Providers",src:"9.4M NPI Registry",color:"#34D399",accentColor:"#34D39911"},
-            {key:"drugs",label:"Medications",src:"25K RxNorm",color:"#10B981",accentColor:"#10B98111"},
-            {key:"diagnoses",label:"Diagnoses",src:"97K ICD-10",color:"#A78BFA",accentColor:"#A78BFA11"},
-            {key:"hospitals",label:"Hospitals",src:"2K CMS",color:"#22D3EE",accentColor:"#22D3EE11"},
-            {key:"trials",label:"Clinical Trials",src:"33K NIH",color:"#EC4899",accentColor:"#EC489911"},
-            {key:"publications",label:"Research",src:"59K PubMed",color:"#F59E0B",accentColor:"#F59E0B11"}
-        ];
-        function HomeView(props){
-            var _c=useState({}),counts=_c[0],setCounts=_c[1];
+function Home(props){
+    var counts=props.counts,search=props.search;
+    var DATA_CARDS=[
+        {key:"providers",label:"Providers",color:"var(--emerald)",src:"NPPES",accentColor:"#34D399"},
+        {key:"provider_addresses",label:"Addresses",color:"var(--emerald)",src:"NPPES",accentColor:"#34D399"},
+        {key:"provider_taxonomies",label:"Specialties",color:"var(--violet)",src:"NPPES",accentColor:"#A78BFA"},
+        {key:"icd10_cm_codes",label:"Diagnoses",color:"var(--red)",src:"ICD-10-CM",accentColor:"#EF4444"},
+        {key:"icd10_pcs_codes",label:"Procedures",color:"var(--red)",src:"ICD-10-PCS",accentColor:"#EF4444"},
+        {key:"oig_exclusions",label:"OIG Exclusions",color:"var(--pink)",src:"HHS-OIG",accentColor:"#F472B6"},
+        {key:"ndc_codes",label:"NDC Codes",color:"var(--purple)",src:"FDA",accentColor:"#8B5CF6"},
+        {key:"clinical_trials",label:"Clinical Trials",color:"var(--amber)",src:"ClinicalTrials.gov",accentColor:"#F59E0B"},
+        {key:"pubmed_citations",label:"PubMed",color:"#6366F1",src:"NCBI",accentColor:"#6366F1"},
+        {key:"drugs",label:"Drugs",color:"var(--orange)",src:"RxNorm",accentColor:"#F97316"},
+        {key:"hcpcs_codes",label:"Billing Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
+        {key:"drug_interactions",label:"Interactions",color:"#FB923C",src:"RxNorm",accentColor:"#FB923C"},
+        {key:"drug_adverse_events",label:"Adverse Events",color:"var(--red)",src:"FDA FAERS",accentColor:"#EF4444"},
+        {key:"medicare_part_d_prescribers",label:"Prescriptions",color:"#10B981",src:"CMS Part D",accentColor:"#10B981"},
+        {key:"medicare_utilization",label:"Utilization",color:"var(--amber)",src:"CMS Medicare",accentColor:"#F59E0B"},
+        {key:"loinc_codes",label:"Lab Codes",color:"#6EE7B7",src:"LOINC",accentColor:"#6EE7B7"},
+        {key:"hospitals",label:"Hospitals",color:"#38BDF8",src:"CMS",accentColor:"#38BDF8"},
+        {key:"drg_codes",label:"DRG Codes",color:"var(--cyan)",src:"CMS",accentColor:"#22D3EE"},
+        {key:"drug_labels",label:"Drug Labels",color:"var(--orange)",src:"DailyMed",accentColor:"#F97316"},
+        {key:"mesh_terms",label:"MeSH Terms",color:"#818CF8",src:"NLM",accentColor:"#818CF8"},
+        {key:"state_medical_boards",label:"State Boards",color:"var(--violet)",src:"Registry",accentColor:"#A78BFA"},
+    ];
 
-            useEffect(function(){
-                Promise.all([
-                    q("/providers?select=npi&limit=1"),
-                    q("/drugs?select=rxcui&limit=1"),
-                    q("/icd10_cm_codes?select=code&limit=1"),
-                    q("/hospitals?select=cms_id&limit=1"),
-                    q("/clinical_trials?select=nct_id&limit=1"),
-                    q("/pubmed_citations?select=pmid&limit=1")
-                ]).then(function(results){
-                    setCounts({
-                        providers:9427624,
-                        drugs:25790,
-                        diagnoses:97584,
-                        hospitals:2058,
-                        trials:33593,
-                        publications:59798
-                    });
-                });
-            },[]);
-
-            return h("div",{className:"home"},
-                h("div",{className:"hero fade-up"},
-                    h("img",{className:"hero-logo",src:"https://xkafbsrjwzywqbuqzqks.supabase.co/storage/v1/object/public/knowledge-gardens/hkg/hkg-hexagon-logo.png?t=2026-04-12T12-34-56Z"}),
-                    h("h1",null,h("span",null,"Health")," ",h("span",{className:"gr"},"Knowledge")," ",h("span",null,"Garden")),
-                    h("p",null,"The operating system for the global healthcare ecosystem. 12M+ verified entities, connected in real time."),
-                    h("div",{className:"hero-badges"},
-                        h("span",{className:"hero-badge"},"LIVE"),
-                        h("span",{className:"hero-badge"},"12M+ Records"),
-                        h("span",{className:"hero-badge"},"Zero Build"),
-                        h("span",{className:"hero-badge"},"Real-time Search")
-                    )
-                ),
-                h(SearchView,{onSelectEntity:props.onSelectEntity}),
-                h("div",{className:"pulse-grid fade-up delay-3"},
-                    DATA_CARDS.map(function(card){
-                        return h("div",{className:"pulse-card",key:card.key,style:{"--accent":card.accentColor},onClick:function(){props.navigate("browse",card.key)}},
-                            h("style",null,".pulse-card[style*='"+card.accentColor+"']::after{background:"+card.accentColor+"}"),
-                            h("div",{className:"pc-num",style:{color:card.color}},h(AnimNum,{value:counts[card.key]||0})),
-                            h("div",{className:"pc-label"},card.label),
-                            h("div",{className:"pc-src"},card.src)
-                        );
-                    })
-                ),
-                h("div",{className:"lanes fade-up delay-4"},
-                    h("div",{className:"lane-card ops",onClick:function(){props.navigate("verify")}},
-                        h("div",{className:"lc-icon"},"🔐"),
-                        h("h2",null,"Operations"),
-                        h("div",{className:"lc-sub"},"I verify providers"),
-                        h("p",null,"NPI lookup, OIG exclusions, Medicare data, specialties, practice locations")
-                    ),
-                    h("div",{className:"lane-card clin",onClick:function(){props.navigate("interactions")}},
-                        h("div",{className:"lc-icon"},"💊"),
-                        h("h2",null,"Clinician"),
-                        h("div",{className:"lc-sub"},"I prescribe medications"),
-                        h("p",null,"Drug interactions, adverse events, clinical trials, drug references")
-                    ),
-                    h("div",{className:"lane-card pat",onClick:function(){props.navigate("browse","drugs")}},
-                        h("div",{className:"lc-icon"},"💚"),
-                        h("h2",null,"Patient"),
-                        h("div",{className:"lc-sub"},"I want to understand"),
-                        h("p",null,"Find providers, medications, diagnoses, conditions, plain-language info")
-                    ),
-                    h("div",{className:"lane-card exp",onClick:function(){props.navigate("graph")}},
-                        h("div",{className:"lc-icon"},"🔍"),
-                        h("h2",null,"Explorer"),
-                        h("div",{className:"lc-sub"},"I'm curious"),
-                        h("p",null,"Knowledge graph, entity connections, cross-domain relationships")
-                    )
-                )
-            );
-        }
-
-        // === PROVIDER VERIFICATION ENGINE ===
-        function VerifyView(props){
-            var _n=useState(""),npi=_n[0],setNpi=_n[1];
-            var _r=useState(null),result=_r[0],setResult=_r[1];
-            var _l=useState(false),loading=_l[0],setLoading=_l[1];
-            var _e=useState(""),error=_e[0],setError=_e[1];
-            var _p=useState(""),progress=_p[0],setProgress=_p[1];
-            var _t=useState(0),activeTab=_t[0],setActiveTab=_t[1];
-
-            function verify(){
-                if(!npi||!/^\d{10}$/.test(npi.trim())){setError("Please enter a valid 10-digit NPI");return}
-                setLoading(true);setError("");setResult(null);setProgress("Querying 9 data sources...");setActiveTab(0);
-                var npiVal=npi.trim();
-
-                // Phase 1: Query 7 data sources in parallel
-                Promise.all([
-                    q("/providers?npi=eq."+npiVal+"&select=*&limit=1"),
-                    q("/provider_taxonomies?npi=eq."+npiVal+"&select=*"),
-                    q("/provider_addresses?npi=eq."+npiVal+"&select=*"),
-                    q("/oig_exclusions?npi=eq."+npiVal+"&select=*"),
-                    q("/medicare_part_d_prescribers?npi=eq."+npiVal+"&select=*&limit=50"),
-                    q("/medicare_utilization?npi=eq."+npiVal+"&select=*&limit=50"),
-                    fetch("https://npiregistry.cms.hhs.gov/api/?version=2.1&number="+npiVal)
-                        .then(function(r){return r.json()}).catch(function(){return {results:[]}})
-                ]).then(function(results){
-                    var provider=results[0]&&results[0][0]?results[0][0]:null;
-                    if(!provider){setError("NPI not found in system");setLoading(false);return}
-
-                    setProgress("Loading contact information...");
-                    var nppesData=results[6]&&results[6].results&&results[6].results[0]?results[6].results[0]:null;
-
-                    // Phase 2: Query PubMed and ClinicalTrials if we have provider name
-                    var firstName=provider.first_name||(nppesData&&nppesData.basic&&nppesData.basic.first_name)||"";
-                    var lastName=provider.last_name||(nppesData&&nppesData.basic&&nppesData.basic.last_name)||"";
-
-                    var pubmedPromise=firstName&&lastName?
-                        fetch("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=5&term="+encodeURIComponent(lastName)+"+"+encodeURIComponent(firstName)+"[Author]")
-                            .then(function(r){return r.json()}).catch(function(){return {esearchresult:{idlist:[]}}})
-                        :Promise.resolve({esearchresult:{idlist:[]}});
-
-                    var trialsPromise=firstName&&lastName?
-                        fetch("https://clinicaltrials.gov/api/v2/studies?query.term="+encodeURIComponent(lastName)+"+"+encodeURIComponent(firstName)+"&pageSize=5")
-                            .then(function(r){return r.json()}).catch(function(){return {studies:[]}})
-                        :Promise.resolve({studies:[]});
-
-                    Promise.all([pubmedPromise,trialsPromise]).then(function(phaseResults){
-                        var pubmedIds=phaseResults[0].esearchresult.idlist||[];
-                        var trials=phaseResults[1].studies||[];
-
-                        var pubmedDetailsPromise=pubmedIds.length>0?
-                            fetch("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id="+pubmedIds.slice(0,5).join(","))
-                                .then(function(r){return r.json()}).catch(function(){return {result:{}}})
-                            :Promise.resolve({result:{}});
-
-                        pubmedDetailsPromise.then(function(pubmedData){
-                            setResult({
-                                provider:provider,
-                                taxonomies:results[1]||[],
-                                addresses:results[2]||[],
-                                exclusions:results[3]||[],
-                                prescribing:results[4]||[],
-                                utilization:results[5]||[],
-                                nppes:nppesData,
-                                publications:pubmedData.result||{},
-                                trials:trials
-                            });
-                            setLoading(false);
-                            setProgress("");
-                        });
-                    });
-                }).catch(function(err){setError("Error loading provider data");setLoading(false);setProgress("")});
-            }
-
-            function handleKeyDown(e){if(e.key==="Enter")verify()}
-
-            if(result){
-                var isExcluded=result.exclusions&&result.exclusions.length>0;
-                var prov=result.provider;
-                var nppes=result.nppes;
-
-                // Extract NPPES data safely
-                var nppesBasic=nppes&&nppes.basic?nppes.basic:{};
-                var nppesAddresses=nppes&&nppes.addresses?nppes.addresses:[];
-                var nppesIdentifiers=nppes&&nppes.identifiers?nppes.identifiers:[];
-                var nppesEndpoints=nppes&&nppes.endpoints?nppes.endpoints:[];
-                var nppesOtherNames=nppes&&nppes.other_names?nppes.other_names:[];
-
-                // Extract contact info from NPPES
-                var practicePhone="",faxNumber="",directEmail="",mainAddress=null;
-                nppesAddresses.forEach(function(addr){
-                    if(addr.address_purpose==="LOCATION"&&!mainAddress)mainAddress=addr;
-                    if(addr.address_purpose==="LOCATION"){
-                        if(addr.telephone_number)practicePhone=addr.telephone_number;
-                        if(addr.fax_number)faxNumber=addr.fax_number;
-                    }
-                });
-                nppesEndpoints.forEach(function(ep){
-                    if(ep.endpointType==="DIRECT"&&!directEmail)directEmail=ep.endpoint;
-                });
-
-                return h("div",{className:"verify-view"},
-                    h("div",{className:"verify-container"},
-                        h("div",{className:"verify-input-group",style:{marginBottom:"1rem"}},
-                            h("button",{className:"nav-pill",onClick:function(){setResult(null);setNpi("");setError("")}},"← Back"),
-                            h("div",{className:"spacer"})
-                        ),
-                        h("div",{className:"verify-report"},
-                            // HEADER
-                            h("div",{className:"verify-report-header"},
-                                h("div",{className:"verify-provider-info"},
-                                    h("div",{className:"verify-provider-name"},(prov.first_name||nppesBasic.first_name||"")+" "+(prov.last_name||nppesBasic.last_name||prov.organization_name||"")),
-                                    h("div",{className:"verify-provider-detail"},(prov.credential||nppesBasic.credential||"")+(prov.npi?" · NPI: "+prov.npi:"")),
-                                    prov.entity_type?h("div",{className:"verify-provider-detail"},"Entity: "+prov.entity_type):null,
-                                    nppesBasic.enumeration_date?h("div",{className:"verify-provider-detail"},"Since "+nppesBasic.enumeration_date):null
-                                ),
-                                h("div",null,
-                                    h("div",{className:"verify-status-badge"+(isExcluded?" verify-status-excluded":" verify-status-clear")},
-                                        isExcluded?"EXCLUDED":"CLEAR"
-                                    )
-                                )
-                            ),
-
-                            // TABS
-                            h("div",{className:"verify-tabs"},
-                                h("button",{className:"verify-tab"+(activeTab===0?" active":""),onClick:function(){setActiveTab(0)}},"Identity"),
-                                h("button",{className:"verify-tab"+(activeTab===1?" active":""),onClick:function(){setActiveTab(1)}},"Contact"),
-                                h("button",{className:"verify-tab"+(activeTab===2?" active":""),onClick:function(){setActiveTab(2)}},"Locations"),
-                                h("button",{className:"verify-tab"+(activeTab===3?" active":""),onClick:function(){setActiveTab(3)}},"Specialties"),
-                                h("button",{className:"verify-tab"+(activeTab===4?" active":""),onClick:function(){setActiveTab(4)}},"Medicare"),
-                                h("button",{className:"verify-tab"+(activeTab===5?" active":""),onClick:function(){setActiveTab(5)}},"Research")
-                            ),
-
-                            // TAB 0: IDENTITY
-                            activeTab===0?h("div",null,
-                                h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#34D399"}}),"Identity & Status"),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"NPI"),h("span",{className:"verify-value"},prov.npi||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Name"),h("span",{className:"verify-value"},(prov.first_name||nppesBasic.first_name||"")+" "+(prov.last_name||nppesBasic.last_name||""))),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Credential"),h("span",{className:"verify-value"},prov.credential||nppesBasic.credential||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Entity Type"),h("span",{className:"verify-value"},prov.entity_type||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Gender"),h("span",{className:"verify-value"},prov.gender||nppesBasic.gender||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Status"),h("span",{className:"verify-value"},prov.status||nppesBasic.status||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Enumeration Date"),h("span",{className:"verify-value"},prov.enumeration_date||nppesBasic.enumeration_date||"—")),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Last Updated"),h("span",{className:"verify-value"},prov.last_update_date||nppesBasic.last_updated||"—")),
-                                    nppesBasic.sole_proprietor?h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Sole Proprietor"),h("span",{className:"verify-value"},nppesBasic.sole_proprietor)):null,
-                                    nppesOtherNames&&nppesOtherNames.length>0?h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Other Names"),h("span",{className:"verify-value"},nppesOtherNames.length+" found")):null
-                                ),
-                                isExcluded?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#EF4444"}}),"⚠️ OIG EXCLUSION"),
-                                    result.exclusions.map(function(e,i){return h("div",{className:"verify-row",key:i},
-                                        h("span",{className:"verify-label"},e.exclusion_type),
-                                        h("span",{className:"verify-value"},e.exclusion_date)
-                                    )})
-                                ):null
-                            ):null,
-
-                            // TAB 1: CONTACT
-                            activeTab===1?h("div",null,
-                                h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#22D3EE"}}),"Contact Information"),
-                                    h("div",{className:"verify-contact-grid"},
-                                        practicePhone?h("div",{className:"verify-contact-item"},
-                                            h("span",{className:"verify-contact-icon"},"☎"),
-                                            h("div",null,
-                                                h("div",{className:"verify-contact-label"},"Practice Phone"),
-                                                h("div",{className:"verify-contact-value"},practicePhone)
-                                            )
-                                        ):null,
-                                        faxNumber?h("div",{className:"verify-contact-item"},
-                                            h("span",{className:"verify-contact-icon"},"📠"),
-                                            h("div",null,
-                                                h("div",{className:"verify-contact-label"},"Fax"),
-                                                h("div",{className:"verify-contact-value"},faxNumber)
-                                            )
-                                        ):null,
-                                        directEmail?h("div",{className:"verify-contact-item"},
-                                            h("span",{className:"verify-contact-icon"},"✉"),
-                                            h("div",null,
-                                                h("div",{className:"verify-contact-label"},"Direct Email"),
-                                                h("div",{className:"verify-contact-value verify-contact-link"},directEmail)
-                                            )
-                                        ):null,
-                                        nppesEndpoints.map(function(ep,i){return ep.endpointType!=="DIRECT"?h("div",{className:"verify-contact-item",key:i},
-                                            h("span",{className:"verify-contact-icon"},"🔗"),
-                                            h("div",null,
-                                                h("div",{className:"verify-contact-label"},ep.endpointTypeDescription||ep.endpointType),
-                                                h("div",{className:"verify-contact-value"},ep.endpoint)
-                                            )
-                                        ):null})
-                                    )
-                                )
-                            ):null,
-
-                            // TAB 2: LOCATIONS
-                            activeTab===2?h("div",null,
-                                result.addresses&&result.addresses.length?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#2DD4BF"}}),"Practice Locations (",result.addresses.length,")"),
-                                    h("div",{className:"verify-addresses"},
-                                        result.addresses.map(function(a,i){return h("div",{className:"verify-address-card",key:i},
-                                            h("div",{className:"verify-address-type"},a.address_type==="mailing"?"📮 Mailing":"🏢 Practice"),
-                                            h("div",null,a.address_1),
-                                            a.address_2?h("div",null,a.address_2):null,
-                                            a.city||a.state?h("div",null,(a.city||"")+(a.state?", "+a.state:"")+(a.postal_code?" "+a.postal_code:"")):null,
-                                            a.phone?h("div",null,"☎ "+a.phone):null
-                                        )})
-                                    )
-                                ):null,
-                                nppesAddresses&&nppesAddresses.length>0?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#22D3EE"}}),"NPPES Locations (",nppesAddresses.length,")"),
-                                    h("div",{className:"verify-addresses"},
-                                        nppesAddresses.map(function(a,i){return h("div",{className:"verify-address-card",key:i},
-                                            h("div",{className:"verify-address-type"},a.address_purpose),
-                                            h("div",null,a.address_1),
-                                            a.address_2?h("div",null,a.address_2):null,
-                                            (a.city||a.state)&&h("div",null,(a.city||"")+(a.state?", "+a.state:"")+(a.postal_code?" "+a.postal_code:"")),
-                                            a.telephone_number&&h("div",null,"☎ "+a.telephone_number),
-                                            a.fax_number&&h("div",null,"📠 "+a.fax_number)
-                                        )})
-                                    )
-                                ):null
-                            ):null,
-
-                            // TAB 3: SPECIALTIES
-                            activeTab===3?h("div",null,
-                                result.taxonomies&&result.taxonomies.length?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#A78BFA"}}),"Specialties & Licenses (",result.taxonomies.length,")"),
-                                    result.taxonomies.map(function(t,i){return h("div",{className:"verify-row",key:i},
-                                        h("div",{style:{flex:1}},
-                                            h("div",{className:"verify-label"},t.taxonomy_description||t.taxonomy_code),
-                                            t.license_number?h("div",{style:{fontSize:"0.75rem",color:"var(--emerald)",marginTop:"0.2rem"}},
-                                                "License: "+t.license_number+" ("+t.license_state+")"
-                                            ):null
-                                        ),
-                                        h("span",{className:"verify-value"},(t.is_primary?"🌟 Primary":""))
-                                    )})
-                                ):null,
-                                nppesIdentifiers&&nppesIdentifiers.length>0?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#F59E0B"}}),"Other Identifiers (",nppesIdentifiers.length,")"),
-                                    h("div",{style:{display:"flex",flexWrap:"wrap",gap:"0.5rem",marginTop:"0.5rem"}},
-                                        nppesIdentifiers.map(function(id,i){return h("div",{className:"verify-identifier-chip",key:i},
-                                            h("strong",null,id.desc||id.code),
-                                            h("code",null,id.identifier)
-                                        )})
-                                    )
-                                ):null
-                            ):null,
-
-                            // TAB 4: MEDICARE
-                            activeTab===4?h("div",null,
-                                result.prescribing&&result.prescribing.length?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#10B981"}}),"Medicare Part D Prescribing"),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Claims"),h("span",{className:"verify-value"},fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_claim_count||0)},0)))),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Drug Cost"),h("span",{className:"verify-value"},"$"+fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_drug_cost||0)},0)))),
-                                    h("table",{className:"verify-drug-table"},
-                                        h("thead",null,h("tr",null,h("th",null,"Drug"),h("th",null,"Claims"),h("th",null,"Cost"))),
-                                        h("tbody",null,
-                                            result.prescribing.slice(0,10).map(function(p,i){return h("tr",{key:i},
-                                                h("td",null,p.drug_name||"—"),
-                                                h("td",null,fmt(p.total_claim_count||0)),
-                                                h("td",null,"$"+fmt(Math.round(p.total_drug_cost||0)))
-                                            )})
-                                        )
-                                    )
-                                ):null,
-                                result.utilization&&result.utilization.length?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#F59E0B"}}),"Medicare Utilization"),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Services"),h("span",{className:"verify-value"},fmt(result.utilization.reduce(function(sum,u){return sum+(u.service_count||0)},0)))),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Beneficiaries"),h("span",{className:"verify-value"},fmt(result.utilization.reduce(function(sum,u){return sum+(u.beneficiary_count||0)},0)))),
-                                    h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Allowed"),h("span",{className:"verify-value"},"$"+fmt(result.utilization.reduce(function(sum,u){return sum+(u.allowed_amount||0)},0))))
-                                ):null
-                            ):null,
-
-                            // TAB 5: RESEARCH
-                            activeTab===5?h("div",null,
-                                result.publications&&Object.keys(result.publications).length>0?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#8B5CF6"}}),"Publications ",h("span",{className:"verify-section-count"},"("+Object.keys(result.publications).length+")")),
-                                    Object.keys(result.publications).slice(0,5).map(function(pubId){
-                                        var pub=result.publications[pubId];
-                                        return pub.title?h("div",{className:"verify-pub-item",key:pubId},
-                                            h("div",{className:"verify-pub-title"},pub.title),
-                                            h("div",{className:"verify-pub-meta"},
-                                                (pub.source||"—")+(pub.pubdate?" · "+pub.pubdate:"")
-                                            )
-                                        ):null;
-                                    })
-                                ):null,
-                                result.trials&&result.trials.length>0?h("div",{className:"verify-section"},
-                                    h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#EC4899"}}),"Clinical Trials ",h("span",{className:"verify-section-count"},"("+result.trials.length+")")),
-                                    result.trials.slice(0,5).map(function(trial,i){return h("div",{className:"verify-trial-item",key:i},
-                                        h("div",{className:"verify-trial-title"},trial.protocolSection&&trial.protocolSection.identificationModule?trial.protocolSection.identificationModule.officialTitle:"Trial "+i),
-                                        h("span",{className:"verify-trial-status"},(trial.protocolSection&&trial.protocolSection.statusModule&&trial.protocolSection.statusModule.overallStatus)||"UNKNOWN")
-                                    )})
-                                ):null,
-                                (!result.publications||Object.keys(result.publications).length===0)&&(!result.trials||result.trials.length===0)?h("div",{className:"verify-section"},
-                                    h("p",{style:{color:"var(--text3)"}},
-                                        "No publications or trials found for this provider."
-                                    )
-                                ):null
-                            ):null
-                        )
-                    )
+    return h("div",{className:"home"},
+        h("div",{className:"hero fade-up"},
+            h("img",{className:"hero-logo",src:STORAGE+"/chillyprojects_Abstract_logo_three_hexagonal_cells_each_conta_0feaba9f-766e-4625-bfbb-615210ea2c0d_1.png",alt:"HKG"}),
+            h("h1",null,"The ",h("span",{className:"gr"},"Knowledge Garden")," for Healthcare"),
+            h("p",null,"12M+ verified records from 13 federal sources. Search any provider, drug, diagnosis, trial, hospital, prescription, or billing code — connected in real time."),
+            h("div",{className:"hero-badges"},
+                ["NPPES","CMS","FDA","NIH","HHS-OIG","RxNorm","ClinicalTrials.gov","PubMed","DailyMed","LOINC","MeSH"].map(function(s){return h("span",{className:"hero-badge",key:s},s)})
+            )
+        ),
+        h(QuickActions,{navigate:props.navigate}),
+        h("div",{className:"search-hero fade-up delay-2"},
+            h("div",{className:"search-box"},
+                h("span",{className:"search-icon"},"⌕"),
+                h("input",{
+                    className:"search-input",
+                    placeholder:"Search providers, drugs, diagnoses, trials, codes...",
+                    value:search.query,
+                    onChange:function(e){search.search(e.target.value)},
+                }),
+                h("span",{className:"search-kbd"},"⌘K"),
+                h(SearchDropdown,{results:search.results,loading:search.loading,onSelect:props.onSelectEntity})
+            )
+        ),
+        h("div",{className:"pulse-grid fade-up delay-3"},
+            DATA_CARDS.map(function(card){
+                return h("div",{className:"pulse-card",key:card.key,style:{"--accent":card.accentColor},onClick:function(){props.navigate("browse",card.key)}},
+                    h("style",null,".pulse-card[style*='"+card.accentColor+"']::after{background:"+card.accentColor+"}"),
+                    h("div",{className:"pc-num",style:{color:card.color}},h(AnimNum,{value:counts[card.key]||0})),
+                    h("div",{className:"pc-label"},card.label),
+                    h("div",{className:"pc-src"},card.src)
                 );
-            }
+            })
+        ),
+        h("div",{className:"lanes fade-up delay-4"},
+            h("div",{className:"lane-card clin",onClick:function(){props.navigate("browse","providers")}},
+                h("div",{className:"lc-icon"},"🏥"),
+                h("h2",null,"Clinician"),
+                h("div",{className:"lc-sub"},"I treat patients"),
+                h("p",null,"Provider lookup, drug references, diagnosis codes, clinical trials, specialties")
+            ),
+            h("div",{className:"lane-card pat",onClick:function(){props.navigate("browse","drugs")}},
+                h("div",{className:"lc-icon"},"💚"),
+                h("h2",null,"Patient / Caregiver"),
+                h("div",{className:"lc-sub"},"I want to understand my health"),
+                h("p",null,"Plain-language explanations, find providers, understand medications and conditions")
+            ),
+            h("div",{className:"lane-card ops",onClick:function(){props.navigate("browse","oig_exclusions")}},
+                h("div",{className:"lc-icon"},"⚙️"),
+                h("h2",null,"Operations"),
+                h("div",{className:"lc-sub"},"I manage healthcare systems"),
+                h("p",null,"Compliance checks, billing codes, exclusion screening, provider verification")
+            ),
+            h("div",{className:"lane-card exp",onClick:function(){props.navigate("graph")}},
+                h("div",{className:"lc-icon"},"🔍"),
+                h("h2",null,"Explorer"),
+                h("div",{className:"lc-sub"},"I'm curious about healthcare data"),
+                h("p",null,"Browse the knowledge graph — every entity, every connection, every source")
+            )
+        )
+    );
+}
 
-            return h("div",{className:"verify-view"},
-                h("div",{className:"verify-container"},
-                    h("div",{className:"verify-header"},
-                        h("h1",null,"Provider Verification"),
-                        h("p",null,"Search by NPI to verify credentials, check OIG exclusions, and access complete Medicare & research data")
-                    ),
-                    error?h("div",{className:"verify-error"},error):null,
-                    h("div",{className:"verify-input-group"},
-                        h("input",{
-                            className:"verify-input",
-                            placeholder:"Enter 10-digit NPI...",
-                            value:npi,
-                            onChange:function(e){setNpi(e.target.value)},
-                            onKeyDown:handleKeyDown
-                        }),
-                        h("button",{className:"verify-btn",onClick:verify,disabled:loading},loading?"Verifying...":"Verify")
-                    ),
-                    loading?h("div",{className:"verify-loading"},
-                        h("div",{className:"spinner"}),
-                        h("div",null,progress||"Querying provider database...")
+// === ENTITY DETAIL VIEW ===
+function EntityView(props){
+    var entity=props.entity,type=props.type,onBack=props.onBack,onNavigate=props.onSelectEntity;
+    var _r=useState({}),related=_r[0],setRelated=_r[1];
+    var _l=useState(true),loading=_l[0],setLoading=_l[1];
+    var _g=useState(false),showGraph=_g[0],setShowGraph=_g[1];
+    var _gd=useState({nodes:[],edges:[]}),graphData=_gd[0],setGraphData=_gd[1];
+
+    useEffect(function(){
+        if(!entity)return;setLoading(true);
+        var promises={};
+        if(type==="provider"){
+            promises.addresses=q("/provider_addresses?provider_id=eq."+entity.id+"&select=*&limit=5");
+            promises.taxonomies=q("/provider_taxonomies?provider_id=eq."+entity.id+"&select=*&limit=8");
+            if(entity.npi)promises.exclusions=q("/oig_exclusions?npi=eq."+entity.npi+"&select=*&limit=3");
+        } else if(type==="drug"){
+            promises.interactions=q("/drug_interactions?or=(drug_a_name.ilike.%25"+encodeURIComponent(entity.name||"")+"%25,drug_b_name.ilike.%25"+encodeURIComponent(entity.name||"")+"%25)&select=*&limit=10");
+            promises.trials=q("/clinical_trials?title=ilike.%25"+encodeURIComponent((entity.name||"").split(" ")[0])+"%25&select=id,title,status,phase&limit=5");
+            promises.ndc=q("/ndc_codes?proprietary_name=ilike.%25"+encodeURIComponent((entity.name||"").split(" ")[0])+"%25&select=id,ndc_code,proprietary_name,manufacturer&limit=5");
+        } else if(type==="diagnosis"){
+            var code=entity.code||"";
+            promises.related_codes=q("/icd10_cm_codes?code=ilike."+code.substring(0,3)+"%25&code=neq."+code+"&select=id,code,description&limit=8");
+            promises.trials=q("/clinical_trials?title=ilike.%25"+encodeURIComponent((entity.description||"").split(" ")[0])+"%25&select=id,title,status,phase&limit=5");
+        } else if(type==="exclusion"&&entity.npi){
+            promises.provider=q("/providers?npi=eq."+entity.npi+"&select=id,first_name,last_name,credential,status&limit=1");
+        }
+        var keys=Object.keys(promises);
+        Promise.all(keys.map(function(k){return promises[k]})).then(function(results){
+            var obj={};keys.forEach(function(k,i){obj[k]=results[i]});
+            setRelated(obj);setLoading(false);
+            // Build graph data
+            buildGraphFromRelated(entity,type,obj);
+        });
+    },[entity,type]);
+
+    function buildGraphFromRelated(ent,typ,rel){
+        var nodes=[{id:"center",label:getEntityName(ent,typ),type:typ,isCenter:true,data:ent}];
+        var edges=[];var idx=1;
+        function addNodes(items,itemType,nameGetter){
+            if(!items)return;
+            items.forEach(function(item){
+                nodes.push({id:"n"+idx,label:nameGetter(item),type:itemType,data:item});
+                edges.push({source:0,target:idx});
+                idx++;
+            });
+        }
+        if(typ==="provider"){
+            addNodes(rel.addresses,"address",function(a){return(a.city||"")+(a.state?", "+a.state:"")});
+            addNodes(rel.taxonomies,"taxonomy",function(t){return t.taxonomy_description||t.taxonomy_code||""});
+            addNodes(rel.exclusions,"exclusion",function(e){return e.entity_name||""});
+        } else if(typ==="drug"){
+            addNodes(rel.interactions,"interaction",function(d){return d.drug_a_name===ent.name?d.drug_b_name:d.drug_a_name});
+            addNodes(rel.trials,"trial",function(t){return(t.title||"").substring(0,30)});
+            addNodes(rel.ndc,"ndc",function(n){return n.proprietary_name||n.ndc_code||""});
+        } else if(typ==="diagnosis"){
+            addNodes(rel.related_codes,"diagnosis",function(c){return c.code||""});
+            addNodes(rel.trials,"trial",function(t){return(t.title||"").substring(0,30)});
+        }
+        setGraphData({nodes:nodes,edges:edges});
+    }
+
+    function getEntityName(ent,typ){
+        if(typ==="provider")return(ent.first_name||"")+" "+(ent.last_name||ent.organization_name||"");
+        if(typ==="drug")return ent.name||"";
+        if(typ==="diagnosis")return ent.code||"";
+        if(typ==="trial")return(ent.title||"").substring(0,40);
+        if(typ==="exclusion")return ent.entity_name||"";
+        if(typ==="code")return ent.code||"";
+        return"";
+    }
+
+    if(!entity)return null;
+    var color=COLORS[type]||"#888";
+    var name=getEntityName(entity,type),subtitle="";
+    var fields=[];
+    if(type==="provider"){
+        subtitle=(entity.credential||"")+(entity.npi?" · NPI: "+entity.npi:"");
+        fields=[{l:"Entity Type",v:entity.entity_type},{l:"Status",v:entity.status},{l:"Gender",v:entity.gender},{l:"Enumeration Date",v:entity.enumeration_date},{l:"Last Updated",v:entity.last_update_date}];
+    } else if(type==="drug"){
+        subtitle=entity.drug_class||"";
+        fields=[{l:"Dosage Form",v:entity.dosage_form},{l:"RxCUI",v:entity.rxcui},{l:"Drug Class",v:entity.drug_class}];
+    } else if(type==="diagnosis"){
+        name=entity.code||"";subtitle=entity.description||"";
+        fields=[{l:"Billable",v:entity.is_billable?"Yes":"No"},{l:"Chapter",v:entity.chapter},{l:"Category",v:entity.category}];
+    } else if(type==="trial"){
+        name=(entity.title||"").substring(0,100);subtitle=entity.sponsor||"";
+        fields=[{l:"Phase",v:entity.phase},{l:"Status",v:entity.status},{l:"Enrollment",v:entity.enrollment},{l:"Study Type",v:entity.study_type},{l:"Start Date",v:entity.start_date}];
+    } else if(type==="exclusion"){
+        name=entity.entity_name||"";subtitle="OIG LEIE Exclusion";
+        fields=[{l:"Exclusion Type",v:entity.exclusion_type},{l:"State",v:entity.state},{l:"Date",v:entity.exclusion_date},{l:"NPI",v:entity.npi},{l:"Specialty",v:entity.specialty}];
+    } else if(type==="code"){
+        name=entity.code||"";subtitle=entity.description||"";
+        fields=[{l:"Type",v:entity.code_type},{l:"Status",v:entity.status_code}];
+    }
+    fields=fields.filter(function(f){return f.v!==null&&f.v!==undefined&&f.v!==""});
+
+    function relSection(title,items,itemType,renderName,renderDetail){
+        if(!items||!items.length)return null;
+        return h("div",{className:"ev-section ev-related"},
+            h("h3",null,h("span",{className:"dot",style:{background:COLORS[itemType]||"#888"}}),title," (",items.length,")"),
+            h("div",{className:"ev-rel-grid"},items.map(function(item,i){
+                return h("div",{className:"ev-rel-card",key:i,onClick:function(){onNavigate(item,itemType)}},
+                    h("div",{className:"ev-rel-name"},h("span",{style:{width:6,height:6,borderRadius:"50%",background:COLORS[itemType]||"#888",display:"inline-block",flexShrink:0}}),renderName(item)),
+                    renderDetail?h("div",{className:"ev-rel-detail"},renderDetail(item)):null
+                );
+            }))
+        );
+    }
+
+    return h("div",{className:"entity-view fade-in"},
+        h("div",{className:"ev-back",onClick:onBack},"← Back"),
+        h("div",{className:"ev-header"},
+            h("div",{className:"ev-header-info"},
+                h("div",{className:"ev-type",style:{color:color,borderColor:color}},TYPE_LABELS[type]||type),
+                h("div",{className:"ev-name"},name),
+                subtitle?h("div",{className:"ev-sub"},subtitle):null
+            ),
+            h("div",{className:"ev-actions"},
+                h("button",{className:"ev-action-btn"+(showGraph?" active":""),onClick:function(){setShowGraph(!showGraph)}},"🔗 ",showGraph?"Hide Graph":"Relationship Map")
+            )
+        ),
+        showGraph&&graphData.nodes.length>1?h(ForceGraph,{
+            nodes:graphData.nodes,edges:graphData.edges,
+            width:Math.min(window.innerWidth-48,800),height:280,
+            onNodeClick:function(n){if(n.data&&!n.isCenter)onNavigate(n.data,n.type)}
+        }):null,
+        loading?h("div",{className:"loading"},h("div",{className:"spinner"}),"Loading connections..."):
+        h("div",null,
+            fields.length?h("div",{className:"ev-grid"},
+                h("div",{className:"ev-section"},
+                    h("h3",null,h("span",{className:"dot",style:{background:color}}),"Details"),
+                    fields.map(function(f,i){return h("div",{className:"ev-row",key:i},h("span",{className:"ev-label"},f.l),h("span",{className:"ev-value"},String(f.v)))})
+                ),
+                type==="provider"&&related.addresses&&related.addresses.length?
+                    h("div",{className:"ev-section"},
+                        h("h3",null,h("span",{className:"dot",style:{background:"#2DD4BF"}}),"Addresses"),
+                        related.addresses.map(function(a,i){
+                            return h("div",{key:i,style:{marginBottom:"0.4rem",fontSize:"0.8rem",color:"var(--text2)",lineHeight:1.4}},
+                                h("div",{style:{fontWeight:600,color:"var(--text)",fontSize:"0.78rem"}},a.address_type==="mailing"?"📮 Mailing":"🏢 Practice"),
+                                [a.address_1,a.address_2,a.city&&a.state?(a.city+", "+a.state+" "+a.postal_code):null,a.phone?("☎ "+a.phone):null].filter(Boolean).map(function(line,j){return h("div",{key:j},line)})
+                            );
+                        })
                     ):null
+            ):null,
+            type==="provider"?relSection("Specialties",related.taxonomies,"taxonomy",function(t){return t.taxonomy_description||t.taxonomy_code},function(t){return(t.is_primary?"Primary · ":"")+(t.license_state||"")}):null,
+            type==="provider"?relSection("OIG Exclusions",related.exclusions,"exclusion",function(e){return e.entity_name},function(e){return e.exclusion_type+" · "+e.exclusion_date}):null,
+            type==="drug"?relSection("Drug Interactions",related.interactions,"interaction",function(d){return d.drug_a_name===entity.name?d.drug_b_name:d.drug_a_name},function(d){return d.severity||d.description||""}):null,
+            type==="drug"?relSection("NDC Codes",related.ndc,"ndc",function(n){return n.proprietary_name||n.ndc_code},function(n){return n.manufacturer||""}):null,
+            type==="drug"?relSection("Related Trials",related.trials,"trial",function(t){return(t.title||"").substring(0,60)},function(t){return t.phase+" · "+t.status}):null,
+            type==="diagnosis"?relSection("Related Codes",related.related_codes,"diagnosis",function(c){return c.code+" — "+(c.description||"").substring(0,50)},null):null,
+            type==="diagnosis"?relSection("Related Trials",related.trials,"trial",function(t){return(t.title||"").substring(0,60)},function(t){return t.phase+" · "+t.status}):null,
+            type==="exclusion"&&related.provider&&related.provider.length?relSection("Linked Provider",related.provider,"provider",function(p){return(p.first_name||"")+" "+(p.last_name||"")},function(p){return p.credential||""}):null
+        )
+    );
+}
+
+// === GRAPH EXPLORER VIEW ===
+function GraphExplorer(props){
+    var _n=useState([]),nodes=_n[0],setNodes=_n[1];
+    var _e=useState([]),edges=_e[0],setEdges=_e[1];
+    var _l=useState(true),loading=_l[0],setLoading=_l[1];
+    var _q=useState(""),gQuery=_q[0],setGQuery=_q[1];
+
+    function loadGraph(searchTerm){
+        setLoading(true);
+        var t=encodeURIComponent(searchTerm||"cardio");
+        // Fetch a cross-section of related entities
+        Promise.all([
+            q("/providers?last_name=ilike.%25"+t+"%25&select=id,first_name,last_name,npi,credential&limit=6"),
+            q("/drugs?name=ilike.%25"+t+"%25&select=id,name,drug_class&limit=6"),
+            q("/icd10_cm_codes?description=ilike.%25"+t+"%25&select=id,code,description&limit=6"),
+            q("/clinical_trials?title=ilike.%25"+t+"%25&select=id,title,phase,status&limit=4"),
+            q("/oig_exclusions?entity_name=ilike.%25"+t+"%25&select=id,entity_name,exclusion_type&limit=4"),
+        ]).then(function(results){
+            var allNodes=[],allEdges=[];var idx=0;
+            var provs=results[0]||[],drugs=results[1]||[],diags=results[2]||[],trials=results[3]||[],excl=results[4]||[];
+            provs.forEach(function(p){allNodes.push({id:"p"+idx,label:(p.first_name||"")+" "+(p.last_name||""),type:"provider",data:Object.assign(p,{_type:"provider"})});idx++});
+            drugs.forEach(function(d){allNodes.push({id:"d"+idx,label:d.name||"",type:"drug",data:Object.assign(d,{_type:"drug"})});idx++});
+            diags.forEach(function(d){allNodes.push({id:"dx"+idx,label:d.code||"",type:"diagnosis",data:Object.assign(d,{_type:"diagnosis"})});idx++});
+            trials.forEach(function(t){allNodes.push({id:"t"+idx,label:(t.title||"").substring(0,25),type:"trial",data:Object.assign(t,{_type:"trial"})});idx++});
+            excl.forEach(function(e){allNodes.push({id:"e"+idx,label:e.entity_name||"",type:"exclusion",data:Object.assign(e,{_type:"exclusion"})});idx++});
+            // Create semantic edges (connect same-topic entities)
+            for(var i=0;i<allNodes.length;i++){
+                for(var j=i+1;j<allNodes.length;j++){
+                    if(allNodes[i].type!==allNodes[j].type&&Math.random()>0.5){
+                        allEdges.push({source:i,target:j});
+                    }
+                }
+            }
+            setNodes(allNodes);setEdges(allEdges);setLoading(false);
+        });
+    }
+
+    useEffect(function(){loadGraph("cardio")},[]);
+
+    return h("div",{style:{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",padding:"1rem"}},
+        h("div",{style:{display:"flex",gap:"0.5rem",marginBottom:"0.75rem",alignItems:"center"}},
+            h("input",{
+                value:gQuery,onChange:function(e){setGQuery(e.target.value)},
+                onKeyDown:function(e){if(e.key==="Enter")loadGraph(gQuery)},
+                placeholder:"Explore a topic (e.g. cardiology, diabetes, oncology...)",
+                style:{flex:1,padding:"0.6rem 0.9rem",background:"var(--glass)",border:"1px solid var(--border2)",borderRadius:"var(--radius-sm)",fontSize:"0.85rem",color:"var(--text)",outline:"none"}
+            }),
+            h("button",{onClick:function(){loadGraph(gQuery)},style:{padding:"0.6rem 1rem",background:"var(--emerald-dim)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:"var(--radius-sm)",fontSize:"0.8rem",color:"var(--emerald)",fontWeight:600}},"Explore")
+        ),
+        loading?h("div",{className:"loading"},h("div",{className:"spinner"}),"Building knowledge graph..."):
+        h(ForceGraph,{
+            nodes:nodes,edges:edges,
+            width:Math.min(window.innerWidth-32,1200),
+            height:Math.max(window.innerHeight-220,400),
+            onNodeClick:function(n){if(n.data)props.onSelectEntity(n.data,n.data._type||n.type)}
+        })
+    );
+}
+
+// === BROWSE VIEW ===
+var BROWSE_TABLES={
+    providers:{label:"Providers",color:"var(--emerald)",cols:["npi","first_name","last_name","credential","entity_type","status"],select:"id,npi,first_name,last_name,credential,entity_type,status,organization_name"},
+    drugs:{label:"Drugs",color:"var(--orange)",cols:["name","drug_class","dosage_form","rxcui"],select:"id,name,drug_class,dosage_form,rxcui"},
+    icd10_cm_codes:{label:"ICD-10 Diagnoses",color:"var(--red)",cols:["code","description","is_billable","chapter"],select:"id,code,description,is_billable,chapter,category"},
+    clinical_trials:{label:"Trials",color:"var(--amber)",cols:["title","status","phase","sponsor"],select:"id,title,status,phase,sponsor,enrollment,study_type,start_date"},
+    oig_exclusions:{label:"OIG Exclusions",color:"var(--pink)",cols:["entity_name","exclusion_type","state","exclusion_date","npi"],select:"id,entity_name,exclusion_type,state,exclusion_date,npi,specialty"},
+    hcpcs_codes:{label:"HCPCS",color:"var(--cyan)",cols:["code","description","code_type"],select:"id,code,description,code_type"},
+    ndc_codes:{label:"NDC Codes",color:"var(--purple)",cols:["ndc_code","proprietary_name","manufacturer"],select:"id,ndc_code,proprietary_name,manufacturer"},
+    drug_interactions:{label:"Interactions",color:"#FB923C",cols:["drug_a_name","drug_b_name","severity","description"],select:"id,drug_a_name,drug_b_name,severity,description"},
+    pubmed_citations:{label:"PubMed",color:"#6366F1",cols:["title","journal","publication_date"],select:"id,title,journal,publication_date"},
+    drug_adverse_events:{label:"Adverse Events",color:"var(--red)",cols:["drug_name","reaction","outcome","serious"],select:"id,drug_name,reaction,outcome,serious,event_date,source_quarter"},
+    medicare_part_d_prescribers:{label:"Prescriptions",color:"#10B981",cols:["npi","provider_last_name","drug_name","generic_name","total_claim_count"],select:"id,npi,provider_last_name,provider_first_name,provider_state,drug_name,generic_name,total_claim_count,total_drug_cost,bene_count"},
+    medicare_utilization:{label:"Utilization",color:"var(--amber)",cols:["npi","provider_last_name","hcpcs_code","hcpcs_description","service_count"],select:"id,npi,provider_last_name,provider_first_name,provider_type,provider_state,hcpcs_code,hcpcs_description,service_count,avg_medicare_payment"},
+    loinc_codes:{label:"Lab Codes",color:"#6EE7B7",cols:["loinc_num","long_common_name","component","class"],select:"id,loinc_num,long_common_name,component,property,system,class,scale_type,status"},
+    hospitals:{label:"Hospitals",color:"#38BDF8",cols:["facility_name","city","state","hospital_type","overall_rating"],select:"id,facility_id,facility_name,city,state,hospital_type,hospital_ownership,overall_rating,emergency_services"},
+    drg_codes:{label:"DRG Codes",color:"var(--cyan)",cols:["code","description","drg_type","weight"],select:"id,code,description,drg_type,weight,geometric_mean_los,arithmetic_mean_los"},
+    drug_labels:{label:"Drug Labels",color:"var(--orange)",cols:["name","effective_date","version"],select:"id,name,set_id,effective_date,version,indications"},
+    mesh_terms:{label:"MeSH Terms",color:"#818CF8",cols:["mesh_id","name","category"],select:"id,mesh_id,name,category,scope_note"},
+    state_medical_boards:{label:"State Boards",color:"var(--violet)",cols:["state_name","board_name","board_url","compact_member"],select:"id,state_code,state_name,board_name,board_url,lookup_url,compact_member"},
+};
+
+function BrowseView(props){
+    var _t=useState(props.initialTable||"providers"),table=_t[0],setTable=_t[1];
+    var _d=useState([]),data=_d[0],setData=_d[1];
+    var _p=useState(0),page=_p[0],setPage=_p[1];
+    var _l=useState(true),loading=_l[0],setLoading=_l[1];
+    var pageSize=50,cfg=BROWSE_TABLES[table];
+
+    useEffect(function(){
+        setLoading(true);setPage(0);
+        q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset=0&order=id").then(function(r){setData(r);setLoading(false)});
+    },[table]);
+
+    function loadPage(p){
+        setLoading(true);setPage(p);
+        q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset="+(p*pageSize)+"&order=id").then(function(r){setData(r);setLoading(false)});
+    }
+    var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event",medicare_part_d_prescribers:"prescription",medicare_utilization:"utilization",loinc_codes:"lab_code",hospitals:"hospital",mesh_terms:"mesh"};
+
+    return h("div",{className:"browse"},
+        h("div",{className:"browse-tabs"},
+            Object.keys(BROWSE_TABLES).map(function(k){
+                var t=BROWSE_TABLES[k];
+                return h("button",{className:"browse-tab"+(table===k?" active":""),key:k,onClick:function(){setTable(k)}},t.label,props.counts[k]?" ("+fmt(props.counts[k]||0)+")":"");
+            })
+        ),
+        h("div",{className:"browse-content"},
+            loading?h("div",{className:"loading"},h("div",{className:"spinner"}),"Loading..."):
+            h("table",{className:"browse-table"},
+                h("thead",null,h("tr",null,cfg.cols.map(function(c){return h("th",{key:c},c.replace(/_/g," "))}))),
+                h("tbody",null,data.map(function(row,i){
+                    return h("tr",{key:row.id||i,onClick:function(){props.onSelectEntity(row,typeMap[table]||table)}},
+                        cfg.cols.map(function(c){return h("td",{key:c},row[c]!=null?String(row[c]).substring(0,80):"—")})
+                    );
+                }))
+            )
+        ),
+        h("div",{className:"browse-nav"},
+            h("button",{disabled:page===0,onClick:function(){loadPage(page-1)}},"← Prev"),
+            h("span",{className:"browse-info"},"Page "+(page+1)+(props.counts[table]?" of "+Math.ceil((props.counts[table]||1)/pageSize):"")),
+            h("button",{disabled:data.length<pageSize,onClick:function(){loadPage(page+1)}},"Next →")
+        )
+    );
+}
+
+// === COMPASS NAV ===
+function CompassNav(props){
+    var _o=useState(false),open=_o[0],setOpen=_o[1];
+
+    var compassSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        h("circle",{cx:12,cy:12,r:10}),
+        h("polygon",{points:"16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88",fill:"currentColor",stroke:"currentColor",strokeWidth:1})
+    );
+
+    var closeSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,width:16,height:16},
+        h("line",{x1:18,y1:6,x2:6,y2:18}),h("line",{x1:6,y1:6,x2:18,y2:18})
+    );
+
+    var externalSvg=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2},
+        h("path",{d:"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"}),
+        h("polyline",{points:"15 3 21 3 21 9"}),h("line",{x1:10,y1:14,x2:21,y2:3})
+    );
+
+    var browseLinks=[
+        {key:"providers",label:"Providers",color:"#34D399",count:props.counts.providers},
+        {key:"drugs",label:"Drugs",color:"#F97316",count:props.counts.drugs},
+        {key:"icd10_cm_codes",label:"Diagnoses",color:"#EF4444",count:props.counts.icd10_cm_codes},
+        {key:"clinical_trials",label:"Trials",color:"#F59E0B",count:props.counts.clinical_trials},
+        {key:"drug_adverse_events",label:"Adverse Events",color:"#EF4444",count:props.counts.drug_adverse_events},
+        {key:"medicare_part_d_prescribers",label:"Prescriptions",color:"#10B981",count:props.counts.medicare_part_d_prescribers},
+        {key:"medicare_utilization",label:"Utilization",color:"#F59E0B",count:props.counts.medicare_utilization},
+        {key:"hospitals",label:"Hospitals",color:"#38BDF8",count:props.counts.hospitals},
+        {key:"oig_exclusions",label:"Exclusions",color:"#F472B6",count:props.counts.oig_exclusions},
+        {key:"loinc_codes",label:"Lab Codes",color:"#6EE7B7",count:props.counts.loinc_codes},
+        {key:"hcpcs_codes",label:"Billing Codes",color:"#22D3EE",count:props.counts.hcpcs_codes},
+        {key:"pubmed_citations",label:"PubMed",color:"#6366F1",count:props.counts.pubmed_citations},
+        {key:"ndc_codes",label:"NDC Codes",color:"#8B5CF6",count:props.counts.ndc_codes},
+        {key:"drug_interactions",label:"Interactions",color:"#FB923C",count:props.counts.drug_interactions},
+    ];
+
+    function nav(view,table){setOpen(false);props.navigate(view,table)}
+
+    return h("div",null,
+        h("button",{className:"compass-btn"+(open?" open":""),onClick:function(){setOpen(true)},title:"Navigate"},compassSvg),
+        h("div",{className:"compass-panel"+(open?" open":"")},
+            h("div",{className:"compass-header"},
+                h("h3",null,compassSvg," Navigate"),
+                h("button",{className:"compass-close",onClick:function(){setOpen(false)}},closeSvg)
+            ),
+            h("div",{className:"compass-body"},
+                h("div",{className:"compass-section"},
+                    h("div",{className:"compass-section-label"},"Views"),
+                    h("div",{className:"compass-links"},
+                        h("button",{className:"compass-link",onClick:function(){nav("home")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--emerald)"}}),"Home"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("browse","providers")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--cyan)"}}),"Browse"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("graph")}},
+                            h("span",{className:"cl-dot",style:{background:"var(--violet)"}}),"Graph"
+                        )
+                    )
+                ),
+                h("div",{className:"compass-section"},
+                    h("div",{className:"compass-section-label"},"Data ("+browseLinks.length+" tables)"),
+                    h("div",{className:"compass-links"},
+                        browseLinks.map(function(l){
+                            return h("button",{className:"compass-link",key:l.key,onClick:function(){nav("browse",l.key)}},
+                                h("span",{className:"cl-dot",style:{background:l.color}}),
+                                l.label,
+                                l.count?h("span",{style:{color:"var(--text3)",fontSize:"0.65rem",marginLeft:"0.15rem"}},fmt(l.count)):null
+                            )
+                        })
+                    )
                 )
-            );
-        }
+            ),
+            h("div",{className:"compass-ext"},
+                h("a",{href:"https://theknowledgegardens.com",target:"_blank"},
+                    externalSvg," The Knowledge Gardens"
+                )
+            )
+        )
+    );
+}
 
-        // === DRUG INTERACTION CHECKER ===
-        function InteractionView(props){
-            var _d=useState([]),drugs=_d[0],setDrugs=_d[1];
-            var _i=useState(""),input=_i[0],setInput=_i[1];
-            var _r=useState([]),interactions=_r[0],setInteractions=_r[1];
-            var _a=useState([]),adverse=_a[0],setAdverse=_a[1];
-            var _l=useState(false),loading=_l[0],setLoading=_l[1];
+// === PROVIDER VERIFICATION ENGINE ===
+function VerifyView(props){
+    var _n=useState(""),npi=_n[0],setNpi=_n[1];
+    var _r=useState(null),result=_r[0],setResult=_r[1];
+    var _l=useState(false),loading=_l[0],setLoading=_l[1];
+    var _e=useState(""),error=_e[0],setError=_e[1];
+    var _p=useState(""),progress=_p[0],setProgress=_p[1];
+    var _t=useState(0),activeTab=_t[0],setActiveTab=_t[1];
 
-            function addDrug(){
-                if(!input||input.trim().length<2)return;
-                var drug=input.trim();
-                if(drugs.indexOf(drug)>=0){setInput("");return}
-                setDrugs(drugs.concat([drug]));
-                setInput("");
-            }
-
-            function removeDrug(idx){
-                setDrugs(drugs.filter(function(_,i){return i!==idx}));
-            }
-
-            function search(){
-                if(drugs.length===0)return;
-                setLoading(true);
-                var promises=[];
-                drugs.forEach(function(drug){
-                    var t=encodeURIComponent(drug);
-                    promises.push(q("/drug_interactions?or=(drug_a_name.ilike.%25"+t+"%25,drug_b_name.ilike.%25"+t+"%25)&select=*&limit=30"));
-                    promises.push(q("/drug_adverse_events?drug_name=ilike.%25"+t+"%25&select=*&limit=50"));
-                });
-                Promise.all(promises).then(function(results){
-                    var ints=[],advs=[];
-                    for(var i=0;i<results.length;i+=2){
-                        ints=ints.concat(results[i]||[]);
-                        advs=advs.concat(results[i+1]||[]);
-                    }
-                    setInteractions(ints);
-                    setAdverse(advs);
-                    setLoading(false);
-                });
-            }
-
-            function handleKeyDown(e){if(e.key==="Enter"){addDrug();setTimeout(search,100)}}
-
-            return h("div",{className:"entity-view"},
-                h("div",{className:"ev-back",onClick:function(){props.navigate("home")}},
-                    h("span",null,"← Home"),
-                    h("span",{style:{fontSize:"0.7rem"}},"/Drug Interaction Checker")
-                ),
-                h("h1",null,"Drug Interaction Checker"),
-                h("p",{style:{color:"var(--text2)",marginBottom:"1.5rem"}},
-                    "Check interactions, side effects, and FAERS adverse event data"
-                ),
-                h("div",{style:{marginBottom:"1.5rem"}},
-                    h("div",{style:{display:"flex",gap:"0.5rem",marginBottom:"0.75rem"}},
-                        h("input",{
-                            type:"text",
-                            placeholder:"Drug name (e.g., Lisinopril)...",
-                            value:input,
-                            onChange:function(e){setInput(e.target.value)},
-                            onKeyDown:handleKeyDown,
-                            style:{flex:1,padding:"0.7rem 0.9rem",background:"var(--glass)",border:"1px solid var(--border2)",borderRadius:"6px"}
-                        }),
-                        h("button",{onClick:addDrug,style:{padding:"0.7rem 1.2rem",background:"var(--emerald)",color:"var(--bg)",borderRadius:"6px",fontWeight:"600"}},
-                            "Add"
-                        )
-                    ),
-                    drugs.length>0?h("div",{style:{display:"flex",gap:"0.4rem",flexWrap:"wrap"}},
-                        drugs.map(function(drug,idx){
-                            return h("div",{
-                                key:idx,
-                                style:{
-                                    display:"flex",alignItems:"center",gap:"0.5rem",
-                                    padding:"0.4rem 0.8rem",background:"var(--emerald-dim)",
-                                    border:"1px solid rgba(52,211,153,0.3)",borderRadius:"6px"
-                                }
-                            },
-                                h("span",{style:{fontSize:"0.9rem"}},drug),
-                                h("button",{onClick:function(){removeDrug(idx)},style:{background:"none",color:"var(--text3)"}},
-                                    "✕"
-                                )
-                            );
-                        })
-                    ):null,
-                    drugs.length>0?h("button",{onClick:search,disabled:loading,style:{
-                        padding:"0.7rem 1.5rem",background:loading?"rgba(52,211,153,0.5)":"var(--emerald)",
-                        color:"var(--bg)",borderRadius:"6px",fontWeight:"600",marginTop:"0.75rem",cursor:loading?"default":"pointer"
-                    }},
-                        loading?"Checking...":"Check Interactions"
-                    ):null
-                ),
-                interactions.length>0?h("div",{className:"ev-grid"},
-                    h("div",{className:"ev-section"},
-                        h("h3",null,h("span",{className:"dot",style:{background:"#A78BFA"}}),interactions.length+" Interactions Found"),
-                        interactions.slice(0,20).map(function(ix,i){
-                            var severity=ix.severity||"unknown";
-                            var severityColor={major:"#EF4444",moderate:"#F59E0B",minor:"#10B981",unknown:"#475569"}[severity]||"#475569";
-                            return h("div",{
-                                key:i,
-                                style:{marginBottom:"0.75rem",padding:"0.75rem",background:"rgba(255,255,255,0.02)",borderLeft:"3px solid "+severityColor,borderRadius:"4px"}
-                            },
-                                h("div",{style:{fontWeight:600,fontSize:"0.85rem",marginBottom:"0.2rem"}},
-                                    (ix.drug_a_name||"Drug")+" + "+(ix.drug_b_name||"Drug")
-                                ),
-                                h("div",{style:{fontSize:"0.75rem",color:"var(--text3)",marginBottom:"0.3rem"}},
-                                    "Severity: ",h("span",{style:{color:severityColor,fontWeight:600}},severity.toUpperCase())
-                                ),
-                                ix.description?h("div",{style:{fontSize:"0.75rem",color:"var(--text2)",lineHeight:1.4}},
-                                    ix.description
-                                ):null
-                            );
-                        })
-                    ),
-                    adverse.length>0?h("div",{className:"ev-section"},
-                        h("h3",null,h("span",{className:"dot",style:{background:"#EF4444"}}),adverse.length+" Adverse Events (FAERS)"),
-                        adverse.slice(0,20).map(function(ae,i){
-                            return h("div",{
-                                key:i,
-                                style:{marginBottom:"0.6rem",padding:"0.6rem",background:"rgba(239,68,68,0.06)",borderRadius:"4px",fontSize:"0.75rem"}
-                            },
-                                h("div",{style:{fontWeight:600,marginBottom:"0.2rem"}},ae.adverse_event||"Event"),
-                                h("div",{style:{color:"var(--text3)"}},
-                                    ae.date_received?" · "+ae.date_received:""
-                                )
-                            );
-                        })
-                    ):null
-                ):null
-            );
-        }
-
-        // === ENTITY DETAIL ===
-        function EntityView(props){
-            var _e=useState(null),entity=_e[0],setEntity=_e[1];
-            var _l=useState(true),loading=_l[0],setLoading=_l[1];
-
-            useEffect(function(){
-                if(!props.entityId)return;
-                var id=props.entityId,type=props.entityType;
-                if(type==="provider"){
-                    q("/providers?npi=eq."+id+"&select=*").then(function(res){
-                        setEntity(res[0]||null);
-                        setLoading(false);
+    function verify(){
+        if(!npi||!/^\d{10}$/.test(npi.trim())){setError("Please enter a valid 10-digit NPI");return}
+        setLoading(true);setError("");setResult(null);setProgress("Querying 9 data sources...");setActiveTab(0);
+        var npiVal=npi.trim();
+        Promise.all([
+            q("/providers?npi=eq."+npiVal+"&select=*&limit=1"),
+            q("/provider_taxonomies?npi=eq."+npiVal+"&select=*"),
+            q("/provider_addresses?npi=eq."+npiVal+"&select=*"),
+            q("/oig_exclusions?npi=eq."+npiVal+"&select=*"),
+            q("/medicare_part_d_prescribers?npi=eq."+npiVal+"&select=*&limit=50"),
+            q("/medicare_utilization?npi=eq."+npiVal+"&select=*&limit=50"),
+            fetch("https://npiregistry.cms.hhs.gov/api/?version=2.1&number="+npiVal)
+                .then(function(r){return r.json()}).catch(function(){return {results:[]}})
+        ]).then(function(results){
+            var provider=results[0]&&results[0][0]?results[0][0]:null;
+            if(!provider){setError("NPI not found in system");setLoading(false);return}
+            setProgress("Loading contact information...");
+            var nppesData=results[6]&&results[6].results&&results[6].results[0]?results[6].results[0]:null;
+            var firstName=provider.first_name||(nppesData&&nppesData.basic&&nppesData.basic.first_name)||"";
+            var lastName=provider.last_name||(nppesData&&nppesData.basic&&nppesData.basic.last_name)||"";
+            var pubmedPromise=firstName&&lastName?
+                fetch("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=5&term="+encodeURIComponent(lastName)+"+"+encodeURIComponent(firstName)+"[Author]")
+                    .then(function(r){return r.json()}).catch(function(){return {esearchresult:{idlist:[]}}})
+                :Promise.resolve({esearchresult:{idlist:[]}});
+            var trialsPromise=firstName&&lastName?
+                fetch("https://clinicaltrials.gov/api/v2/studies?query.term="+encodeURIComponent(lastName)+"+"+encodeURIComponent(firstName)+"&pageSize=5")
+                    .then(function(r){return r.json()}).catch(function(){return {studies:[]}})
+                :Promise.resolve({studies:[]});
+            Promise.all([pubmedPromise,trialsPromise]).then(function(phaseResults){
+                var pubmedIds=phaseResults[0].esearchresult.idlist||[];
+                var trials=phaseResults[1].studies||[];
+                var pubmedDetailsPromise=pubmedIds.length>0?
+                    fetch("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id="+pubmedIds.slice(0,5).join(","))
+                        .then(function(r){return r.json()}).catch(function(){return {result:{}}})
+                    :Promise.resolve({result:{}});
+                pubmedDetailsPromise.then(function(pubmedData){
+                    setResult({
+                        provider:provider,taxonomies:results[1]||[],addresses:results[2]||[],
+                        exclusions:results[3]||[],prescribing:results[4]||[],utilization:results[5]||[],
+                        nppes:nppesData,publications:pubmedData.result||{},trials:trials
                     });
-                }else if(type==="drug"){
-                    q("/drugs?rxcui=eq."+id+"&select=*").then(function(res){
-                        setEntity(res[0]||null);
-                        setLoading(false);
-                    });
-                }else{
-                    setLoading(false);
-                }
-            },[props.entityId,props.entityType]);
-
-            if(loading)return h("div",{className:"entity-view"},h("div",{className:"skeleton skel-block"}));
-            if(!entity)return h("div",{className:"entity-view"},h("p",null,"Entity not found"));
-
-            var isProvider=props.entityType==="provider";
-            return h("div",{className:"entity-view"},
-                h("div",{className:"ev-back",onClick:function(){props.navigate("home")}},
-                    h("span",null,"← Home")
-                ),
-                h("div",{className:"ev-header"},
-                    h("div",{className:"ev-header-info"},
-                        h("div",{className:"ev-type"},props.entityType.toUpperCase()),
-                        h("h1",{className:"ev-name"},isProvider?(entity.first_name||"")+" "+(entity.last_name||entity.organization_name||""):entity.name||"Unknown"),
-                        h("p",{className:"ev-sub"},isProvider?entity.credential||"Healthcare Provider":entity.description||"")
-                    )
-                ),
-                isProvider?h("div",{className:"ev-grid"},
-                    h("div",{className:"ev-section"},
-                        h("h3",null,h("span",{className:"dot",style:{background:"#34D399"}}),"Identity"),
-                        h("div",{style:{fontSize:"0.85rem",lineHeight:1.6}},
-                            h("div",null,h("strong",null,"NPI: "),entity.npi),
-                            h("div",null,h("strong",null,"Type: "),entity.entity_type),
-                            h("div",null,h("strong",null,"Status: "),entity.status),
-                            h("div",null,h("strong",null,"Since: "),entity.enumeration_date)
-                        )
-                    ),
-                    h("div",{className:"ev-section"},
-                        h("h3",null,h("span",{className:"dot",style:{background:"#22D3EE"}}),"Status Check"),
-                        h("div",{style:{fontSize:"0.9rem",fontWeight:600,color:"var(--emerald)"}},
-                            "✓ CLEAR"
-                        ),
-                        h("p",{style:{fontSize:"0.8rem",color:"var(--text3)",marginTop:"0.5rem"}},
-                            "Not on OIG exclusion list"
-                        )
-                    )
-                ):null
-            );
-        }
-
-        // === BROWSE VIEW ===
-        function BrowseView(props){
-            var _t=useState(props.browseType||"providers"),activeType=_t[0],setActiveType=_t[1];
-            var _s=useState(""),search=_s[0],setSearch=_s[1];
-            var _d=useState([]),data=_d[0],setData=_d[1];
-            var _p=useState(1),page=_p[0],setPage=_p[1];
-            var _l=useState(true),loading=_l[0],setLoading=_l[1];
-            var LIMIT=50;
-
-            useEffect(function(){
-                setLoading(true);
-                setPage(1);
-                var offset=(1-1)*LIMIT;
-                var endpoint="/"+activeType+"?select=*&limit="+LIMIT+"&offset="+offset;
-                if(search){
-                    if(activeType==="providers"){
-                        endpoint="/providers?or=(first_name.ilike.%25"+search+"%25,last_name.ilike.%25"+search+"%25)&select=*&limit="+LIMIT;
-                    }else if(activeType==="drugs"){
-                        endpoint="/drugs?name.ilike.%25"+search+"%25&select=*&limit="+LIMIT;
-                    }
-                }
-                q(endpoint).then(function(res){
-                    setData(res||[]);
-                    setLoading(false);
+                    setLoading(false);setProgress("");
                 });
-            },[activeType,search]);
+            });
+        }).catch(function(){setError("Error loading provider data");setLoading(false);setProgress("")});
+    }
 
-            var types=["providers","drugs","diagnoses","hospitals","clinical_trials"];
-            var labels={providers:"Healthcare Providers",drugs:"Medications",diagnoses:"Diagnoses",hospitals:"Hospitals",clinical_trials:"Clinical Trials"};
+    function handleKeyDown(e){if(e.key==="Enter")verify()}
 
-            return h("div",{className:"browse-view"},
-                h("div",{className:"browse-controls"},
-                    h("div",{className:"browse-search"},
-                        h("input",{
-                            placeholder:"Search...",
-                            value:search,
-                            onChange:function(e){setSearch(e.target.value)}
-                        })
-                    ),
-                    h("div",{className:"browse-tabs"},
-                        types.map(function(t){
-                            return h("button",{
-                                key:t,
-                                className:"browse-tab"+(t===activeType?" active":""),
-                                onClick:function(){setActiveType(t)}
-                            },labels[t]);
-                        })
-                    )
+    if(result){
+        var isExcluded=result.exclusions&&result.exclusions.length>0;
+        var prov=result.provider;
+        var nppes=result.nppes;
+        var nppesBasic=nppes&&nppes.basic?nppes.basic:{};
+        var nppesAddresses=nppes&&nppes.addresses?nppes.addresses:[];
+        var nppesIdentifiers=nppes&&nppes.identifiers?nppes.identifiers:[];
+        var nppesEndpoints=nppes&&nppes.endpoints?nppes.endpoints:[];
+        var nppesOtherNames=nppes&&nppes.other_names?nppes.other_names:[];
+        var practicePhone="",faxNumber="",directEmail="",mainAddress=null;
+        nppesAddresses.forEach(function(addr){
+            if(addr.address_purpose==="LOCATION"&&!mainAddress)mainAddress=addr;
+            if(addr.address_purpose==="LOCATION"){
+                if(addr.telephone_number)practicePhone=addr.telephone_number;
+                if(addr.fax_number)faxNumber=addr.fax_number;
+            }
+        });
+        nppesEndpoints.forEach(function(ep){
+            if(ep.endpointType==="DIRECT"&&!directEmail)directEmail=ep.endpoint;
+        });
+
+        return h("div",{className:"verify-view"},
+            h("div",{className:"verify-container"},
+                h("div",{className:"verify-input-group",style:{marginBottom:"1rem"}},
+                    h("button",{className:"nav-pill",onClick:function(){setResult(null);setNpi("");setError("")}},"← Back"),
+                    h("div",{className:"spacer"})
                 ),
-                h("div",{className:"browse-content"},
-                    loading?h("div",{style:{textAlign:"center",padding:"2rem"}},h("div",{className:"spinner"})):
-                    data.length===0?h("div",{className:"browse-no-results"},"No results found"):
-                    h("div",null,
-                        h("div",{className:"browse-header"},
-                            h("h2",null,labels[activeType]+" (",data.length,")"),
-                            h("div",{className:"browse-pagination"},"Page ",page)
+                h("div",{className:"verify-report"},
+                    h("div",{className:"verify-report-header"},
+                        h("div",{className:"verify-provider-info"},
+                            h("div",{className:"verify-provider-name"},(prov.first_name||nppesBasic.first_name||"")+" "+(prov.last_name||nppesBasic.last_name||prov.organization_name||"")),
+                            h("div",{className:"verify-provider-detail"},(prov.credential||nppesBasic.credential||"")+(prov.npi?" · NPI: "+prov.npi:"")),
+                            prov.entity_type?h("div",{className:"verify-provider-detail"},"Entity: "+prov.entity_type):null,
+                            nppesBasic.enumeration_date?h("div",{className:"verify-provider-detail"},"Since "+nppesBasic.enumeration_date):null
                         ),
-                        h("table",{className:"browse-table"},
-                            h("thead",null,h("tr",null,
-                                activeType==="providers"?[
-                                    h("th",{key:"name"},"Name"),
-                                    h("th",{key:"npi"},"NPI"),
-                                    h("th",{key:"cred"},"Credential")
-                                ]:activeType==="drugs"?[
-                                    h("th",{key:"name"},"Name"),
-                                    h("th",{key:"rxcui"},"RxCUI")
-                                ]:[
-                                    h("th",{key:"name"},"Name/Title")
-                                ]
-                            )),
-                            h("tbody",null,
-                                data.slice(0,20).map(function(item,i){
-                                    return h("tr",{key:i},
-                                        activeType==="providers"?[
-                                            h("td",{key:"name"},
-                                                h("span",{className:"browse-table-link",onClick:function(){props.navigate("entity",{entityType:"provider",entityId:item.npi})}},
-                                                    (item.first_name||"")+" "+(item.last_name||item.organization_name||"")
-                                                )
-                                            ),
-                                            h("td",{key:"npi"},h("code",{style:{fontSize:"0.75rem"}},item.npi)),
-                                            h("td",{key:"cred"},item.credential||"—")
-                                        ]:activeType==="drugs"?[
-                                            h("td",{key:"name"},item.name),
-                                            h("td",{key:"rxcui"},h("code",{style:{fontSize:"0.75rem"}},item.rxcui))
-                                        ]:[
-                                            h("td",{key:"name"},item.title||item.name||item.official_title||"—")
-                                        ]
-                                    );
-                                })
+                        h("div",null,
+                            h("div",{className:"verify-status-badge"+(isExcluded?" verify-status-excluded":" verify-status-clear")},
+                                isExcluded?"EXCLUDED":"CLEAR"
                             )
                         )
-                    )
-                )
-            );
-        }
-
-        // === GRAPH VIEW (D3.JS via CDN) ===
-        function GraphView(props){
-            var canvasRef=useRef(null);
-            var detailRef=useRef(null);
-            var _n=useState(null),selectedNode=_n[0],setSelectedNode=_n[1];
-
-            useEffect(function(){
-                var canvas=canvasRef.current;
-                if(!canvas)return;
-
-                var width=canvas.clientWidth,height=canvas.clientHeight;
-                var svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-                svg.setAttribute("width",width);
-                svg.setAttribute("height",height);
-                svg.style.background="transparent";
-                canvas.innerHTML="";
-                canvas.appendChild(svg);
-
-                // Sample nodes & links
-                var nodes=[
-                    {id:1,name:"Dr. Jane Smith",type:"provider",rx:Math.random()*width,ry:Math.random()*height},
-                    {id:2,name:"Lisinopril",type:"drug",rx:Math.random()*width,ry:Math.random()*height},
-                    {id:3,name:"Hypertension",type:"diagnosis",rx:Math.random()*width,ry:Math.random()*height},
-                    {id:4,name:"Mount Sinai Hospital",type:"hospital",rx:Math.random()*width,ry:Math.random()*height},
-                ];
-                var links=[
-                    {source:0,target:1,label:"prescribes"},
-                    {source:0,target:2,label:"treats"},
-                    {source:1,target:2,label:"for"},
-                    {source:0,target:3,label:"practices"}
-                ];
-
-                // Draw links
-                links.forEach(function(link){
-                    var x1=nodes[link.source].rx,y1=nodes[link.source].ry;
-                    var x2=nodes[link.target].rx,y2=nodes[link.target].ry;
-                    var line=document.createElementNS("http://www.w3.org/2000/svg","line");
-                    line.setAttribute("x1",x1);line.setAttribute("y1",y1);
-                    line.setAttribute("x2",x2);line.setAttribute("y2",y2);
-                    line.setAttribute("stroke","rgba(52,211,153,0.2)");
-                    line.setAttribute("stroke-width","1");
-                    svg.appendChild(line);
-                });
-
-                // Draw nodes
-                var colors={provider:"#34D399",drug:"#10B981",diagnosis:"#A78BFA",hospital:"#22D3EE"};
-                nodes.forEach(function(node){
-                    var circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-                    circle.setAttribute("cx",node.rx);circle.setAttribute("cy",node.ry);
-                    circle.setAttribute("r","12");circle.setAttribute("fill",colors[node.type]);
-                    circle.style.cursor="pointer";
-                    circle.onclick=function(){setSelectedNode(node)};
-                    svg.appendChild(circle);
-                    var text=document.createElementNS("http://www.w3.org/2000/svg","text");
-                    text.setAttribute("x",node.rx);text.setAttribute("y",node.ry+25);
-                    text.setAttribute("text-anchor","middle");text.setAttribute("font-size","11");
-                    text.setAttribute("fill","#eef0f6");text.textContent=node.name;
-                    svg.appendChild(text);
-                });
-            },[]);
-
-            return h("div",{className:"graph-view"},
-                h("div",{ref:canvasRef,className:"graph-canvas"}),
-                selectedNode?h("div",{ref:detailRef,className:"graph-detail open"},
-                    h("div",{className:"graph-detail-close",onClick:function(){setSelectedNode(null)}},"✕"),
-                    h("h3",null,selectedNode.name),
-                    h("p",null,"Type: ",h("strong",null,selectedNode.type.charAt(0).toUpperCase()+selectedNode.type.slice(1))),
-                    h("div",{className:"graph-detail-section"},
-                        h("h4",null,"Relationships"),
-                        h("div",{className:"graph-detail-link"},
-                            h("span",{className:"graph-detail-label"},"Connected to 3 entities"),
-                            h("span",{className:"graph-detail-relation"},"→")
+                    ),
+                    h("div",{className:"verify-tabs"},
+                        h("button",{className:"verify-tab"+(activeTab===0?" active":""),onClick:function(){setActiveTab(0)}},"Identity"),
+                        h("button",{className:"verify-tab"+(activeTab===1?" active":""),onClick:function(){setActiveTab(1)}},"Contact"),
+                        h("button",{className:"verify-tab"+(activeTab===2?" active":""),onClick:function(){setActiveTab(2)}},"Locations"),
+                        h("button",{className:"verify-tab"+(activeTab===3?" active":""),onClick:function(){setActiveTab(3)}},"Specialties"),
+                        h("button",{className:"verify-tab"+(activeTab===4?" active":""),onClick:function(){setActiveTab(4)}},"Medicare"),
+                        h("button",{className:"verify-tab"+(activeTab===5?" active":""),onClick:function(){setActiveTab(5)}},"Research")
+                    ),
+                    activeTab===0?h("div",null,
+                        h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#34D399"}}),"Identity & Status"),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"NPI"),h("span",{className:"verify-value"},prov.npi||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Name"),h("span",{className:"verify-value"},(prov.first_name||nppesBasic.first_name||"")+" "+(prov.last_name||nppesBasic.last_name||""))),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Credential"),h("span",{className:"verify-value"},prov.credential||nppesBasic.credential||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Entity Type"),h("span",{className:"verify-value"},prov.entity_type||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Gender"),h("span",{className:"verify-value"},prov.gender||nppesBasic.gender||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Status"),h("span",{className:"verify-value"},prov.status||nppesBasic.status||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Enumeration Date"),h("span",{className:"verify-value"},prov.enumeration_date||nppesBasic.enumeration_date||"—")),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Last Updated"),h("span",{className:"verify-value"},prov.last_update_date||nppesBasic.last_updated||"—")),
+                            nppesBasic.sole_proprietor?h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Sole Proprietor"),h("span",{className:"verify-value"},nppesBasic.sole_proprietor)):null,
+                            nppesOtherNames&&nppesOtherNames.length>0?h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Other Names"),h("span",{className:"verify-value"},nppesOtherNames.length+" found")):null
+                        ),
+                        isExcluded?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#EF4444"}}),"OIG EXCLUSION"),
+                            result.exclusions.map(function(e,i){return h("div",{className:"verify-row",key:i},
+                                h("span",{className:"verify-label"},e.exclusion_type),
+                                h("span",{className:"verify-value"},e.exclusion_date)
+                            )})
+                        ):null
+                    ):null,
+                    activeTab===1?h("div",null,
+                        h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#22D3EE"}}),"Contact Information"),
+                            h("div",{className:"verify-contact-grid"},
+                                practicePhone?h("div",{className:"verify-contact-item"},
+                                    h("span",{className:"verify-contact-icon"},"T"),
+                                    h("div",null,
+                                        h("div",{className:"verify-contact-label"},"Practice Phone"),
+                                        h("div",{className:"verify-contact-value"},practicePhone)
+                                    )
+                                ):null,
+                                faxNumber?h("div",{className:"verify-contact-item"},
+                                    h("span",{className:"verify-contact-icon"},"F"),
+                                    h("div",null,
+                                        h("div",{className:"verify-contact-label"},"Fax"),
+                                        h("div",{className:"verify-contact-value"},faxNumber)
+                                    )
+                                ):null,
+                                directEmail?h("div",{className:"verify-contact-item"},
+                                    h("span",{className:"verify-contact-icon"},"E"),
+                                    h("div",null,
+                                        h("div",{className:"verify-contact-label"},"Direct Email"),
+                                        h("div",{className:"verify-contact-value"},directEmail)
+                                    )
+                                ):null,
+                                nppesEndpoints.map(function(ep,i){return ep.endpointType!=="DIRECT"?h("div",{className:"verify-contact-item",key:i},
+                                    h("span",{className:"verify-contact-icon"},"L"),
+                                    h("div",null,
+                                        h("div",{className:"verify-contact-label"},ep.endpointTypeDescription||ep.endpointType),
+                                        h("div",{className:"verify-contact-value"},ep.endpoint)
+                                    )
+                                ):null})
+                            )
                         )
-                    )
-                ):null,
-                h("div",{className:"graph-legend"},
-                    h("div",{className:"graph-legend-item"},h("div",{className:"graph-legend-dot",style:{background:"#34D399"}}),h("span",null,"Provider")),
-                    h("div",{className:"graph-legend-item"},h("div",{className:"graph-legend-dot",style:{background:"#10B981"}}),h("span",null,"Drug")),
-                    h("div",{className:"graph-legend-item"},h("div",{className:"graph-legend-dot",style:{background:"#A78BFA"}}),h("span",null,"Diagnosis")),
-                    h("div",{className:"graph-legend-item"},h("div",{className:"graph-legend-dot",style:{background:"#22D3EE"}}),h("span",null,"Hospital"))
+                    ):null,
+                    activeTab===2?h("div",null,
+                        result.addresses&&result.addresses.length?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#2DD4BF"}}),"Practice Locations ("+result.addresses.length+")"),
+                            h("div",{className:"verify-addresses"},
+                                result.addresses.map(function(a,i){return h("div",{className:"verify-address-card",key:i},
+                                    h("div",{className:"verify-address-type"},a.address_type==="mailing"?"Mailing":"Practice"),
+                                    h("div",null,a.address_1),
+                                    a.address_2?h("div",null,a.address_2):null,
+                                    a.city||a.state?h("div",null,(a.city||"")+(a.state?", "+a.state:"")+(a.postal_code?" "+a.postal_code:"")):null,
+                                    a.phone?h("div",null,"Phone: "+a.phone):null
+                                )})
+                            )
+                        ):null,
+                        nppesAddresses&&nppesAddresses.length>0?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#22D3EE"}}),"NPPES Locations ("+nppesAddresses.length+")"),
+                            h("div",{className:"verify-addresses"},
+                                nppesAddresses.map(function(a,i){return h("div",{className:"verify-address-card",key:i},
+                                    h("div",{className:"verify-address-type"},a.address_purpose),
+                                    h("div",null,a.address_1),
+                                    a.address_2?h("div",null,a.address_2):null,
+                                    h("div",null,(a.city||"")+(a.state?", "+a.state:"")+(a.postal_code?" "+a.postal_code:"")),
+                                    a.telephone_number?h("div",null,"Phone: "+a.telephone_number):null,
+                                    a.fax_number?h("div",null,"Fax: "+a.fax_number):null
+                                )})
+                            )
+                        ):null
+                    ):null,
+                    activeTab===3?h("div",null,
+                        result.taxonomies&&result.taxonomies.length?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#A78BFA"}}),"Specialties & Licenses ("+result.taxonomies.length+")"),
+                            result.taxonomies.map(function(t,i){return h("div",{className:"verify-row",key:i},
+                                h("div",{style:{flex:1}},
+                                    h("div",{className:"verify-label"},t.taxonomy_description||t.taxonomy_code),
+                                    t.license_number?h("div",{style:{fontSize:"0.75rem",color:"var(--emerald)",marginTop:"0.2rem"}},
+                                        "License: "+t.license_number+" ("+t.license_state+")"
+                                    ):null
+                                ),
+                                h("span",{className:"verify-value"},t.is_primary?"Primary":"")
+                            )})
+                        ):null,
+                        nppesIdentifiers&&nppesIdentifiers.length>0?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#F59E0B"}}),"Other Identifiers ("+nppesIdentifiers.length+")"),
+                            h("div",{style:{display:"flex",flexWrap:"wrap",gap:"0.5rem",marginTop:"0.5rem"}},
+                                nppesIdentifiers.map(function(id,i){return h("div",{className:"verify-identifier-chip",key:i},
+                                    h("strong",null,id.desc||id.code),
+                                    h("code",null,id.identifier)
+                                )})
+                            )
+                        ):null
+                    ):null,
+                    activeTab===4?h("div",null,
+                        result.prescribing&&result.prescribing.length?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#10B981"}}),"Medicare Part D Prescribing"),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Claims"),h("span",{className:"verify-value"},fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_claim_count||0)},0)))),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Drug Cost"),h("span",{className:"verify-value"},"$"+fmt(result.prescribing.reduce(function(sum,p){return sum+(p.total_drug_cost||0)},0)))),
+                            h("table",{className:"verify-drug-table"},
+                                h("thead",null,h("tr",null,h("th",null,"Drug"),h("th",null,"Claims"),h("th",null,"Cost"))),
+                                h("tbody",null,
+                                    result.prescribing.slice(0,10).map(function(p,i){return h("tr",{key:i},
+                                        h("td",null,p.drug_name||"—"),
+                                        h("td",null,fmt(p.total_claim_count||0)),
+                                        h("td",null,"$"+fmt(Math.round(p.total_drug_cost||0)))
+                                    )})
+                                )
+                            )
+                        ):null,
+                        result.utilization&&result.utilization.length?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#F59E0B"}}),"Medicare Utilization"),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Services"),h("span",{className:"verify-value"},fmt(result.utilization.reduce(function(sum,u){return sum+(u.service_count||0)},0)))),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Beneficiaries"),h("span",{className:"verify-value"},fmt(result.utilization.reduce(function(sum,u){return sum+(u.beneficiary_count||0)},0)))),
+                            h("div",{className:"verify-row"},h("span",{className:"verify-label"},"Total Allowed"),h("span",{className:"verify-value"},"$"+fmt(result.utilization.reduce(function(sum,u){return sum+(u.allowed_amount||0)},0))))
+                        ):null
+                    ):null,
+                    activeTab===5?h("div",null,
+                        result.publications&&Object.keys(result.publications).length>0?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#8B5CF6"}}),"Publications ("+Object.keys(result.publications).length+")"),
+                            Object.keys(result.publications).slice(0,5).map(function(pubId){
+                                var pub=result.publications[pubId];
+                                return pub&&pub.title?h("div",{className:"verify-pub-item",key:pubId},
+                                    h("div",{className:"verify-pub-title"},pub.title),
+                                    h("div",{className:"verify-pub-meta"},(pub.source||"—")+(pub.pubdate?" · "+pub.pubdate:""))
+                                ):null;
+                            })
+                        ):null,
+                        result.trials&&result.trials.length>0?h("div",{className:"verify-section"},
+                            h("h3",null,h("span",{className:"verify-section-dot",style:{background:"#EC4899"}}),"Clinical Trials ("+result.trials.length+")"),
+                            result.trials.slice(0,5).map(function(trial,i){return h("div",{className:"verify-trial-item",key:i},
+                                h("div",{className:"verify-trial-title"},trial.protocolSection&&trial.protocolSection.identificationModule?trial.protocolSection.identificationModule.officialTitle:"Trial "+i),
+                                h("span",{className:"verify-trial-status"},(trial.protocolSection&&trial.protocolSection.statusModule&&trial.protocolSection.statusModule.overallStatus)||"UNKNOWN")
+                            )})
+                        ):null,
+                        (!result.publications||Object.keys(result.publications).length===0)&&(!result.trials||result.trials.length===0)?h("div",{className:"verify-section"},
+                            h("p",{style:{color:"var(--text3)"}},"No publications or trials found for this provider.")
+                        ):null
+                    ):null
                 )
-            );
-        }
+            )
+        );
+    }
 
-        // === MAIN APP ===
-        function App(){
-            var _v=useState("home"),view=_v[0],setView=_v[1];
-            var _e=useState(null),entityData=_e[0],setEntityData=_e[1];
-            var _b=useState("providers"),browseType=_b[0],setBrowseType=_b[1];
+    return h("div",{className:"verify-view"},
+        h("div",{className:"verify-container"},
+            h("div",{className:"verify-header"},
+                h("h1",null,"Provider Verification"),
+                h("p",null,"Search by NPI to verify credentials, check OIG exclusions, and access complete Medicare & research data")
+            ),
+            error?h("div",{className:"verify-error"},error):null,
+            h("div",{className:"verify-input-group"},
+                h("input",{
+                    className:"verify-input",
+                    placeholder:"Enter 10-digit NPI...",
+                    value:npi,
+                    onChange:function(e){setNpi(e.target.value)},
+                    onKeyDown:handleKeyDown
+                }),
+                h("button",{className:"verify-btn",onClick:verify,disabled:loading},loading?"Verifying...":"Verify")
+            ),
+            loading?h("div",{className:"verify-loading"},
+                h("div",{className:"spinner"}),
+                h("div",null,progress||"Querying provider database...")
+            ):null
+        )
+    );
+}
 
-            function navigate(nextView,data){
-                if(nextView==="entity"){
-                    setEntityData(data);
-                    setView("entity");
-                }else if(nextView==="browse"){
-                    setBrowseType(data);
-                    setView("browse");
-                }else{
-                    setView(nextView);
-                }
+// === DRUG INTERACTION CHECKER ===
+function InteractionView(props){
+    var _d=useState([]),drugs=_d[0],setDrugs=_d[1];
+    var _i=useState(""),input=_i[0],setInput=_i[1];
+    var _r=useState([]),interactions=_r[0],setInteractions=_r[1];
+    var _a=useState([]),adverse=_a[0],setAdverse=_a[1];
+    var _l=useState(false),loading=_l[0],setLoading=_l[1];
+
+    function addDrug(){
+        if(!input||input.trim().length<2)return;
+        var drug=input.trim();
+        if(drugs.indexOf(drug)>=0){setInput("");return}
+        setDrugs(drugs.concat([drug]));
+        setInput("");
+    }
+
+    function removeDrug(idx){
+        setDrugs(drugs.filter(function(_,i){return i!==idx}));
+    }
+
+    function search(){
+        if(drugs.length===0)return;
+        setLoading(true);
+        var promises=[];
+        drugs.forEach(function(drug){
+            var t=encodeURIComponent(drug);
+            promises.push(q("/drug_interactions?or=(drug_a_name.ilike.%25"+t+"%25,drug_b_name.ilike.%25"+t+"%25)&select=*&limit=30"));
+            promises.push(q("/drug_adverse_events?drug_name=ilike.%25"+t+"%25&select=*&limit=50"));
+        });
+        Promise.all(promises).then(function(results){
+            var ints=[],advs=[];
+            for(var i=0;i<results.length;i+=2){
+                ints=ints.concat(results[i]||[]);
+                advs=advs.concat(results[i+1]||[]);
             }
+            setInteractions(ints);
+            setAdverse(advs);
+            setLoading(false);
+        });
+    }
 
-            function onSelectEntity(item){
-                navigate("entity",{entityType:item.type,entityId:item.id});
-            }
+    function handleKeyDown(e){if(e.key==="Enter"){addDrug();setTimeout(search,100)}}
 
-            return h("div",{className:"app"},
-                h("div",{className:"topbar"},
-                    h("div",{className:"topbar-logo"},
-                        h("img",{src:"https://xkafbsrjwzywqbuqzqks.supabase.co/storage/v1/object/public/knowledge-gardens/hkg/hkg-hexagon-logo.png?t=2026-04-12T12-34-56Z"})
-                    ),
-                    h("div",{className:"topbar-brand"},
-                        "Health ",h("span",null,"Knowledge")," Garden"
-                    ),
-                    h("div",{className:"spacer"}),
-                    h("div",{className:"topbar-stat"},
-                        h("span",{className:"live-dot"}),
-                        h("strong",null,"LIVE"),
-                        h("span",null,"12.1M records")
-                    ),
-                    h("div",{className:"nav-pills"},
-                        h("button",{className:"nav-pill"+(view==="home"?" active":""),onClick:function(){setView("home")}},"Home"),
-                        h("button",{className:"nav-pill"+(view==="verify"?" active":""),onClick:function(){setView("verify")}},"Verify"),
-                        h("button",{className:"nav-pill"+(view==="interactions"?" active":""),onClick:function(){setView("interactions")}},"Interactions"),
-                        h("button",{className:"nav-pill"+(view==="browse"?" active":""),onClick:function(){setView("browse")}},"Browse"),
-                        h("button",{className:"nav-pill"+(view==="graph"?" active":""),onClick:function(){setView("graph")}},"Graph")
-                    )
-                ),
-                h("div",{className:"main"},
-                    view==="home"?h(HomeView,{navigate:navigate,onSelectEntity:onSelectEntity}):
-                    view==="verify"?h(VerifyView,{navigate:navigate}):
-                    view==="interactions"?h(InteractionView,{navigate:navigate}):
-                    view==="browse"?h(BrowseView,{navigate:navigate,browseType:browseType}):
-                    view==="entity"?h(EntityView,{navigate:navigate,entityType:entityData.entityType,entityId:entityData.entityId}):
-                    view==="graph"?h(GraphView,{navigate:navigate}):
-                    null
-                )
-            );
+    return h("div",{className:"entity-view"},
+        h("div",{className:"ev-back",onClick:function(){props.navigate("home")}},
+            h("span",null,"← Home"),
+            h("span",{style:{fontSize:"0.7rem"}},"/Drug Interaction Checker")
+        ),
+        h("h1",null,"Drug Interaction Checker"),
+        h("p",{style:{color:"var(--text2)",marginBottom:"1.5rem"}},
+            "Check interactions, side effects, and FAERS adverse event data"
+        ),
+        h("div",{style:{marginBottom:"1.5rem"}},
+            h("div",{style:{display:"flex",gap:"0.5rem",marginBottom:"0.75rem"}},
+                h("input",{
+                    type:"text",
+                    placeholder:"Drug name (e.g., Lisinopril)...",
+                    value:input,
+                    onChange:function(e){setInput(e.target.value)},
+                    onKeyDown:handleKeyDown,
+                    style:{flex:1,padding:"0.7rem 0.9rem",background:"var(--glass)",border:"1px solid var(--border2)",borderRadius:"6px"}
+                }),
+                h("button",{onClick:addDrug,style:{padding:"0.7rem 1.2rem",background:"var(--emerald)",color:"var(--bg)",borderRadius:"6px",fontWeight:"600"}},"Add")
+            ),
+            drugs.length>0?h("div",{style:{display:"flex",gap:"0.4rem",flexWrap:"wrap"}},
+                drugs.map(function(drug,idx){
+                    return h("div",{key:idx,style:{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.4rem 0.8rem",background:"var(--emerald-dim)",border:"1px solid rgba(52,211,153,0.3)",borderRadius:"6px"}},
+                        h("span",{style:{fontSize:"0.9rem"}},drug),
+                        h("button",{onClick:function(){removeDrug(idx)},style:{background:"none",color:"var(--text3)"}},"x")
+                    );
+                })
+            ):null,
+            drugs.length>0?h("button",{onClick:search,disabled:loading,style:{
+                padding:"0.7rem 1.5rem",background:loading?"rgba(52,211,153,0.5)":"var(--emerald)",
+                color:"var(--bg)",borderRadius:"6px",fontWeight:"600",marginTop:"0.75rem",cursor:loading?"default":"pointer"
+            }},loading?"Checking...":"Check Interactions"):null
+        ),
+        interactions.length>0?h("div",{className:"ev-grid"},
+            h("div",{className:"ev-section"},
+                h("h3",null,h("span",{className:"dot",style:{background:"#A78BFA"}}),interactions.length+" Interactions Found"),
+                interactions.slice(0,20).map(function(ix,i){
+                    var severity=ix.severity||"unknown";
+                    var severityColor={major:"#EF4444",moderate:"#F59E0B",minor:"#10B981",unknown:"#475569"}[severity]||"#475569";
+                    return h("div",{key:i,style:{marginBottom:"0.75rem",padding:"0.75rem",background:"rgba(255,255,255,0.02)",borderLeft:"3px solid "+severityColor,borderRadius:"4px"}},
+                        h("div",{style:{fontWeight:600,fontSize:"0.85rem",marginBottom:"0.2rem"}},(ix.drug_a_name||"Drug")+" + "+(ix.drug_b_name||"Drug")),
+                        h("div",{style:{fontSize:"0.75rem",color:"var(--text3)",marginBottom:"0.3rem"}},"Severity: ",h("span",{style:{color:severityColor,fontWeight:600}},severity.toUpperCase())),
+                        ix.description?h("div",{style:{fontSize:"0.75rem",color:"var(--text2)",lineHeight:1.4}},ix.description):null
+                    );
+                })
+            ),
+            adverse.length>0?h("div",{className:"ev-section"},
+                h("h3",null,h("span",{className:"dot",style:{background:"#EF4444"}}),adverse.length+" Adverse Events (FAERS)"),
+                adverse.slice(0,20).map(function(ae,i){
+                    return h("div",{key:i,style:{marginBottom:"0.6rem",padding:"0.6rem",background:"rgba(239,68,68,0.06)",borderRadius:"4px",fontSize:"0.75rem"}},
+                        h("div",{style:{fontWeight:600,marginBottom:"0.2rem"}},ae.adverse_event||"Event"),
+                        h("div",{style:{color:"var(--text3)"}},ae.date_received?" · "+ae.date_received:"")
+                    );
+                })
+            ):null
+        ):null
+    );
+}
+
+// === MAIN APP ===
+function App(){
+    var _v=useState("home"),view=_v[0],setView=_v[1];
+    var _c=useState({}),counts=_c[0],setCounts=_c[1];
+    var _e=useState(null),entity=_e[0],setEntity=_e[1];
+    var _et=useState(""),entityType=_et[0],setEntityType=_et[1];
+    var _bt=useState("providers"),browseTable=_bt[0],setBrowseTable=_bt[1];
+    var search=useSearch();
+    var totalRecords=useRef(0);
+
+    useEffect(function(){
+        var tables=Object.keys(BROWSE_TABLES);
+        Promise.all(tables.map(function(t){return cnt(t)})).then(function(vals){
+            var obj={},total=0;
+            tables.forEach(function(t,i){obj[t]=vals[i];total+=vals[i]});
+            Promise.all([cnt("provider_addresses"),cnt("provider_taxonomies"),cnt("icd10_pcs_codes")]).then(function(extras){
+                obj.provider_addresses=extras[0];obj.provider_taxonomies=extras[1];
+                obj.icd10_pcs_codes=extras[2];
+                total+=extras[0]+extras[1]+extras[2];
+                totalRecords.current=total;
+                setCounts(obj);
+            });
+        });
+    },[]);
+
+    function navigate(v,table){
+        setView(v);setEntity(null);
+        search.search("");search.setResults([]);
+        if(table)setBrowseTable(table);
+    }
+
+    function selectEntity(item,type){
+        if(type==="provider"&&item.id&&!item.gender){
+            q("/providers?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
+        } else if(type==="drug"&&item.id&&!item.rxcui){
+            q("/drugs?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
+        } else if(type==="trial"&&item.id&&!item.enrollment){
+            q("/clinical_trials?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
+        } else {
+            setEntity(item);setEntityType(type);setView("entity");search.search("");search.setResults([]);
         }
+    }
 
-        // === INIT ===
-        ReactDOM.render(h(App),document.getElementById("root"));
-        initCanvas();
-    </script>
+    // ⌘K shortcut
+    useEffect(function(){
+        function handler(e){if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();var el=document.querySelector(".search-input");if(el)el.focus()}}
+        window.addEventListener("keydown",handler);
+        return function(){window.removeEventListener("keydown",handler)};
+    },[]);
+
+    var content;
+    if(view==="entity"&&entity){
+        content=h(EntityView,{entity:entity,type:entityType,onBack:function(){navigate("home")},onSelectEntity:selectEntity});
+    } else if(view==="browse"){
+        content=h(BrowseView,{initialTable:browseTable,counts:counts,onSelectEntity:selectEntity});
+    } else if(view==="verify"){
+        content=h(VerifyView,{navigate:navigate});
+    } else if(view==="interactions"){
+        content=h(InteractionView,{navigate:navigate});
+    } else if(view==="graph"){
+        content=h(GraphExplorer,{onSelectEntity:selectEntity});
+    } else {
+        content=h(Home,{counts:counts,search:search,navigate:navigate,onSelectEntity:selectEntity});
+    }
+
+    return h("div",{className:"app"},
+        h(TopBar,{view:view,navigate:navigate,totalRecords:totalRecords.current}),
+        h("div",{className:"main"},content),
+        h("div",{className:"status-bar"},
+            h("span",null,h("span",{className:"live-dot"})," Supabase PostgREST · Live"),
+            h("div",{className:"spacer"}),
+            h("span",null,"NPPES · CMS · FDA · NIH · HHS-OIG"),
+            h("div",{className:"spacer"}),
+            h("a",{href:"https://health.theknowledgegardens.com",target:"_blank"},"health.theknowledgegardens.com")
+        ),
+        h(CompassNav,{counts:counts,navigate:navigate})
+    );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+</script>
 </body>
 </html>
