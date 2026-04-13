@@ -40,6 +40,72 @@ const sf="'Instrument Serif',Georgia,serif";
 const mn="'JetBrains Mono',monospace";
 const C={gold:"#D4A853",green:"#10B981",red:"#EF4444",purple:"#A78BFA",blue:"#3B8BD4",orange:"#F97316",cyan:"#06B6D4",pink:"#EC4899",lime:"#84CC16",amber:"#F59E0B",indigo:"#6366F1",teal:"#14B8A6"};
 const ez="cubic-bezier(.16,1,.3,1)";
+
+// ═══ 4-SCORE SYSTEM (Human Value, Machine Value, Fun Factor, Profitability) ═══
+// Primary metric axis per master spec. Derived from option fx unless option provides explicit s4.
+const S4_OVERRIDES={
+  "hkg_first":{hv:9.2,mv:9.0,ff:8.5,pr:8.8},
+  "bkg_first":{hv:5.5,mv:5.8,ff:7.2,pr:8.9},
+  "dual_track":{hv:8.8,mv:8.5,ff:9.5,pr:8.2},
+  "okg_bridge":{hv:7.2,mv:5.5,ff:8.8,pr:4.2},
+  "admin_lane":{hv:6.5,mv:7.2,ff:6.0,pr:9.2},
+  "patient_lane":{hv:9.0,mv:8.2,ff:8.5,pr:6.8},
+  "doctor_lane":{hv:8.8,mv:9.2,ff:8.2,pr:7.5},
+  "machine_lane":{hv:6.0,mv:9.8,ff:7.5,pr:8.0},
+  "bkg_free":{hv:5.2,mv:6.5,ff:7.0,pr:6.5},
+  "bkg_prem":{hv:5.0,mv:6.8,ff:6.5,pr:7.2},
+  "bkg_ent":{hv:4.8,mv:6.2,ff:5.5,pr:8.5},
+  "raise_now":{hv:5.0,mv:5.2,ff:6.5,pr:8.8},
+  "raise_traction":{hv:5.5,mv:5.8,ff:7.2,pr:7.5}
+};
+const score4=(o)=>{
+  if(o&&o.id&&S4_OVERRIDES[o.id]) return S4_OVERRIDES[o.id];
+  if(o&&o.s4) return {hv:o.s4.hv||5,mv:o.s4.mv||5,ff:o.s4.ff||5,pr:o.s4.pr||5};
+  const fx=o&&o.fx||{};
+  const lbl=((o&&o.label||"")+" "+(o&&o.sub||"")).toLowerCase();
+  // Profitability: log-scaled Y5 ARR (in $K) — y5=200000 → ~9.5
+  const pr=Math.max(1,Math.min(10, Math.log10(((fx.y5||0)+1000))*1.9 ));
+  // Machine Value: moat score (data density / network effects) + API/machine bonus
+  const mv=Math.max(1,Math.min(10, (fx.moat||5) + (lbl.match(/machine|api|mcp|data|graph|json|verification/)?1.5:0) ));
+  // Human Value: inverse regulatory friction + patient/consumer bonus + scale bonus
+  const hv=Math.max(1,Math.min(10, (10-(fx.reg||3)) + (lbl.match(/patient|consumer|gravity|free|public|longevity|health/)?2:0) + ((fx.y5||0)>50000?0.5:0) - 2 ));
+  // Fun Factor: low risk feels bigger/fresher + moat bonus (building a moat is exciting)
+  const ff=Math.max(1,Math.min(10, (10-(fx.risk||5)) + ((fx.moat||5)>7?1.5:0) + (lbl.match(/blitz|dual|ai|brain|frontier|platform/)?1:0) ));
+  return {hv:+hv.toFixed(1),mv:+mv.toFixed(1),ff:+ff.toFixed(1),pr:+pr.toFixed(1)};
+};
+const S4={hv:{label:"Human Value",color:"#10B981",icon:"🌱",desc:"Lives improved · health outcomes · knowledge preserved"},mv:{label:"Machine Value",color:"#A78BFA",icon:"🤖",desc:"AI citation moat · data density · MCP adoption"},ff:{label:"Fun Factor",color:"#F97316",icon:"🔥",desc:"Founder passion · creative energy · recruiting appeal"},pr:{label:"Profitability",color:"#D4A853",icon:"💰",desc:"Revenue · margins · capital efficiency"}};
+
+// ═══ Radar chart for 4-scores ═══
+const Radar4=({s,size=180})=>{
+  const cx=size/2,cy=size/2,R=size*0.38;
+  const axes=[["hv",-Math.PI/2],["mv",0],["pr",Math.PI/2],["ff",Math.PI]];
+  const pt=(val,ang)=>[cx+Math.cos(ang)*(R*val/10),cy+Math.sin(ang)*(R*val/10)];
+  const poly=axes.map(([k,a])=>pt(s[k],a).join(",")).join(" ");
+  const rings=[2.5,5,7.5,10];
+  return(
+    <svg width={size} height={size} style={{display:"block"}}>
+      {rings.map((r,i)=>(
+        <polygon key={i} points={axes.map(([,a])=>[cx+Math.cos(a)*(R*r/10),cy+Math.sin(a)*(R*r/10)].join(",")).join(" ")}
+          fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="1"/>
+      ))}
+      {axes.map(([k,a],i)=>(
+        <line key={i} x1={cx} y1={cy} x2={cx+Math.cos(a)*R} y2={cy+Math.sin(a)*R} stroke="rgba(255,255,255,.06)" strokeWidth="1"/>
+      ))}
+      <polygon points={poly} fill="rgba(212,168,83,.18)" stroke="#D4A853" strokeWidth="1.5"/>
+      {axes.map(([k,a],i)=>{
+        const [x,y]=pt(s[k],a);
+        return <circle key={i} cx={x} cy={y} r="3" fill={S4[k].color}/>;
+      })}
+      {axes.map(([k,a],i)=>{
+        const lx=cx+Math.cos(a)*(R+18), ly=cy+Math.sin(a)*(R+18);
+        return(<g key={k}>
+          <text x={lx} y={ly-3} textAnchor="middle" fontSize="9" fill={S4[k].color} fontFamily="'DM Sans',sans-serif" fontWeight="600">{S4[k].icon} {S4[k].label.split(" ")[0]}</text>
+          <text x={lx} y={ly+9} textAnchor="middle" fontSize="11" fill={S4[k].color} fontFamily="'JetBrains Mono',monospace" fontWeight="600">{s[k].toFixed(1)}</text>
+        </g>);
+      })}
+    </svg>
+  );
+};
 const I={tree:"./img/tree_roots_logo.png",hex:"./img/hex_logo_gold.png",pillH:"./img/steel_pill_heart.png",toolT:"./img/tool_tree.png",okg:"./img/okg_brain.png",hkg:"./img/hkg_heart.png",bkg:"./img/bkg_tree.png",dna:"./img/dna_hex.png",medK:"./img/medical_kit.jpg",syr:"./img/syringe.jpg",mic:"./img/microscope.jpg",ham:"./img/hammer.png",comp:"./img/compass_tool.png",stV:"./img/vintage_stethoscope.jpg",gear:"./img/gear_garden.png",draft:"./img/drafting_tools.png",heartC:"./img/heart_circuit.png",crane:"./img/crane.png"};
 
 // ═══ ALL 12 FRONTIER VERTICALS ═══
@@ -141,6 +207,51 @@ mkt:"$800B+ federal procurement. GovIT modernization $100B/yr. Palantir ($50B) p
 moat:"SAM.gov/FPDS data is public but fragmented. Procurement graph reveals contracting patterns. FedRAMP = barrier to entry. Gov contracts are long-cycle sticky.",
 synergy:"Shares regulatory/compliance infrastructure with ALL other gardens. Healthcare garden shares provider/exclusion data. Legal garden shares court data."}
 ];
+
+// ═══ 40 RESEARCH GARDENS (Frontier Map Tier 2: rare-knowledge databases) ═══
+const V_RESEARCH=[
+{id:"extinction",n:"Extinction",ic:"🦁",tam:"$500M",tN:500,c:"#EF4444",y5:5000,st:"research",deploy:"Research DB",w:"Global endangered species: IUCN Red List + last-sighting data + extinction causality.",h:"172K+ species, mortality timelines, habitat maps, conservation status. Species portraits + causality graph.",why:"Preserves biological knowledge before extinction erases it. Conservation, museums, media.",rev:"Conservation grants · Educator licenses · Museum partnerships",mkt:"IUCN Red List · Conservation tech $8B · UNESCO partnerships",moat:"Deepest extinction causality graph — first to map species death to human systems.",synergy:"OKG botanical. Documentary + media opportunity. Grant-funded."},
+{id:"sound",n:"Sound",ic:"🔊",tam:"$300M",tN:300,c:"#06B6D4",y5:3000,st:"research",deploy:"Research DB",w:"Wildlife audio ecology: Macaulay Library + 84M+ animal sounds + spectral visualization.",h:"84M+ bird/animal recordings, spectrograms, eBird API, audio-centric UI.",why:"Audio underserved in nature DBs. Research, education, conservation need standardized archives.",rev:"Educational licensing · Nature sound marketplace · Research API",mkt:"Macaulay Library (Cornell) · Nature edtech · Podcast production",moat:"Best-in-class audio visualization. Network of recordists globally.",synergy:"Companion to Extinction. Media/documentary gold."},
+{id:"migration",n:"Migration",ic:"🦅",tam:"$200M",tN:200,c:"#84CC16",y5:2500,st:"research",deploy:"Research DB",w:"Animal GPS tracking: Movebank + 6B+ movement records + 3K species migration paths.",h:"Animated migrations, journey narratives, seasonal patterns, climate impact.",why:"Animal movement = climate early warning. Conservation strategy.",rev:"Climate grants · Conservation partnerships · Educational licensing",mkt:"Movebank (Berlin) · Conservation NGOs · Climate research",moat:"Most detailed animal movement graph ever assembled. Temporal story dimension.",synergy:"Extinction + Neotoma. Climate narrative integration."},
+{id:"mind",n:"Mind",ic:"🧠",tam:"$150M",tN:150,c:"#A78BFA",y5:2000,st:"research",deploy:"Research DB",w:"Neural wiring: Allen Brain Atlas + connectome + neuron morphology as blueprints.",h:"Full brain mapping, neuron morphologies SVG/3D, connectivity graphs, comparative anatomy.",why:"Reverse-engineering consciousness. Foundational layer for neuroscience, biotech, AI.",rev:"Research licenses · Neurotech API partnerships",mkt:"Allen Institute (funded) · Neuroscience $5B · Biotech R&D",moat:"Best-in-class neural visualization. Research collaboration network effects.",synergy:"FaceBase. Psychedelic Garden (consciousness research)."},
+{id:"fossil",n:"Fossil",ic:"🦕",tam:"$100M",tN:100,c:"#F97316",y5:1500,st:"research",deploy:"Research DB",w:"Paleontology 3D archive: MorphoSource + 186K+ 3D fossil scans + stratigraphy.",h:"Rotatable 3D fossils, temporal layering, evolutionary trees with 3D nodes.",why:"Paleontology is visual. Museums, students, researchers need standardized platform.",rev:"Museum licensing · Educational content · Research API",mkt:"MorphoSource (Duke) · Natural history museums $2B",moat:"Best-in-class fossil visualization and curation network.",synergy:"Neotoma + PaleoMap. Deep time narrative."},
+{id:"colony",n:"Colony",ic:"🐜",tam:"$80M",tN:80,c:"#EC4899",y5:1200,st:"research",deploy:"Research DB",w:"Ant taxonomy + behavior: AntWeb + 20K+ species + caste morphology.",h:"Hexagonal caste diagrams, colony schematics, geographic distribution, behavioral data.",why:"Ants are model organisms for complexity. Biomimicry, entomology research.",rev:"Biomimic licensing · Research API · Educational",mkt:"AntWeb (Smithsonian) · Entomology · Biomimicry institutes",moat:"Most comprehensive ant behavior graph. Hexagonal visualization unique.",synergy:"OKG botanical (plant-ant). Extinction."},
+{id:"mycelium",n:"Mycelium",ic:"🍄",tam:"$120M",tN:120,c:"#10B981",y5:1800,st:"research",deploy:"Research DB",w:"Mycology: MycoBank + every named fungus + network graphs + fruiting body taxonomy.",h:"Mycorrhizal network viz, fungal taxonomy, fruiting body plates, distribution maps.",why:"Fungi = edge of consciousness frontier. Medicine, ecology, food science.",rev:"Pharma research · Food tech licensing · Educational content",mkt:"MycoBank (CBS-KNAW) · Mycology $500M · Psychedelic renaissance",moat:"First unified global fungal taxonomy graph. Cultural moment.",synergy:"Psychedelic Garden. Medicine research. OKG."},
+{id:"language",n:"Language",ic:"🗣️",tam:"$90M",tN:90,c:"#F59E0B",y5:1400,st:"research",deploy:"Research DB",w:"Endangered languages: ELAR + Pangloss + Rosetta + 7K+ languages + audio/text.",h:"Linguistic family trees, audio recordings, transcriptions, grammars, speaker networks.",why:"2K+ languages die per century. Language = cultural identity + knowledge preservation.",rev:"UNESCO funding · Educational licensing · Linguistic research",mkt:"ELAR/SOAS (UNESCO) · Anthropology research",moat:"Deepest linguistic endangerment data. Global speaker network.",synergy:"Wellcome Medicine (indigenous knowledge). Folkways."},
+{id:"deepsea",n:"Deep Sea",ic:"🌊",tam:"$70M",tN:70,c:"#14B8A6",y5:1000,st:"research",deploy:"Research DB",w:"Abyssal taxonomy: WoRMS Deep Sea + extremophiles + hydrothermal vent ecosystems.",h:"Depth distribution, pressure morphologies, bioluminescence, ecosystem networks.",why:"Deep sea = biotech frontier. Extremophiles = synthetic biology.",rev:"Biotech licensing · Research partnerships · Expedition data",mkt:"WoRMS · Marine biotech $5B · Ocean research institutes",moat:"Only unified deep-sea taxonomy. Pressure/depth relationships unique.",synergy:"Sound (whale songs). Extinction (abyss species loss)."},
+{id:"biolume",n:"Bioluminescence",ic:"✨",tam:"$60M",tN:60,c:"#84CC16",y5:800,st:"research",deploy:"Research DB",w:"Bioluminescence: UCSB DB + 1K+ glowing organisms + spectral emission + mechanisms.",h:"Spectral viz, organism glowmaps, biochemical pathway diagrams, rich media.",why:"Beautiful, viral, scientifically deep. Education + synthetic-glowing-protein biotech.",rev:"Science communication · Biotech research · Educational media",mkt:"UCSB · Bioluminescence biotech $1B · Nature documentaries",moat:"Only platform unifying bioluminescence physics + organisms + media.",synergy:"Sound. Deep Sea. Mind (GFP research)."},
+{id:"pollen",n:"Pollen",ic:"💛",tam:"$50M",tN:50,c:"#FACC15",y5:600,st:"research",deploy:"Research DB",w:"Paleoecology via pollen: European Pollen DB + 10Kyr climate reconstruction.",h:"Pollen timelines, climate reconstructions, paleovegetation maps, core site networks.",why:"Pollen = 10Kyr climate proxy. Deep-time climate + conservation strategy.",rev:"Climate grants · Academic licensing · Paleoclimate modeling API",mkt:"European Pollen DB · Paleoclimatology $200M · Climate modeling",moat:"Deepest temporal climate data. Compound knowledge from thousands of cores.",synergy:"Ocean Core + PaleoMap. PAGES."},
+{id:"herbarium",n:"Herbarium",ic:"🌱",tam:"$110M",tN:110,c:"#22C55E",y5:1700,st:"research",deploy:"Research DB",w:"Botanical specimens: JSTOR Plants + VertNet + 2.5M+ pressed plant specimens.",h:"High-res specimen scans, taxonomic hierarchy, provenance, research notes.",why:"Herbarium digitization = knowledge preservation. Plant diversity baseline.",rev:"Museum partnerships · Research licensing · Plant AI training data",mkt:"JSTOR Plants · Herbarium network · Botanical research $500M",moat:"Largest digitized herbarium network. Training data for plant AI.",synergy:"OKG + Extinction. Deep botanical knowledge layer."},
+{id:"oceancore",n:"Ocean Core",ic:"⛰️",tam:"$80M",tN:80,c:"#3B8BD4",y5:1200,st:"research",deploy:"Research DB",w:"Marine geology: IODP sediment cores + 500K samples + stratigraphic layers.",h:"Core photography, stratigraphy visualizations, paleoclimate timeseries.",why:"Ocean cores = billion-year climate records. Ocean chemistry evolution.",rev:"Paleoclimate grants · Geological consulting · Academic licensing",mkt:"IODP (international) · Paleoceanography $300M · Climate modeling",moat:"Most comprehensive ocean sediment archive. Visual/temporal layering unique.",synergy:"Pollen + PaleoMap. Neotoma. Climate narrative."},
+{id:"atom",n:"Atom",ic:"⚛️",tam:"$40M",tN:40,c:"#E879F9",y5:500,st:"research",deploy:"Research DB",w:"Nuclear data: IAEA tables + every known nucleus + decay + cross-sections.",h:"Periodic table as graph, decay chains, nuclear reaction networks.",why:"Nuclear science = energy frontier. Education, nuclear medicine, physics.",rev:"Educational licensing · Physics research API · Nuclear industry",mkt:"IAEA (UN) · Nuclear research · Physics education $200M",moat:"Only platform unifying nuclear data as knowledge graph.",synergy:"Energy Garden. Fundamental science layer."},
+{id:"varstar",n:"Variable Stars",ic:"⭐",tam:"$35M",tN:35,c:"#FBBF24",y5:400,st:"research",deploy:"Research DB",w:"Stellar observation: AAVSO + 55M+ observations since 1911 + light curves.",h:"Light curve timeseries, multi-century histories, discovery timelines, crowdsourcing.",why:"Longest observational dataset in astronomy. Supernova science. Education.",rev:"Astronomy research licensing · Educational · Observation API",mkt:"AAVSO · Astronomy education · Citizen science",moat:"Deepest temporal stellar observation data. 115-year baseline.",synergy:"Machine Lane AI. Astronomy networks."},
+{id:"suppmedic",n:"Indigenous Medicine",ic:"🌿",tam:"$45M",tN:45,c:"#059669",y5:550,st:"research",deploy:"Research DB",w:"Indigenous plant medicine: IPinCH + ethnobotany + pharmacology + ethical attribution.",h:"Plant-compound-culture relationships, traditional/modern links, ethical licensing.",why:"Indigenous knowledge = pharma frontier + biodiversity medicine. Ethical data stewardship.",rev:"Pharma (ethical) · Community benefit sharing · Research",mkt:"IPinCH (Canada) · Ethnobotany · Pharma R&D $300B",moat:"Only platform with ethical indigenous knowledge graph. Partnership moat.",synergy:"OKG + Extinction. Documentary. Meaning layer."},
+{id:"shipwreck",n:"Shipwrecks",ic:"⛵",tam:"$30M",tN:30,c:"#0EA5E9",y5:350,st:"research",deploy:"Research DB",w:"Ancient shipwrecks: Oxford DB + 2K+ wrecks + archaeology + artifact catalogs.",h:"Maritime trade maps, wreck locations, artifact relationships, historical timelines.",why:"Shipwrecks = human history + trade routes. Education + tourism.",rev:"Museum partnerships · Educational · Tourism API",mkt:"Oxford archaeology · Maritime museums · Heritage tourism $100B",moat:"Best-curated ancient maritime archaeology database.",synergy:"Archaeology. EEBO. Documentary."},
+{id:"roman",n:"Roman World",ic:"🏛️",tam:"$65M",tN:65,c:"#B45309",y5:900,st:"research",deploy:"Research DB",w:"Roman infrastructure: ORBIS (Stanford) + trade routes + cities + mobility + commerce.",h:"Interactive trade network maps, journey time calc, city relationships, economic flows.",why:"Rome = blueprint for complex systems. History, economics, urban planning.",rev:"Educational · Gaming/VR partnerships · Research API",mkt:"ORBIS (Stanford) · History education · Roman tourism $5B",moat:"Most sophisticated Roman economic-geographic modeling.",synergy:"Archaeology. Wellcome Medicine. Historical narrative."},
+{id:"wellcome",n:"Medieval Medicine",ic:"💊",tam:"$55M",tN:55,c:"#DC2626",y5:750,st:"research",deploy:"Research DB",w:"Medieval medicine: Wellcome Collection + manuscripts + treatises + illustrations + recipes.",h:"Illuminated texts, treatment timelines, herbals, surgical instruments, knowledge evolution.",why:"Medical history = understanding present. Education + medical humanities.",rev:"Museum/library partnerships · Educational · Publication rights",mkt:"Wellcome Collection · Medical humanities · History education",moat:"Best-curated medieval medical knowledge with linked modern research.",synergy:"Herbarium. Indigenous Medicine. Extinction (lost herbs)."},
+{id:"neotoma",n:"Neotoma",ic:"🦫",tam:"$40M",tN:40,c:"#65A30D",y5:500,st:"research",deploy:"Research DB",w:"Paleoecology: Neotoma + 50K+ fossil sites + paleovegetation + climate sensitivity.",h:"Paleovegetation reconstructions, species range shifts, climate-vegetation coupling.",why:"Neotoma = deep ecological time. Biodiversity baselines. Climate-vegetation science.",rev:"Paleoclimate grants · Conservation planning API · Academic licensing",mkt:"Neotoma (NSF) · Paleoclimatology $200M · Conservation",moat:"Largest paleoecological dataset. Temporal biodiversity analysis unique.",synergy:"Pollen + Ocean Core + PaleoMap. Extinction."},
+{id:"meteor",n:"Meteorites",ic:"💫",tam:"$25M",tN:25,c:"#6366F1",y5:250,st:"research",deploy:"Research DB",w:"Meteorites: Meteoritical Society + 80K+ classified + provenance + composition.",h:"Classification hierarchies, composition, find locations, collection histories.",why:"Meteorites = solar system samples + impact history + astrobiology.",rev:"Museum partnerships · Research licensing · Museum shop API",mkt:"Meteoritical Society · Natural history museums · Geology",moat:"Most comprehensive meteorite classification and curation.",synergy:"Impact. Asteroid science networks."},
+{id:"impact",n:"Impact Craters",ic:"💥",tam:"$35M",tN:35,c:"#B91C1C",y5:400,st:"research",deploy:"Research DB",w:"Impact craters: Earth Impact DB + 190+ structures + geology + paleoclimate signatures.",h:"Crater maps, age timelines, impact energy reconstructions, paleoclimate correlation.",why:"Impacts = extinction drivers + climate shocks. Understanding catastrophic change.",rev:"Geological research · Education · Climate modeling",mkt:"Impact research · Geological surveys · Paleoclimate institutes",moat:"Only unified global impact crater analysis platform.",synergy:"Extinction. PaleoMap. Meteorites."},
+{id:"facebase",n:"FaceBase",ic:"👶",tam:"$70M",tN:70,c:"#F472B6",y5:1000,st:"research",deploy:"Research DB",w:"Human facial development: NIH FaceBase + morphogenesis + 3D imaging + genetics.",h:"3D developmental imaging, facial mapping, genetic-phenotype links, clinical cases.",why:"Facial development = morphogenesis + cleft palate research + personalized medicine.",rev:"Clinical research · Genetic research · Biotech API",mkt:"NIH FaceBase · Dev bio research $500M · Clinical genetics",moat:"Only platform linking human facial development to genetic/clinical data.",synergy:"Mind. Ancient DNA. Pharmaceutical research."},
+{id:"kinsey",n:"Kinsey",ic:"❤️",tam:"$50M",tN:50,c:"#DB2777",y5:600,st:"research",deploy:"Research DB",w:"Human sexuality: Kinsey Institute archives + behavioral + longitudinal + ethical access.",h:"Anonymized datasets, temporal trends, demographics, relationship patterns.",why:"Sexuality science = human variation. Psychology, public health, medicine.",rev:"Academic research · Public health partnerships · Clinical training",mkt:"Kinsey Institute · Sexology research · Public health $100M",moat:"Most comprehensive human sexuality research archive with ethical access.",synergy:"Dream. NDE. Consciousness research."},
+{id:"endangarch",n:"Endangered Archives",ic:"📜",tam:"$80M",tN:80,c:"#CA8A04",y5:1200,st:"research",deploy:"Research DB",w:"Manuscripts: British Library EAP + 90+ countries + at-risk archives + digitization.",h:"Searchable manuscripts, geolocation, language tagging, preservation status.",why:"Thousands of manuscripts disappear yearly. Cultural genocide. Knowledge preservation.",rev:"UNESCO grants · Researcher access · Institutional partnerships",mkt:"British Library EAP · Heritage preservation $500M · UNESCO",moat:"Only platform unifying endangered manuscript archives globally.",synergy:"EEBO. Archaeology. Language. Documentary."},
+{id:"eebo",n:"Early English Books",ic:"📖",tam:"$90M",tN:90,c:"#A16207",y5:1400,st:"research",deploy:"Research DB",w:"EEBO: Every English-language book before 1700 + full-text + provenance.",h:"Full-text indexed corpus, publication timelines, author networks, textual variation.",why:"English literature foundation. Knowledge transmission. Philology.",rev:"Academic institution licensing · Research API · Digital humanities",mkt:"EEBO (commercial) · Higher ed libraries · Lit research",moat:"Most comprehensive early English literature DB with full-text graph.",synergy:"Endangered Archives + Wellcome. Language evolution."},
+{id:"archaeology",n:"Archaeology",ic:"🏺",tam:"$110M",tN:110,c:"#92400E",y5:1600,st:"research",deploy:"Research DB",w:"Archaeological record: Open Context + tDAR + DASI + 1M+ excavation records.",h:"Site maps, artifact relationships, stratigraphic correlations, researcher networks.",why:"Archaeology = human history. Cultural heritage. Anthropological research.",rev:"Museum partnerships · Research licensing · Heritage tourism",mkt:"Archaeology research · Academic libraries · Cultural heritage",moat:"Most comprehensive archaeological data federation globally.",synergy:"Shipwrecks + Roman + Endangered Archives. Human history layer."},
+{id:"ancientdna",n:"Ancient DNA",ic:"🧬",tam:"$120M",tN:120,c:"#15803D",y5:1800,st:"research",deploy:"Research DB",w:"Prehistoric genetics: Reich Lab + 100K+ ancient genomes + population + migration.",h:"Phylogenetic trees, migration maps, admixture events, phenotype-genotype links.",why:"Ancient DNA = rewriting human history. Evolution, migration, adaptation.",rev:"Research institution licensing · Biotech · Educational",mkt:"Harvard (leader) · Paleogenomics $500M · Anthropology",moat:"Most comprehensive ancient human genome database.",synergy:"PaleoMap. Archaeology. Migration."},
+{id:"folkways",n:"Folkways",ic:"🎵",tam:"$60M",tN:60,c:"#EA580C",y5:850,st:"research",deploy:"Research DB",w:"World folk music: Smithsonian Folkways + 500K+ recordings + cultural context.",h:"Audio playback, geographic mapping, cultural essays, musician bios, language tagging.",why:"Folk music = cultural identity preservation. Ethnomusicology. Education.",rev:"Music licensing · Research partnerships · Streaming API",mkt:"Smithsonian Folkways · Ethnomusicology · World music",moat:"Best-curated global folk music archive with deep cultural metadata.",synergy:"Language. Sound. Cultural preservation narrative."},
+{id:"waxcyl",n:"Wax Cylinders",ic:"📻",tam:"$35M",tN:35,c:"#BE185D",y5:400,st:"research",deploy:"Research DB",w:"Earliest recorded sound: UCSB collection + 6K+ cylinders + digitized audio.",h:"Audio playback with spectrograms, historical context, dialect analysis.",why:"Wax cylinders = first human voices recorded. Historical + linguistic baseline.",rev:"Museum partnerships · Research licensing · Documentary",mkt:"UCSB · Sound history research · Museum partnerships",moat:"Only unified digitized wax cylinder platform.",synergy:"Sound + Language. Folkways. Historical narrative."},
+{id:"paleomap",n:"PaleoMap",ic:"🌍",tam:"$75M",tN:75,c:"#0D9488",y5:1100,st:"research",deploy:"Research DB",w:"Continental drift: Scotese PaleoMAP + 1.1B years + tectonic animations.",h:"Animated continental movement, paleoclimate overlays, paleobiogeography, time-slider.",why:"Deep-time Earth = tectonics, climate, life distribution.",rev:"Geological research · Educational viz API · Gaming partnerships",mkt:"PaleoMAP · Geological research · Education",moat:"Only animated billion-year Earth reconstruction platform.",synergy:"Ocean Core + Neotoma + Impact. Deep time narrative."},
+{id:"pages",n:"PAGES 2K",ic:"📊",tam:"$65M",tN:65,c:"#1D4ED8",y5:950,st:"research",deploy:"Research DB",w:"Paleoclimate: PAGES 2K + 2Kyr climate reconstruction + proxy data + uncertainty bounds.",h:"Climate timeseries w/ confidence intervals, proxy mapping, regional analysis.",why:"Understanding past climate = predicting future. Paleoclimate baseline.",rev:"Climate research grants · Modeling API · Scientific consulting",mkt:"PAGES consortium · Climate research $2B · Climate modeling",moat:"Most authoritative 2,000-year climate dataset.",synergy:"Pollen + Ocean Core + PaleoMap. Climate science foundation."},
+{id:"dream",n:"Dream",ic:"😴",tam:"$40M",tN:40,c:"#8B5CF6",y5:500,st:"research",deploy:"Research DB",w:"Dream science: DreamBank + 20K+ annotated reports + psychology + content analysis.",h:"Dream text DB, emotion/theme tagging, psychological pattern mining, comparison.",why:"Dreams = consciousness frontier. Psychology, AI training, neuroscience.",rev:"Psychology research licensing · Educational · Entertainment licensing",mkt:"Psychology research · Neuroscience labs · Entertainment",moat:"Only comprehensive dream content + annotation platform.",synergy:"Mind + Kinsey + Psychedelic. Consciousness layer."},
+{id:"nde",n:"Near-Death",ic:"🌅",tam:"$25M",tN:25,c:"#F59E0B",y5:300,st:"research",deploy:"Research DB",w:"NDE testimony: NDERF + 5K+ near-death experiences + phenomenology + medical context.",h:"Narrative DB, common element frequency, medical correlation, cultural analysis.",why:"NDEs = consciousness frontier. Psychology, neurology, philosophy.",rev:"Research licensing · Documentary partnerships · Educational",mkt:"NDE research institutes · Consciousness studies · Documentaries",moat:"Only systematic near-death experience database platform.",synergy:"Dream + Kinsey. Consciousness-frontier narrative."},
+{id:"psychedelic",n:"Psychedelic",ic:"🌀",tam:"$55M",tN:55,c:"#C026D3",y5:750,st:"research",deploy:"Research DB",w:"Psychedelic science: Blossom + clinical trials + pharmacology + safety data + synthesis.",h:"Trial DB, compound pharmacology, safety profiles, researcher network, publication graphs.",why:"Psychedelic renaissance. PTSD, depression, end-of-life. Clinical breakthrough.",rev:"Research institution licensing · Pharma partnerships · Clinical trial platforms",mkt:"Psychedelic clinical research $2B · Pharma · Wellness",moat:"Only unified psychedelic research platform with pharma + clinical data.",synergy:"Dream + Mind + NDE. Consciousness frontier."},
+{id:"uap",n:"UAP",ic:"🛸",tam:"$20M",tN:20,c:"#475569",y5:200,st:"research",deploy:"Research DB",w:"UAP testimony: NUFORC + 150K+ sightings + geolocation + temporal + witness analysis.",h:"Sighting heatmaps, temporal trends, witness correlations, media/sensor overlap.",why:"UAP = anomaly detection frontier. Citizen science. Historical documentation.",rev:"Documentary partnerships · Research licensing · Entertainment",mkt:"Entertainment/documentary $10B · Citizen science networks",moat:"Only systematic UAP database platform.",synergy:"Media + reputational risk. Build after platform trust earned."},
+{id:"seedbank",n:"Seed Banks",ic:"🌾",tam:"$95M",tN:95,c:"#16A34A",y5:1300,st:"research",deploy:"Research DB",w:"Global seed vaults: Svalbard + Kew MSB + 7M+ accessions + provenance + viability.",h:"Accession records, genetic diversity graphs, viability timelines, distribution maps.",why:"Seed banks = agricultural backup for civilization. Food security. Crop diversity.",rev:"Ag research · Conservation grants · Breeding partnerships",mkt:"Svalbard · Kew · Crop Trust · Ag research $3B",moat:"Only unified seed-bank provenance/genetic graph.",synergy:"Herbarium + OKG + Agriculture. Food security layer."},
+{id:"rare",n:"Rare Disease",ic:"🧪",tam:"$140M",tN:140,c:"#7C3AED",y5:2200,st:"research",deploy:"Research DB",w:"Rare diseases: Orphanet + GARD + 7K+ conditions + patient registries + research.",h:"Disease relationships, patient registries, treatment trials, researcher networks.",why:"300M+ people affected globally. Underfunded research. Patient community hub.",rev:"Pharma partnerships · Patient advocacy · Clinical trial matching",mkt:"Orphanet (EU) · Rare disease market $200B · Pharma orphan drugs",moat:"Unified rare disease graph connects patients, research, treatments.",synergy:"HKG. Ancient DNA. Pharma."},
+{id:"weather",n:"Historical Weather",ic:"🌦️",tam:"$55M",tN:55,c:"#0891B2",y5:700,st:"research",deploy:"Research DB",w:"Historical weather: NOAA + Old Weather + 200+ years of observations + ship logs.",h:"Daily weather timeseries, ship log transcriptions, storm reconstructions, climate baselines.",why:"Historical weather = climate baseline + disaster reconstruction.",rev:"Insurance risk models · Climate research · Agriculture",mkt:"NOAA · Climate research · Insurance modeling $30B",moat:"Deepest historical weather reconstruction platform.",synergy:"PAGES + Pollen. Insurance Garden. Climate narrative."},
+{id:"solarstorm",n:"Solar Storms",ic:"☀️",tam:"$30M",tN:30,c:"#F97316",y5:350,st:"research",deploy:"Research DB",w:"Space weather: NOAA SWPC + solar flare DB + geomagnetic storms + auroral records.",h:"Solar event timelines, geomagnetic storm correlations, grid-impact history.",why:"Space weather disrupts grids/satellites. $2T+ infrastructure risk per century.",rev:"Grid operators · Satellite operators · Insurance partnerships",mkt:"NOAA SWPC · Space weather services · Grid protection",moat:"Only unified solar storm + infrastructure impact graph.",synergy:"Variable Stars. Energy Garden (future). Insurance."}
+];
+V.push(...V_RESEARCH);
 
 // ═══ DECISION DATA — Rich structured options ═══
 const D=[
@@ -283,6 +394,116 @@ research:"$10K MRR is the minimum credibility threshold. $25K MRR makes you 'hot
 
 const initM=()=>({y1:0,y3:0,y5:0,risk:5,rev:12,team:2,cap:0,moat:5,reg:3,turn:0});
 
+// ═══ ACT 0 — OPENING CRAWL (Star Wars style) ═══
+const OpeningCrawl=({onFinish})=>{
+  const[skipped,setSkipped]=useState(false);
+  const[showStart,setShowStart]=useState(false);
+  const styleRef=useRef(false);
+  useEffect(()=>{
+    if(styleRef.current) return;
+    styleRef.current=true;
+    const st=document.createElement("style");
+    st.textContent=`
+      @keyframes gw-crawl{0%{transform:translateY(100vh) rotateX(25deg);opacity:0}6%{opacity:1}95%{opacity:1}100%{transform:translateY(-220vh) rotateX(25deg);opacity:0}}
+      @keyframes gw-title-fade{0%,75%{opacity:0;transform:scale(.7)}85%,100%{opacity:1;transform:scale(1)}}
+      @keyframes gw-star{from{opacity:0}to{opacity:var(--o,.8)}}
+      @keyframes gw-start-pulse{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.3),0 0 40px rgba(212,168,83,.15)}50%{box-shadow:0 0 40px rgba(212,168,83,.8),0 0 80px rgba(212,168,83,.3)}}
+      .gw-stars{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+      .gw-stars i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:gw-star 3s ease-out forwards}
+    `;
+    document.head.appendChild(st);
+  },[]);
+  useEffect(()=>{
+    if(skipped){setShowStart(true);return}
+    const t=setTimeout(()=>setShowStart(true),42000);
+    return()=>clearTimeout(t);
+  },[skipped]);
+  const stars=useMemo(()=>Array.from({length:140}).map((_,i)=>({
+    left:Math.random()*100,top:Math.random()*100,d:Math.random()*3,o:Math.random()*.8+.2
+  })),[]);
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"#000",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:skipped?"center":"flex-start"}}>
+      <div className="gw-stars">
+        {stars.map((s,i)=><i key={i} style={{left:s.left+"%",top:s.top+"%",animationDelay:s.d+"s","--o":s.o}}/>)}
+      </div>
+      {!skipped&&(
+        <div style={{position:"absolute",top:"40%",left:"50%",transform:"translate(-50%,-50%)",width:"min(90vw,760px)",perspective:"500px",perspectiveOrigin:"50% 100%",pointerEvents:"none"}}>
+          <div style={{animation:"gw-crawl 44s linear forwards",transformOrigin:"50% 100%",textAlign:"center",color:"#D4A853",fontFamily:sf}}>
+            <div style={{fontSize:"clamp(16px,3vw,22px)",letterSpacing:".3em",marginBottom:"3em",opacity:.6,fontFamily:mn,textTransform:"uppercase"}}>Episode III · The Knowledge Gardens</div>
+            <h1 style={{fontSize:"clamp(48px,9vw,96px)",fontWeight:400,margin:"0 0 1.2em",letterSpacing:".02em",lineHeight:1.05}}>Garden <span style={{fontStyle:"italic"}}>Wars</span></h1>
+            <div style={{fontSize:"clamp(18px,2.6vw,28px)",lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",fontWeight:300,color:"#F5C56D"}}>
+              <p style={{marginBottom:"1.4em"}}>A <b>$12 trillion</b> healthcare ecosystem, fragmented. A <b>$17 trillion</b> construction industry, still running on spreadsheets. A global botanical market starved of knowledge.</p>
+              <p style={{marginBottom:"1.4em"}}>Two founders converge.</p>
+              <p style={{marginBottom:"1.4em"}}><b>John Bou</b> — builder of Modio Health. KLAS #1 in credentialing. 700K+ providers. Acquired by CHG.</p>
+              <p style={{marginBottom:"1.4em"}}><b>Chilly Dahlgren</b> — second-generation AI pioneer. His mother Kathleen pioneered naive semantics at MIT, IBM, Cognition → Nuance. His father Dr. James Dahlgren — world-leading toxicologist. Chilly built the Ethereal Engine. It became Infinite Reality — <b>$2.5B</b> valuation, $75M acquisition.</p>
+              <p style={{marginBottom:"1.4em"}}>Now, together, they plant gardens.</p>
+              <p style={{marginBottom:"1.4em"}}>Three are live. Nine more are scoped. Forty research databases wait on the frontier map. One recursive engine gets smarter every day.</p>
+              <p style={{marginBottom:"1.4em"}}>Every decision branches into more decisions. Every path projects revenue, risk, tradeoffs. Every choice saved as a Hero's Journey.</p>
+              <p style={{fontStyle:"italic",color:"#D4A853"}}>Choose your path. Build your empire.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {(showStart||skipped)&&(
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28,animation:"gw-title-fade 1.2s ease forwards",pointerEvents:"auto"}}>
+          <h1 style={{fontFamily:sf,fontSize:"clamp(44px,9vw,88px)",color:"#D4A853",margin:0,fontWeight:400,letterSpacing:".02em"}}>Garden <span style={{fontStyle:"italic"}}>Wars</span></h1>
+          <p style={{color:"rgba(245,197,109,.55)",fontSize:13,letterSpacing:".25em",textTransform:"uppercase",fontFamily:mn,margin:0}}>CEO Strategy RPG · Knowledge Gardens</p>
+          <button onClick={onFinish} style={{marginTop:16,padding:"18px 44px",borderRadius:12,border:"none",background:"#D4A853",color:"#000",fontWeight:700,fontSize:15,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",animation:"gw-start-pulse 2.4s ease infinite"}}>▶ Start Garden Wars</button>
+        </div>
+      )}
+      {!skipped&&!showStart&&(
+        <button onClick={()=>setSkipped(true)} style={{position:"absolute",bottom:24,right:24,padding:"8px 18px",borderRadius:8,border:"1px solid rgba(212,168,83,.3)",background:"rgba(0,0,0,.4)",color:"rgba(212,168,83,.7)",fontSize:11,cursor:"pointer",fontFamily:mn,letterSpacing:".15em",textTransform:"uppercase",zIndex:10}}>Skip ⏭</button>
+      )}
+    </div>
+  );
+};
+
+// ═══ CLAUDE RESEARCH MODAL (calls /api/research) ═══
+const ResearchModal=({open,onClose,path,decision,options})=>{
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState(null);
+  const[analysis,setAnalysis]=useState(null);
+  const[tick,setTick]=useState(0);
+  const fetchIt=useCallback(async()=>{
+    setLoading(true);setError(null);setAnalysis(null);
+    try{
+      const r=await fetch("/api/research",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path,decision:{title:decision?.title,desc:decision?.desc},options:(options||[]).map(o=>({label:o.label,sub:o.sub}))})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||("HTTP "+r.status));
+      setAnalysis(j.analysis||"(empty response)");
+    }catch(e){setError(e.message||"Request failed")}
+    finally{setLoading(false)}
+  },[path,decision,options]);
+  useEffect(()=>{if(open) fetchIt()},[open,fetchIt]);
+  useEffect(()=>{if(!loading) return; const iv=setInterval(()=>setTick(t=>t+1),500); return()=>clearInterval(iv)},[loading]);
+  if(!open) return null;
+  const dots=".".repeat((tick%4));
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{maxWidth:720,width:"100%",maxHeight:"85vh",overflow:"auto",background:"#060608",border:"1px solid rgba(167,139,250,.25)",borderRadius:16,padding:"24px 28px",boxShadow:"0 20px 60px rgba(167,139,250,.15)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,borderBottom:"1px solid rgba(167,139,250,.15)",paddingBottom:12}}>
+          <div>
+            <div style={{fontSize:10,letterSpacing:".2em",textTransform:"uppercase",color:"#A78BFA",fontWeight:600,fontFamily:mn}}>🔬 Strategic Analysis · Claude Sonnet</div>
+            <h3 style={{fontFamily:sf,fontSize:22,color:"#fff",margin:"4px 0 0"}}>{decision?.title||"Decision"}</h3>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.12)",color:"rgba(255,255,255,.5)",width:32,height:32,borderRadius:8,cursor:"pointer",fontSize:16}}>×</button>
+        </div>
+        {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:"#A78BFA",fontFamily:mn,fontSize:13,letterSpacing:".1em"}}>Researching{dots}</div>}
+        {error&&<div style={{padding:16,borderRadius:10,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontSize:13}}>⚠ {error}<div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:8}}>Tip: set <code>ANTHROPIC_API_KEY</code> in Vercel env vars and deploy <code>api/research.js</code>.</div></div>}
+        {analysis&&<div style={{fontSize:13,lineHeight:1.8,color:"rgba(255,255,255,.78)",whiteSpace:"pre-wrap",fontFamily:"'DM Sans',sans-serif"}}>{analysis}</div>}
+        {(analysis||error)&&(
+          <div style={{display:"flex",gap:8,marginTop:18,paddingTop:14,borderTop:"1px solid rgba(167,139,250,.1)"}}>
+            <button onClick={fetchIt} style={{padding:"9px 16px",borderRadius:8,border:"1px solid rgba(167,139,250,.3)",background:"rgba(167,139,250,.08)",color:"#A78BFA",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>↻ Regenerate</button>
+            {analysis&&<button onClick={()=>{navigator.clipboard?.writeText(analysis);}} style={{padding:"9px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy</button>}
+            <div style={{flex:1}}/>
+            <button onClick={onClose} style={{padding:"9px 16px",borderRadius:8,border:"none",background:"#D4A853",color:"#000",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 function App(){
   const[m,setM]=useState(initM());
   const[hist,setHist]=useState([]);
@@ -293,6 +514,8 @@ function App(){
   const[dashOpen,setDashOpen]=useState(false);
   const[compOpen,setCompOpen]=useState(false);
   const[started,setStarted]=useState(false);
+  const[crawlDone,setCrawlDone]=useState(()=>{try{return sessionStorage.getItem("gw-crawled")==="1"}catch(e){return false}});
+  const[showResearch,setShowResearch]=useState(false);
   const[saves,setSaves]=useState(()=>{try{return JSON.parse(localStorage.getItem("gw3")||"[]")}catch(e){return[]}});
   const trailRef=useRef(null);
 
@@ -380,6 +603,9 @@ function App(){
     {icon:"↺",label:"Restart",action:restart,color:C.red},
   ];
 
+  // ═══ ACT 0 — OPENING CRAWL ═══
+  if(!crawlDone) return <OpeningCrawl onFinish={()=>{try{sessionStorage.setItem("gw-crawled","1")}catch(e){} setCrawlDone(true); setStarted(true);}}/>;
+
   // ═══ TITLE SCREEN ═══
   if(!started) return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,background:"radial-gradient(ellipse at 50% 30%,rgba(212,168,83,.06) 0%,transparent 70%),#060608",textAlign:"center"}}>
@@ -463,7 +689,28 @@ function App(){
                 <div style={{padding:"20px 24px 24px"}}>
                   <h3 style={{fontFamily:sf,fontSize:26,color:C.gold,marginBottom:4}}>{o.label}</h3>
                   <p style={{fontSize:13,color:"rgba(255,255,255,.4)",marginBottom:20}}>{o.sub}</p>
-                  
+
+                  {/* 4-SCORE RADAR */}
+                  {(()=>{const s=score4(o);return(
+                    <div style={{display:"flex",alignItems:"center",gap:18,padding:"14px 16px",borderRadius:12,background:"rgba(212,168,83,.04)",border:"1px solid rgba(212,168,83,.14)",marginBottom:18,flexWrap:"wrap"}}>
+                      <Radar4 s={s} size={200}/>
+                      <div style={{flex:1,minWidth:200}}>
+                        <div style={{fontSize:10,fontWeight:600,color:C.gold,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>The 4 Scores</div>
+                        {Object.entries(S4).map(([k,meta])=>(
+                          <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                            <span style={{fontSize:12,width:16}}>{meta.icon}</span>
+                            <span style={{fontSize:11,color:meta.color,fontWeight:600,width:110}}>{meta.label}</span>
+                            <div style={{flex:1,height:4,background:"rgba(255,255,255,.05)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(s[k]*10)+"%",background:meta.color,borderRadius:2}}/>
+                            </div>
+                            <span style={{fontSize:11,fontFamily:mn,color:meta.color,width:32,textAlign:"right"}}>{s[k].toFixed(1)}</span>
+                          </div>
+                        ))}
+                        <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:6,fontStyle:"italic"}}>Derived from revenue, moat, risk & regulatory exposure. Override per-option via <code style={{fontFamily:mn,color:"rgba(255,255,255,.4)"}}>{"s4:{}"}</code>.</div>
+                      </div>
+                    </div>
+                  )})()}
+
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:20}}>
                     <div>
                       <Section title="Opportunities" items={o.opps||[]} color={C.green} icon="🌱"/>
@@ -543,6 +790,20 @@ function App(){
                       <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:(o.fx.risk>6?C.red:C.green)+"15",color:o.fx.risk>6?C.red:C.green}}>Risk:{o.fx.risk}</span>
                       <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:C.blue+"15",color:C.blue}}>{o.fx.rev}mo</span>
                     </div>
+                    {/* 4-score mini bars */}
+                    {(()=>{const s=score4(o);return(
+                      <div style={{display:"flex",gap:6,marginBottom:8}}>
+                        {Object.entries(S4).map(([k,meta])=>(
+                          <div key={k} title={meta.label+": "+s[k].toFixed(1)+"/10"} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                            <span style={{fontSize:10}}>{meta.icon}</span>
+                            <div style={{width:"100%",height:3,background:"rgba(255,255,255,.05)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(s[k]*10)+"%",background:meta.color}}/>
+                            </div>
+                            <span style={{fontSize:8,fontFamily:mn,color:meta.color}}>{s[k].toFixed(1)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )})()}
                     <div style={{height:1,background:"rgba(255,255,255,.04)",marginBottom:8}}/>
                     <div style={{fontSize:10,color:C.gold,fontWeight:600}}>🔍 Explore full analysis →</div>
                   </div>
@@ -556,12 +817,18 @@ function App(){
                 <div style={{fontSize:11,fontWeight:600,color:C.purple}}>🔬 Need more information?</div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:2}}>Get AI-powered strategic analysis for this decision point</div>
               </div>
-              <button onClick={()=>{const p="I'm CEO of The Knowledge Gardens (AI-native operating systems for $trillion industries). 12.1M healthcare records, 9.4M NPI providers. Co-founders: John Bou (KLAS #1 credentialing) + Chilly Dahlgren (2nd-gen AI pioneer).\n\nPath so far: "+(hist.map(h=>h.label).join(" → ")||"Start")+"\n\nDecision: "+curDec.title+" — "+curDec.desc+"\n\nOptions: "+curDec.opts.map(o=>o.label+": "+o.sub).join(" | ")+"\n\nGive me a deep strategic analysis with specific numbers, competitive intel, and a clear recommendation. What would you do and why?";navigator.clipboard?.writeText(p);alert("Research prompt copied! Paste into Claude for deep analysis.")}}
-                style={{padding:"10px 20px",borderRadius:8,border:"1.5px solid "+C.purple+"40",background:C.purple+"10",color:C.purple,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .3s "+ez}}
-                onMouseEnter={e=>e.currentTarget.style.background=C.purple+"20"}
-                onMouseLeave={e=>e.currentTarget.style.background=C.purple+"10"}>
-                📋 Copy Research Prompt for Claude
-              </button>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button onClick={()=>setShowResearch(true)}
+                  style={{padding:"10px 20px",borderRadius:8,border:"1.5px solid "+C.purple+"60",background:C.purple+"20",color:C.purple,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .3s "+ez}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.purple+"30"}
+                  onMouseLeave={e=>e.currentTarget.style.background=C.purple+"20"}>
+                  🔬 Ask Claude (Live)
+                </button>
+                <button onClick={()=>{const p="I'm CEO of The Knowledge Gardens (AI-native operating systems for $trillion industries). 12.1M healthcare records, 9.4M NPI providers. Co-founders: John Bou (KLAS #1 credentialing) + Chilly Dahlgren (2nd-gen AI pioneer).\n\nPath so far: "+(hist.map(h=>h.label).join(" → ")||"Start")+"\n\nDecision: "+curDec.title+" — "+curDec.desc+"\n\nOptions: "+curDec.opts.map(o=>o.label+": "+o.sub).join(" | ")+"\n\nGive me a deep strategic analysis with specific numbers, competitive intel, and a clear recommendation. What would you do and why?";navigator.clipboard?.writeText(p);alert("Research prompt copied! Paste into Claude for deep analysis.")}}
+                  style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,.12)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  📋 Copy Prompt
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -636,6 +903,7 @@ function App(){
       {showSaves&&<SaveModal saves={saves} onSave={saveFn} onLoad={loadFn} onDelete={delFn} onClose={()=>setShowSaves(false)}/>}
       {/* FRONTIER MAP */}
       {showFrontier&&<FrontierMap onClose={()=>setShowFrontier(false)} planted={planted} onPlant={plantGarden}/>}
+      <ResearchModal open={showResearch} onClose={()=>setShowResearch(false)} path={hist.map(h=>h.label)} decision={curDec} options={curDec?.opts||[]}/>
     </div>
   );
 }
