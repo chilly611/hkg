@@ -409,7 +409,7 @@
         // === SEARCH & FILTER ===
         function SearchDropdown(props){
             var hasCats=props.results&&props.results.length>0;
-            var cats=hasCats?Array.from(new Set(props.results.map(function(r){return r.type}))):[]:[];
+            var cats=hasCats?Array.from(new Set(props.results.map(function(r){return r.type}))):[];
             return h("div",{className:"search-dropdown"+(props.results&&props.results.length>0?" open":"")},
                 props.loading?h("div",{style:{padding:"1rem",textAlign:"center",color:"var(--text3)"}},
                     h("div",{className:"spinner"})
