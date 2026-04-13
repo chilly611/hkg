@@ -11,11 +11,22 @@
 body{background:#060608;color:#fff;font-family:'DM Sans',sans-serif;overflow-x:hidden;min-height:100vh}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.1)}50%{box-shadow:0 0 40px rgba(212,168,83,.3)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.15)}50%{box-shadow:0 0 40px rgba(212,168,83,.4)}}
 @keyframes trailPulse{0%,100%{box-shadow:0 0 4px rgba(212,168,83,.2)}50%{box-shadow:0 0 12px rgba(212,168,83,.5)}}
-@keyframes compassItem{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes compassItem{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes float1{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-18px) rotate(3deg)}}
+@keyframes float2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(-2deg)}}
+@keyframes float3{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.05)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes cardEntry{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:.03}50%{opacity:.07}}
 .fu{animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both}
 .tp{animation:trailPulse 2s ease infinite}
+.card-enter{animation:cardEntry .5s cubic-bezier(.16,1,.3,1) both}
+.float1{animation:float1 6s ease-in-out infinite}
+.float2{animation:float2 8s ease-in-out infinite}
+.float3{animation:float3 5s ease-in-out infinite}
+.shimmer-bar{background:linear-gradient(90deg,transparent,rgba(212,168,83,.08),transparent);background-size:200% 100%;animation:shimmer 3s ease infinite}
 </style>
 </head>
 <body>
@@ -423,6 +434,16 @@ function App(){
         </div>
       </div>
 
+      {/* AMBIENT FLOATING IMAGERY */}
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:0}}>
+        <img src={I.tree} alt="" className="float1" style={{position:"absolute",top:"15%",left:"3%",width:60,opacity:.025,filter:"blur(1px)"}}/>
+        <img src={I.stV} alt="" className="float2" style={{position:"absolute",top:"40%",right:"5%",width:50,opacity:.02,filter:"blur(1px)"}}/>
+        <img src={I.ham} alt="" className="float3" style={{position:"absolute",bottom:"25%",left:"8%",width:40,opacity:.02,filter:"blur(1px)"}}/>
+        <img src={I.mic} alt="" className="float1" style={{position:"absolute",top:"60%",right:"12%",width:45,opacity:.015,filter:"blur(2px)",animationDelay:"2s"}}/>
+        <img src={I.hex} alt="" className="float2" style={{position:"absolute",top:"10%",right:"20%",width:30,opacity:.03,filter:"blur(1px)",animationDelay:"1s"}}/>
+        <div style={{position:"absolute",top:"50%",left:"50%",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(212,168,83,.03) 0%,transparent 70%)",transform:"translate(-50%,-50%)",animation:"breathe 8s ease infinite"}}/>
+      </div>
+
       {/* MAIN */}
       <div style={{maxWidth:960,margin:"0 auto",padding:"clamp(16px,3vw,32px)"}}>
         {/* PREVIEW MODE — deep dive into an option before confirming */}
@@ -485,31 +506,62 @@ function App(){
 
         {/* DECISION CARDS */}
         {!preview&&curDec&&(
-          <div className="fu">
+          <div className="fu" style={{position:"relative",zIndex:1}}>
+            <div className="shimmer-bar" style={{height:2,borderRadius:1,marginBottom:16}}/>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
               <span style={{fontSize:9,padding:"3px 10px",borderRadius:4,background:C.gold+"15",color:C.gold,fontWeight:600,textTransform:"uppercase",letterSpacing:".1em"}}>{curDec.cat}</span>
-              <span style={{fontSize:9,color:"rgba(255,255,255,.2)"}}>Phase {curDec.ph+1}</span>
+              <span style={{fontSize:9,color:"rgba(255,255,255,.2)"}}>Phase {curDec.ph+1} · Turn {m.turn+1}</span>
             </div>
-            <h2 style={{fontFamily:sf,fontSize:"clamp(22px,4vw,36px)",fontWeight:400,marginBottom:6}}>{curDec.title}</h2>
-            <p style={{fontSize:13,color:"rgba(255,255,255,.4)",lineHeight:1.7,marginBottom:20,maxWidth:700}}>{curDec.desc}</p>
+            <h2 style={{fontFamily:sf,fontSize:"clamp(24px,4.5vw,40px)",fontWeight:400,marginBottom:8,lineHeight:1.1}}>{curDec.title}</h2>
+            <p style={{fontSize:14,color:"rgba(255,255,255,.45)",lineHeight:1.7,marginBottom:12,maxWidth:700}}>{curDec.desc}</p>
+            
+            {/* KEY QUESTIONS PROMPT */}
+            <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(167,139,250,.04)",border:"1px solid rgba(167,139,250,.12)",marginBottom:20,maxWidth:700}}>
+              <div style={{fontSize:9,fontWeight:600,color:C.purple,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>🧠 Questions to Consider Before Choosing</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.45)",lineHeight:1.7}}>
+                {curDec.id==="start"&&"What's more important right now — speed to revenue or ceiling height? Can a 2-person team execute on the highest-complexity option? Which story resonates more with investors: traction proof or massive TAM?"}
+                {curDec.id==="hkg_lane"&&"Which stakeholder do you understand best? Which revenue model has the shortest path to cash? Where does John's network create the most unfair advantage? Which lane builds the data asset that powers all other lanes?"}
+                {curDec.id==="patient_scope"&&"How broad can you go without losing focus? What's the regulatory exposure of each scope level? Which scope generates the fastest traffic growth? Where do the highest per-transaction revenue opportunities live?"}
+                {curDec.id==="bkg_rev"&&"How important is viral growth vs. immediate revenue per customer? Can you afford to support free users? How do contractors find new software tools — ads, word of mouth, trade shows, app stores?"}
+                {curDec.id==="fundraise"&&"What's your personal runway in months? How much dilution are you willing to accept? Can BKG revenue realistically hit $25K MRR in 90 days? Is the AI funding window closing or opening?"}
+                {!["start","hkg_lane","patient_scope","bkg_rev","fundraise"].includes(curDec.id)&&"What are you optimizing for — speed, scale, or safety? Which option creates the most optionality for future decisions? What would you regret NOT doing in 12 months?"}
+              </div>
+            </div>
+
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(clamp(200px,40vw,280px),1fr))",gap:10}}>
               {curDec.opts.map((o,i)=>(
-                <div key={o.id} onClick={()=>setPreview(o)}
-                  style={{borderRadius:14,overflow:"hidden",background:"rgba(255,255,255,.02)",border:"1.5px solid rgba(255,255,255,.06)",cursor:"pointer",transition:"all .3s "+ez,display:"flex",flexDirection:"column"}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.15)"}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.06)"}>
-                  {o.img&&<div style={{height:80,overflow:"hidden",position:"relative",background:"#000"}}><img src={o.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:.3}}/><div style={{position:"absolute",bottom:0,left:0,right:0,height:"70%",background:"linear-gradient(transparent,rgba(0,0,0,.9))"}}/></div>}
+                <div key={o.id} onClick={()=>setPreview(o)} className="card-enter"
+                  style={{borderRadius:14,overflow:"hidden",background:"rgba(255,255,255,.02)",border:"1.5px solid rgba(255,255,255,.06)",cursor:"pointer",transition:"all .35s "+ez,display:"flex",flexDirection:"column",animationDelay:(i*.08)+"s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.18)";e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.3)"}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.06)";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none"}}>
+                  {o.img&&<div style={{height:90,overflow:"hidden",position:"relative",background:"#000"}}><img src={o.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:.35,transition:"opacity .4s"}}/><div style={{position:"absolute",bottom:0,left:0,right:0,height:"70%",background:"linear-gradient(transparent,rgba(0,0,0,.9))"}}/></div>}
                   <div style={{padding:"12px 14px",flex:1}}>
-                    <div style={{fontSize:14,fontWeight:600,color:"rgba(255,255,255,.85)",marginBottom:4}}>{o.label}</div>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.5}}>{o.sub}</div>
-                    <div style={{marginTop:8,display:"flex",gap:4,flexWrap:"wrap"}}>
+                    <div style={{fontSize:15,fontWeight:600,color:"rgba(255,255,255,.9)",marginBottom:5}}>{o.label}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.6,marginBottom:8}}>{o.sub}</div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
                       {o.fx.y5>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:C.green+"15",color:C.green}}>Y5: {af(o.fx.y5)}</span>}
                       <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:(o.fx.risk>6?C.red:C.green)+"15",color:o.fx.risk>6?C.red:C.green}}>Risk:{o.fx.risk}</span>
+                      <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:C.blue+"15",color:C.blue}}>{o.fx.rev}mo</span>
                     </div>
-                    <div style={{marginTop:8,fontSize:10,color:C.gold,fontWeight:500}}>Tap to explore →</div>
+                    <div style={{height:1,background:"rgba(255,255,255,.04)",marginBottom:8}}/>
+                    <div style={{fontSize:10,color:C.gold,fontWeight:600}}>🔍 Explore full analysis →</div>
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* RESEARCH AT DECISION LEVEL */}
+            <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:"rgba(167,139,250,.03)",border:"1px solid rgba(167,139,250,.1)",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:C.purple}}>🔬 Need more information?</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:2}}>Get AI-powered strategic analysis for this decision point</div>
+              </div>
+              <button onClick={()=>{const p="I'm CEO of The Knowledge Gardens (AI-native operating systems for $trillion industries). 12.1M healthcare records, 9.4M NPI providers. Co-founders: John Bou (KLAS #1 credentialing) + Chilly Dahlgren (2nd-gen AI pioneer).\n\nPath so far: "+(hist.map(h=>h.label).join(" → ")||"Start")+"\n\nDecision: "+curDec.title+" — "+curDec.desc+"\n\nOptions: "+curDec.opts.map(o=>o.label+": "+o.sub).join(" | ")+"\n\nGive me a deep strategic analysis with specific numbers, competitive intel, and a clear recommendation. What would you do and why?";navigator.clipboard?.writeText(p);alert("Research prompt copied! Paste into Claude for deep analysis.")}}
+                style={{padding:"10px 20px",borderRadius:8,border:"1.5px solid "+C.purple+"40",background:C.purple+"10",color:C.purple,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .3s "+ez}}
+                onMouseEnter={e=>e.currentTarget.style.background=C.purple+"20"}
+                onMouseLeave={e=>e.currentTarget.style.background=C.purple+"10"}>
+                📋 Copy Research Prompt for Claude
+              </button>
             </div>
           </div>
         )}
@@ -560,20 +612,24 @@ function App(){
         </div>
       )}
 
-      {/* COMPASS */}
-      <div style={{position:"fixed",bottom:hist.length>0?80:20,right:16,zIndex:70}}>
-        {compOpen&&compassItems.map((ci,i)=>{
-          const a=(-90-25*(compassItems.length-1)/2+i*25)*Math.PI/180;
-          return <div key={i} onClick={()=>{ci.action();setCompOpen(false)}}
-            style={{position:"absolute",bottom:28+(-Math.sin(a)*85),right:28+(-Math.cos(a)*85),width:40,height:40,borderRadius:"50%",background:"rgba(12,12,16,.95)",border:"1.5px solid "+ci.color+"40",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",animation:"compassItem .25s "+ez+" "+(i*.03)+"s both",backdropFilter:"blur(8px)"}}>
-            <span style={{fontSize:14}}>{ci.icon}</span>
-            <span style={{fontSize:5,color:ci.color,marginTop:1,fontWeight:600}}>{ci.label}</span>
-          </div>;
-        })}
+      {/* COMPASS — UNMISSABLE */}
+      <div style={{position:"fixed",bottom:hist.length>0?82:20,right:16,zIndex:80,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+        {compOpen&&<div style={{position:"absolute",bottom:70,right:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+          {compassItems.map((ci,i)=>(
+            <div key={i} onClick={()=>{ci.action();setCompOpen(false)}}
+              style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:10,background:"rgba(8,8,12,.95)",border:"1.5px solid "+ci.color+"50",cursor:"pointer",animation:"compassItem .3s "+ez+" "+(i*.04)+"s both",backdropFilter:"blur(12px)",whiteSpace:"nowrap"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=ci.color}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=ci.color+"50"}>
+              <span style={{fontSize:16}}>{ci.icon}</span>
+              <span style={{fontSize:12,color:ci.color,fontWeight:600}}>{ci.label}</span>
+            </div>
+          ))}
+        </div>}
         <button onClick={()=>setCompOpen(p=>!p)}
-          style={{width:48,height:48,borderRadius:"50%",background:compOpen?"rgba(212,168,83,.12)":"rgba(12,12,16,.9)",border:"2px solid "+(compOpen?C.gold+"50":"rgba(255,255,255,.08)"),cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",zIndex:2,transition:"all .3s "+ez,backdropFilter:"blur(8px)"}}>
-          <img src={I.hex} alt="" style={{width:22,height:22,objectFit:"contain",opacity:compOpen?.8:.5,transition:"all .3s",transform:compOpen?"rotate(60deg)":"none"}}/>
+          style={{width:56,height:56,borderRadius:"50%",background:compOpen?"rgba(212,168,83,.2)":"rgba(12,12,16,.95)",border:"2.5px solid "+(compOpen?C.gold:C.gold+"60"),cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"all .3s "+ez,backdropFilter:"blur(12px)",animation:compOpen?"none":"glow 3s ease infinite",boxShadow:"0 4px 20px rgba(0,0,0,.5)"}}>
+          <img src={I.hex} alt="" style={{width:26,height:26,objectFit:"contain",opacity:compOpen?1:.7,transition:"all .3s",transform:compOpen?"rotate(60deg)":"none"}}/>
         </button>
+        {!compOpen&&<span style={{fontSize:7,color:C.gold+"80",textTransform:"uppercase",letterSpacing:".15em",fontWeight:600}}>Menu</span>}
       </div>
 
       {/* SAVE MODAL */}
