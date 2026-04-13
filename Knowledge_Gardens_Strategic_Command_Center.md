@@ -432,5 +432,158 @@ John knows *what* healthcare needs — he built it at Modio for 10 years. Chilly
 
 ---
 
+---
+
+## HKG Revenue Architecture — Three Interconnected Engines
+
+*Research completed April 12, 2026. Based on extensive market analysis across insurance B2B, consumer healthspan economy, and clinical service referrals.*
+
+### Engine 1: Insurance / Payer B2B ($25–30M ARR potential, 3–5 years)
+
+**Regulatory driver:** The No Surprises Act requires insurers to verify and update provider directories every 90 days, update online directories within 48 hours of changes, and respond to patient inquiries within one business day. Violations: up to $10,000 per violation; CMS can halt new member enrollment for an entire plan year. The bipartisan REAL Health Providers Act expands requirements to Medicare Advantage plans starting 2026.
+
+**The ghost network problem:** ProPublica found 86% of listed mental health providers in New York were unreachable. Arizona regulators couldn't reach nearly 2 in 5 providers called. California has issued only a single fine ($7,500) despite ghost network regulation since 2016. Enforcement is tightening — every enforcement action makes our 9.4M verified NPI dataset more valuable.
+
+**Market size:** Provider data management: $1.5–2.5B (core directory). Broader payer network management: $4.7–5.8B growing 9–15% CAGR. CAQH estimates $21B savings opportunity through full automation.
+
+**Competitive landscape:**
+- Kyruus Health: ~$125M revenue, enterprise SaaS, 1B+ provider searches. Acquired by RevSpring Q4 2025.
+- Verato: $35.5M revenue (+101% YoY), master data management, 75%+ of US population flows through.
+- CAQH DirectAssure: $1.68/provider/year, 4M+ records, 1,000+ health plans.
+- Ribbon Health: $4.2M revenue, API per-query model. Acquired by H1 January 2025.
+- LexisNexis Health Care: 8.5M+ practitioner records, enterprise contracts.
+
+**HKG pricing model:** Enterprise SaaS to health plans ($100K–$5M/yr), API per-query ($0.01–$0.50), PMPM for plan data services ($0.05–$0.50), compliance modules ($50K–$250K/yr add-ons).
+
+**Telehealth economics:** Insurers don't pay per-referral. Teladoc ($2.53B revenue) generates 83% from recurring PMPM/PEPM access fees. 23–24 states now mandate telehealth payment parity. CMS made key telehealth codes permanently reimbursable.
+
+### Engine 2: Consumer Healthspan Economy ($600B+ TAM)
+
+**Market segments:**
+- GLP-1 drugs: $53–66B in 2025, projected $133–315B by 2034–2035. Semaglutide patent expires March 2026 — massive information demand wave incoming.
+- Wearable health tech: $82.3B (growing to $256B by 2034). Oura ~$500M revenue, $5B valuation.
+- Biohacking: $24.5–33B, growing 18–19% CAGR.
+- Anti-aging supplements: $4.9B. NAD+ products: $3.45B (15.1% CAGR).
+- Regenerative medicine: $35–41B. Precision medicine: $100–119B.
+- Global wellness economy: $6T+. Longevity-specific: $610B by 2026.
+
+**Affiliate commission structures:**
+- Supplements: 5–50% (Wolfson Brands 40–50%, Thorne 20%, Onnit 15%, AG1 5–10%)
+- Wearables: 2–10% (Oura 2.2–6%, Levels $50–100/member, Muse ~10%)
+- High-ticket wellness: $1,500/booking (Rythmia), up to 50% (Tripaneer), $150/conversion (online therapy)
+- Red light therapy: 10–15% on $300+ devices
+- Water filtration: 10–30% (Epic 15%, Crystal Quest 10%, Pure Air Pure Water up to 30%)
+
+**Comparable platform economics:**
+- GoodRx: $792M revenue from ~30M users = ~$26/user/year. Free tools → PBM commissions. 28.6% EBITDA margin.
+- Hims & Hers: $1.48B revenue, 2.4M subscribers, $73–84 monthly ARPU. Targeting $6.5B revenue by 2030.
+- Noom: ~$1B ARR, 1.5M subscribers, $17–70/month. GLP-1 program hit $100M run-rate in 4 months.
+- Health content RPMs: $15–50+ (vs $2–8 entertainment). Healthcare digital ad spend: $24.77B.
+
+**Freemium conversion:** Industry median 2.18%, health apps 12.1% at 90th percentile. 5M free users × 3% conversion × $10–49/month = $18–88M annual subscription revenue.
+
+### Engine 3: High-Value Medical Service Referrals ($1K–$10K+ per conversion)
+
+**Clinical trial matching:** Pharma pays $15K–50K per recruited patient. 80% of trials delayed by recruitment. Market: $3.5–11.8B, projected $26B+ by 2035. HKG already has 33K trials and 60K PubMed citations loaded.
+
+**Regenerative medicine / longevity clinics (cash-pay, zero AKS exposure):**
+- NAD+ IV therapy: $250–1,500/session
+- Stem cell therapy: $5,000–50,000/treatment
+- Longevity programs: $10,000–150,000/year (Fountain Life starts at $20K)
+- Clinics pay $500–3,000+ for patient acquisition; HKG referral fee: $200–2,000/patient
+
+**Concierge medicine:** Market $20.4–23.6B, projected $39–48B by 2033. MDVIP: $1,800–5,000/year membership, 90% retention, 5-year LTV $10,800–22,500. Referral fee: $200–2,000/member.
+
+**Medical tourism:** 10–40% commissions on $5K–50K procedures = $500–10K per referral. 1.4M US patients travel annually.
+
+**Telehealth marketplaces:** Zocdoc charges $35–110 per new patient booking. Sesame offers virtual care from $29 through Costco partnership. Marketplace take rates: 15–25%.
+
+**Strategic sequencing:** Build insurer B2B base (credibility + recurring revenue) → scale free consumer tools (volume) → layer high-value referrals on top (margins). Each layer reinforces the others.
+
+---
+
+## Regulatory Risk & Opportunity Analysis
+
+*Analysis completed April 12, 2026. Based on FDA CDS Guidance (Jan 6, 2026), No Surprises Act enforcement trends, AKS rulings (Sorensen, Zocdoc), and FTC health claims enforcement.*
+
+### Regulatory Opportunities (Tailwinds)
+
+**No Surprises Act:** Creates mandatory insurer spending on provider directory accuracy. 90-day verification requirement + expanding state enforcement = growing demand for our 9.4M NPI dataset. Ghost network legislation gaining bipartisan traction.
+
+**FDA CDS Guidance (January 6, 2026):** Expanded enforcement discretion for AI-enabled clinical decision support that provides clinically appropriate recommendations for provider review. Commissioner Makary: "we need to be less paternalistic and instead trust clinicians." Our 3-Point Verification system fits exactly within the new guidance — we augment clinical judgment with verified data, not replace it.
+
+**FDA General Wellness Guidance (January 6, 2026):** Broadened scope for non-invasive wellness tools that report physiologic measures. Patient Gravity Well (drug interaction checker, longevity content, health education) fits squarely as general wellness — not a diagnostic device.
+
+**GLP-1 Patent Expiration (March 2026):** Semaglutide loses exclusivity. Generics create an information tsunami — tens of millions of new patients needing comparison tools, interaction checkers, provider matching. Perfect demand spike for our Gravity Well.
+
+**Telehealth parity:** 23–24 states mandate payment parity. CMS permanent telehealth codes. Makes telehealth referral partnerships more valuable as providers earn full reimbursement.
+
+### Regulatory Risks (Headwinds)
+
+**Anti-Kickback Statute (AKS):** Prohibits paying for referrals of services reimbursed by federal programs. MITIGATED BY: Seventh Circuit (Sorensen, April 2025) held that advertising/marketing payments are not "referrals." Second Circuit affirmed Zocdoc's booking fee model as AKS-compliant per OIG advisory opinions. Cash-pay services (longevity clinics, supplements) have zero AKS exposure. Strategy: structure provider fees as flat-rate marketing, not per-referral; pursue OIG advisory opinion early.
+
+**HIPAA:** Applies if we process PHI. MITIGATED BY: Free tier designed to require zero PHI (users input drug names, not personal health records). BAAs with partners. Budget $50–100K for compliance.
+
+**FTC Health Claims Enforcement:** FTC-FDA coordination on supplement advertising is active in 2026. MITIGATED BY: 3-Point Verification is our defense — we only feature evidence-backed products. Never make or endorse unsubstantiated health claims.
+
+**Patient-facing CDS still regulated:** FDA guidance loosened for provider-facing tools but expressly noted patient-facing tools remain under existing policies. MITIGATED BY: 4-lane architecture naturally separates patient-facing (educational, wellness) from provider-facing (clinical intelligence).
+
+**State privacy laws multiplying:** Washington's My Health My Data Act targets consumer health data outside HIPAA. MITIGATED BY: Privacy-by-design, minimal data collection in free tier.
+
+**EKRA:** Extends AKS-like prohibitions to commercial insurance (not just federal). MITIGATED BY: Revenue structured as SaaS data subscriptions, not per-referral fees. Seventh Circuit Sorensen ruling distinguishes advertising from referrals.
+
+### The Framing: Regulation Is Our Moat
+
+Every credential we verify, every directory we maintain, every drug interaction we flag — these are compliance functions that regulators are mandating. We sell compliance-as-a-service. The 4-lane architecture is a regulatory hedge by design: each lane operates under a different regulatory framework and fits within existing safe harbors. Cash-pay longevity services carry zero AKS/EKRA exposure. Our 3-Point Verification is both product and regulatory shield.
+
+---
+
+## Current Data State (April 12, 2026)
+
+**Total: 12.1M+ records across 23 populated tables, 28-table schema**
+
+| Table | Records | Source |
+|-------|---------|--------|
+| providers | 9,427,624 | NPPES NPI Registry (full US, complete) |
+| provider_addresses | 1,175,202 | NPPES |
+| provider_taxonomies | 778,330 | NPPES |
+| drug_adverse_events | 139,798 | FDA FAERS |
+| icd10_cm_codes | 97,584 | CMS FY2025 |
+| ndc_codes | 82,740 | FDA openFDA |
+| oig_exclusions | 82,749 | HHS-OIG LEIE (Mar 2026) |
+| icd10_pcs_codes | 78,948 | CMS FY2025 |
+| medicare_part_d | 70,600 | CMS |
+| pubmed_citations | 59,798 | NCBI E-Utilities |
+| medicare_utilization | 50,000 | CMS |
+| clinical_trials | 33,593 | ClinicalTrials.gov API v2 |
+| drugs | 25,790 | NLM RxNorm |
+| hcpcs_codes | 22,700 | CMS Level II |
+| loinc_codes | 7,498+ | LOINC/Regenstrief |
+| drug_interactions | 5,500 | RxNorm-linked |
+| hospitals | 2,058 | CMS Hospital All Owners |
+| drg_codes | 863 | CMS MS-DRG v42 |
+| drug_labels | 700 | NLM DailyMed |
+| state_medical_boards | 51 | 50 states + DC |
+
+All from free public databases. Zero licensing cost at any scale. RSI heartbeat auto-ingests updates daily.
+
+---
+
+## Market Data Snapshot (April 2026)
+
+- Q1 2026: $4B digital health funding across 110 deals — strongest Q1 since pandemic peak (Rock Health, April 8, 2026)
+- Average deal size: $36.7M — highest since Q4 2021
+- AI companies captured 55% of all health tech funding (up from 29% in 2022) (Bessemer VP)
+- AI-focused deals: 75% of health tech transactions (J.P. Morgan)
+- Rock Health retired separate "AI deal" tracking — AI is now table stakes
+- Health tech valuations: Series D+ jumped 63% YoY
+- $0.22 of every $1 invested in AI goes to healthcare (exceeds healthcare's 18% GDP share)
+- OpenEvidence: $250M Series D, Q1 2026 (doctors only — single lane)
+- Rebar: $14M Series A (HVAC only — single trade)
+- eMed: $200M Series A at $2B+ (AI telehealth)
+- Qualified Health: $125M (AI adoption governance for health systems)
+
+---
+
 *The Knowledge Gardens · Chilly Dahlgren & John Bou · April 2026 · Confidential*
 *Interactive version: [knowledge-gardens-command.vercel.app](https://knowledge-gardens-command.vercel.app)*
