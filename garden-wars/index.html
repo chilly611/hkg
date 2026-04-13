@@ -403,7 +403,7 @@ function SaveManager({saves,onLoad,onDelete,onClose}){
                   <button onClick={()=>onDelete(i)} style={{padding:"6px 12px",borderRadius:6,border:"1px solid "+C.red+"30",background:C.red+"10",color:C.red,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
                 </div>
               </div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:6}}}>Path: {s.history.map(h=>h.label).join(" → ")}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,.25)",marginTop:6}}>Path: {s.history.map(h=>h.label).join(" → ")}</div>
             </div>
           ))
         )}
