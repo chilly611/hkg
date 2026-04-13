@@ -329,6 +329,14 @@
             .ev-actions{width:100%}
         }
 
+        /* === BROWSE SEARCH === */
+        .browse-search{display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1.25rem;background:var(--glass);border-bottom:1px solid var(--border);flex-shrink:0}
+        .browse-search-icon{color:var(--text3);font-size:1rem}
+        .browse-search-input{flex:1;padding:0.55rem 0.85rem;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text);outline:none;transition:all 0.2s}
+        .browse-search-input:focus{border-color:rgba(52,211,153,0.4);background:rgba(255,255,255,0.05);box-shadow:0 0 0 3px rgba(52,211,153,0.08)}
+        .browse-search-clear{padding:0.4rem 0.7rem;background:rgba(255,255,255,0.05);border-radius:var(--radius-sm);color:var(--text2);font-size:0.75rem;transition:all 0.2s}
+        .browse-search-clear:hover{background:rgba(239,68,68,0.15);color:var(--red)}
+
         /* === VERIFY VIEW === */
         .verify-view{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;align-items:center}
         .verify-container{width:100%;max-width:900px}
@@ -751,9 +759,16 @@ function Home(props){
                 h("span",{className:"search-icon"},"⌕"),
                 h("input",{
                     className:"search-input",
-                    placeholder:"Search providers, drugs, diagnoses, trials, codes...",
+                    placeholder:"Search providers, drugs, diagnoses, trials, codes, or enter 10-digit NPI...",
                     value:search.query,
                     onChange:function(e){search.search(e.target.value)},
+                    onKeyDown:function(e){
+                        if(e.key==="Enter"){
+                            var v=(search.query||"").trim();
+                            if(/^\d{10}$/.test(v)){props.navigate("verify",null,v);return}
+                            if(search.results&&search.results.length>0){props.onSelectEntity(search.results[0],search.results[0]._type)}
+                        }
+                    },
                 }),
                 h("span",{className:"search-kbd"},"⌘K"),
                 h(SearchDropdown,{results:search.results,loading:search.loading,onSelect:props.onSelectEntity})
@@ -1035,21 +1050,69 @@ var BROWSE_TABLES={
     state_medical_boards:{label:"State Boards",color:"var(--violet)",cols:["state_name","board_name","board_url","compact_member"],select:"id,state_code,state_name,board_name,board_url,lookup_url,compact_member"},
 };
 
+var SEARCH_COLS={
+    providers:["last_name","first_name","organization_name","npi"],
+    drugs:["name"],
+    icd10_cm_codes:["code","description"],
+    clinical_trials:["title"],
+    oig_exclusions:["entity_name","npi"],
+    hcpcs_codes:["code","description"],
+    ndc_codes:["ndc_code","proprietary_name","manufacturer"],
+    drug_interactions:["drug_a_name","drug_b_name"],
+    pubmed_citations:["title"],
+    drug_adverse_events:["drug_name","reaction"],
+    medicare_part_d_prescribers:["npi","provider_last_name","drug_name","generic_name"],
+    medicare_utilization:["npi","provider_last_name","hcpcs_code","hcpcs_description"],
+    loinc_codes:["loinc_num","long_common_name","component"],
+    hospitals:["facility_name","city"],
+    drg_codes:["code","description"],
+    drug_labels:["name"],
+    mesh_terms:["name","mesh_id"],
+    state_medical_boards:["state_name","board_name"]
+};
+
 function BrowseView(props){
     var _t=useState(props.initialTable||"providers"),table=_t[0],setTable=_t[1];
     var _d=useState([]),data=_d[0],setData=_d[1];
     var _p=useState(0),page=_p[0],setPage=_p[1];
     var _l=useState(true),loading=_l[0],setLoading=_l[1];
+    var _q=useState(""),query=_q[0],setQuery=_q[1];
     var pageSize=50,cfg=BROWSE_TABLES[table];
+    var searchTimer=useRef(null);
+
+    function buildQ(tbl,offset,searchText){
+        var url="/"+tbl+"?select="+BROWSE_TABLES[tbl].select+"&limit="+pageSize+"&offset="+offset+"&order=id";
+        if(searchText&&searchText.length>=2){
+            var cols=SEARCH_COLS[tbl]||[],t=encodeURIComponent(searchText.trim());
+            if(cols.length>0){
+                var ors=cols.map(function(c){
+                    // Exact match for NPI-like numeric queries on npi columns
+                    if(c==="npi"&&/^\d{10}$/.test(searchText.trim()))return c+".eq."+searchText.trim();
+                    return c+".ilike.%25"+t+"%25";
+                }).join(",");
+                url+="&or=("+ors+")";
+            }
+        }
+        return url;
+    }
 
     useEffect(function(){
-        setLoading(true);setPage(0);
-        q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset=0&order=id").then(function(r){setData(r);setLoading(false)});
+        setLoading(true);setPage(0);setQuery("");
+        q(buildQ(table,0,"")).then(function(r){setData(r);setLoading(false)});
     },[table]);
+
+    function runSearch(text){
+        setQuery(text);
+        if(searchTimer.current)clearTimeout(searchTimer.current);
+        searchTimer.current=setTimeout(function(){
+            setLoading(true);setPage(0);
+            q(buildQ(table,0,text)).then(function(r){setData(r);setLoading(false)});
+        },250);
+    }
 
     function loadPage(p){
         setLoading(true);setPage(p);
-        q("/"+table+"?select="+cfg.select+"&limit="+pageSize+"&offset="+(p*pageSize)+"&order=id").then(function(r){setData(r);setLoading(false)});
+        q(buildQ(table,p*pageSize,query)).then(function(r){setData(r);setLoading(false)});
     }
     var typeMap={providers:"provider",drugs:"drug",icd10_cm_codes:"diagnosis",clinical_trials:"trial",oig_exclusions:"exclusion",hcpcs_codes:"code",ndc_codes:"ndc",drug_interactions:"interaction",pubmed_citations:"citation",drg_codes:"drg",drug_labels:"label",state_medical_boards:"board",drug_adverse_events:"adverse_event",medicare_part_d_prescribers:"prescription",medicare_utilization:"utilization",loinc_codes:"lab_code",hospitals:"hospital",mesh_terms:"mesh"};
 
@@ -1059,6 +1122,22 @@ function BrowseView(props){
                 var t=BROWSE_TABLES[k];
                 return h("button",{className:"browse-tab"+(table===k?" active":""),key:k,onClick:function(){setTable(k)}},t.label,props.counts[k]?" ("+fmt(props.counts[k]||0)+")":"");
             })
+        ),
+        h("div",{className:"browse-search"},
+            h("span",{className:"browse-search-icon"},"⌕"),
+            h("input",{
+                className:"browse-search-input",
+                placeholder:"Search "+cfg.label+" ("+(SEARCH_COLS[table]||[]).join(", ")+")...",
+                value:query,
+                onChange:function(e){runSearch(e.target.value)},
+                onKeyDown:function(e){
+                    if(e.key==="Enter"){
+                        var v=(query||"").trim();
+                        if(/^\d{10}$/.test(v))props.navigate?props.navigate("verify",null,v):null;
+                    }
+                }
+            }),
+            query?h("button",{className:"browse-search-clear",onClick:function(){runSearch("")}},"✕"):null
         ),
         h("div",{className:"browse-content"},
             loading?h("div",{className:"loading"},h("div",{className:"spinner"}),"Loading..."):
@@ -1162,17 +1241,18 @@ function CompassNav(props){
 
 // === PROVIDER VERIFICATION ENGINE ===
 function VerifyView(props){
-    var _n=useState(""),npi=_n[0],setNpi=_n[1];
+    var _n=useState(props.initialNpi||""),npi=_n[0],setNpi=_n[1];
     var _r=useState(null),result=_r[0],setResult=_r[1];
     var _l=useState(false),loading=_l[0],setLoading=_l[1];
     var _e=useState(""),error=_e[0],setError=_e[1];
     var _p=useState(""),progress=_p[0],setProgress=_p[1];
     var _t=useState(0),activeTab=_t[0],setActiveTab=_t[1];
+    var autoRef=useRef(null);
 
-    function verify(){
-        if(!npi||!/^\d{10}$/.test(npi.trim())){setError("Please enter a valid 10-digit NPI");return}
+    function verifyNow(npiVal){
+        if(!npiVal||!/^\d{10}$/.test(npiVal.trim())){setError("Please enter a valid 10-digit NPI");return}
         setLoading(true);setError("");setResult(null);setProgress("Querying 9 data sources...");setActiveTab(0);
-        var npiVal=npi.trim();
+        npiVal=npiVal.trim();
         Promise.all([
             q("/providers?npi=eq."+npiVal+"&select=*&limit=1"),
             q("/provider_taxonomies?npi=eq."+npiVal+"&select=*"),
@@ -1215,6 +1295,16 @@ function VerifyView(props){
             });
         }).catch(function(){setError("Error loading provider data");setLoading(false);setProgress("")});
     }
+
+    function verify(){verifyNow(npi)}
+
+    useEffect(function(){
+        if(props.initialNpi&&/^\d{10}$/.test(props.initialNpi)&&autoRef.current!==props.initialNpi){
+            autoRef.current=props.initialNpi;
+            setNpi(props.initialNpi);
+            verifyNow(props.initialNpi);
+        }
+    },[props.initialNpi]);
 
     function handleKeyDown(e){if(e.key==="Enter")verify()}
 
@@ -1559,6 +1649,7 @@ function App(){
     var _e=useState(null),entity=_e[0],setEntity=_e[1];
     var _et=useState(""),entityType=_et[0],setEntityType=_et[1];
     var _bt=useState("providers"),browseTable=_bt[0],setBrowseTable=_bt[1];
+    var _vn=useState(""),verifyNpi=_vn[0],setVerifyNpi=_vn[1];
     var search=useSearch();
     var totalRecords=useRef(0);
 
@@ -1577,15 +1668,22 @@ function App(){
         });
     },[]);
 
-    function navigate(v,table){
+    function navigate(v,table,npi){
         setView(v);setEntity(null);
         search.search("");search.setResults([]);
         if(table)setBrowseTable(table);
+        if(npi!==undefined)setVerifyNpi(npi||"");
+        else if(v!=="verify")setVerifyNpi("");
     }
 
     function selectEntity(item,type){
+        // Route provider clicks to full Verification view when NPI is available
+        if(type==="provider"&&item.npi){
+            navigate("verify",null,String(item.npi));
+            return;
+        }
         if(type==="provider"&&item.id&&!item.gender){
-            q("/providers?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
+            q("/providers?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){if(r[0].npi){navigate("verify",null,String(r[0].npi));return}setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
         } else if(type==="drug"&&item.id&&!item.rxcui){
             q("/drugs?id=eq."+item.id+"&select=*").then(function(r){if(r[0]){setEntity(r[0]);setEntityType(type);setView("entity");search.search("");search.setResults([])}});
         } else if(type==="trial"&&item.id&&!item.enrollment){
@@ -1606,9 +1704,9 @@ function App(){
     if(view==="entity"&&entity){
         content=h(EntityView,{entity:entity,type:entityType,onBack:function(){navigate("home")},onSelectEntity:selectEntity});
     } else if(view==="browse"){
-        content=h(BrowseView,{initialTable:browseTable,counts:counts,onSelectEntity:selectEntity});
+        content=h(BrowseView,{initialTable:browseTable,counts:counts,onSelectEntity:selectEntity,navigate:navigate});
     } else if(view==="verify"){
-        content=h(VerifyView,{navigate:navigate});
+        content=h(VerifyView,{navigate:navigate,initialNpi:verifyNpi});
     } else if(view==="interactions"){
         content=h(InteractionView,{navigate:navigate});
     } else if(view==="graph"){
