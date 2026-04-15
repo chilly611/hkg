@@ -248,6 +248,54 @@
         }
         .status-bar a{color:var(--emerald);text-decoration:none}
 
+        /* === TRAIL MAP === */
+        .trail-map{
+            display:flex;align-items:center;gap:0.3rem;
+            padding:0.35rem 0.75rem;min-height:34px;
+            background:linear-gradient(180deg,rgba(10,14,20,0.6),rgba(10,14,20,0.85));
+            border-top:1px solid var(--border);
+            overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+            flex-shrink:0;scrollbar-width:thin;
+        }
+        .trail-map::-webkit-scrollbar{height:3px}
+        .trail-map::-webkit-scrollbar-thumb{background:rgba(52,211,153,0.25);border-radius:2px}
+        .trail-back{
+            display:flex;align-items:center;gap:0.25rem;
+            padding:0.3rem 0.55rem;border-radius:6px;
+            background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);
+            color:var(--emerald);font-size:0.7rem;flex-shrink:0;
+            transition:all 0.18s;cursor:pointer;
+        }
+        .trail-back:hover:not(:disabled){background:rgba(52,211,153,0.15);transform:translateX(-1px)}
+        .trail-back:disabled{opacity:0.3;cursor:default}
+        .trail-back svg{width:12px;height:12px}
+        .trail-sep{
+            width:1px;height:18px;background:var(--border);margin:0 0.25rem;flex-shrink:0;
+        }
+        .trail-label{
+            font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;
+            margin-right:0.25rem;flex-shrink:0;
+        }
+        .trail-node{
+            display:inline-flex;align-items:center;gap:0.3rem;
+            padding:0.28rem 0.55rem;border-radius:5px;
+            background:rgba(255,255,255,0.03);border:1px solid var(--border);
+            color:var(--text2);font-size:0.7rem;flex-shrink:0;
+            transition:all 0.18s;cursor:pointer;
+            font-family:"JetBrains Mono",monospace;
+        }
+        .trail-node:hover{background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.25);color:var(--emerald)}
+        .trail-node.active{background:linear-gradient(135deg,rgba(52,211,153,0.18),rgba(167,139,250,0.12));border-color:rgba(52,211,153,0.4);color:var(--emerald);cursor:default}
+        .trail-node.active:hover{transform:none}
+        .trail-node .tn-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+        .trail-arrow{color:var(--text3);font-size:0.6rem;flex-shrink:0;margin:0 0.05rem;user-select:none}
+        .trail-clear{
+            padding:0.25rem 0.5rem;border-radius:5px;font-size:0.65rem;
+            color:var(--text3);border:1px solid var(--border);background:transparent;
+            margin-left:auto;flex-shrink:0;transition:all 0.18s;cursor:pointer;
+        }
+        .trail-clear:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+
         /* === LOADING === */
         .loading{display:flex;align-items:center;justify-content:center;gap:0.4rem;padding:2.5rem;color:var(--text3);font-size:0.82rem}
         .spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--emerald);border-radius:50%;animation:spin 0.8s linear infinite}
@@ -1215,6 +1263,12 @@ function CompassNav(props){
                         h("button",{className:"compass-link",onClick:function(){nav("home")}},
                             h("span",{className:"cl-dot",style:{background:"var(--emerald)"}}),"Home"
                         ),
+                        h("button",{className:"compass-link",onClick:function(){nav("verify")}},
+                            h("span",{className:"cl-dot",style:{background:"#38BDF8"}}),"Verify NPI"
+                        ),
+                        h("button",{className:"compass-link",onClick:function(){nav("interactions")}},
+                            h("span",{className:"cl-dot",style:{background:"#F97316"}}),"Interactions"
+                        ),
                         h("button",{className:"compass-link",onClick:function(){nav("browse","providers")}},
                             h("span",{className:"cl-dot",style:{background:"var(--cyan)"}}),"Browse"
                         ),
@@ -1898,6 +1952,71 @@ function InteractionView(props){
 }
 
 // === MAIN APP ===
+// ============================================================
+// TRAIL MAP — horizontal decision trail along bottom of frame
+// ============================================================
+function trailLabel(v,table,npi){
+    if(v==="home")return "Home";
+    if(v==="verify")return npi?"Verify "+npi:"Verify NPI";
+    if(v==="interactions")return "Interactions";
+    if(v==="graph")return "Graph";
+    if(v==="entity")return "Entity";
+    if(v==="browse"){
+        if(!table)return "Browse";
+        var t=table.replace(/_codes$/,"").replace(/_/g," ");
+        return "Browse "+t.charAt(0).toUpperCase()+t.slice(1);
+    }
+    return v.charAt(0).toUpperCase()+v.slice(1);
+}
+function trailColor(v){
+    if(v==="home")return "var(--emerald)";
+    if(v==="verify")return "#38BDF8";
+    if(v==="interactions")return "#F97316";
+    if(v==="browse")return "var(--cyan)";
+    if(v==="graph")return "var(--violet)";
+    if(v==="entity")return "#A78BFA";
+    return "var(--text3)";
+}
+function TrailMap(props){
+    var history=props.history||[];
+    var backArrow=h("svg",{viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        h("line",{x1:19,y1:12,x2:5,y2:12}),h("polyline",{points:"12 19 5 12 12 5"})
+    );
+    function goBack(){
+        if(history.length<=1)return;
+        props.rewind(history.length-2);
+    }
+    function jumpTo(i){
+        if(i===history.length-1)return;
+        props.rewind(i);
+    }
+    function clearTrail(){
+        props.rewind(0);
+    }
+    var nodes=[];
+    history.forEach(function(step,i){
+        if(i>0){nodes.push(h("span",{key:"a"+i,className:"trail-arrow"},"›"))}
+        nodes.push(
+            h("button",{
+                key:"n"+i,
+                className:"trail-node"+(i===history.length-1?" active":""),
+                onClick:function(){jumpTo(i)},
+                title:i===history.length-1?"Current":"Jump back to this step"
+            },
+                h("span",{className:"tn-dot",style:{background:trailColor(step.view)}}),
+                step.label
+            )
+        );
+    });
+    return h("div",{className:"trail-map"},
+        h("button",{className:"trail-back",onClick:goBack,disabled:history.length<=1,title:"Back one step"},backArrow," Back"),
+        h("div",{className:"trail-sep"}),
+        h("span",{className:"trail-label"},"Trail"),
+        nodes,
+        history.length>1?h("button",{className:"trail-clear",onClick:clearTrail,title:"Reset trail to Home"},"Reset"):null
+    );
+}
+
 function App(){
     var _v=useState("home"),view=_v[0],setView=_v[1];
     var _c=useState({}),counts=_c[0],setCounts=_c[1];
@@ -1905,6 +2024,7 @@ function App(){
     var _et=useState(""),entityType=_et[0],setEntityType=_et[1];
     var _bt=useState("providers"),browseTable=_bt[0],setBrowseTable=_bt[1];
     var _vn=useState(""),verifyNpi=_vn[0],setVerifyNpi=_vn[1];
+    var _hs=useState([{view:"home",table:null,npi:"",label:"Home"}]),history=_hs[0],setHistory=_hs[1];
     var search=useSearch();
     var totalRecords=useRef(0);
 
@@ -1923,12 +2043,30 @@ function App(){
         });
     },[]);
 
-    function navigate(v,table,npi){
+    function applyNav(v,table,npi){
         setView(v);setEntity(null);
         search.search("");search.setResults([]);
         if(table)setBrowseTable(table);
         if(npi!==undefined)setVerifyNpi(npi||"");
         else if(v!=="verify")setVerifyNpi("");
+    }
+    function navigate(v,table,npi){
+        applyNav(v,table,npi);
+        var step={view:v,table:table||null,npi:npi||"",label:trailLabel(v,table,npi)};
+        setHistory(function(prev){
+            var last=prev[prev.length-1];
+            if(last&&last.view===step.view&&last.table===step.table&&last.npi===step.npi)return prev;
+            // cap trail length to prevent runaway growth
+            var next=prev.concat([step]);
+            if(next.length>24)next=next.slice(next.length-24);
+            return next;
+        });
+    }
+    function rewind(i){
+        if(i<0||i>=history.length)return;
+        var target=history[i];
+        applyNav(target.view,target.table,target.npi);
+        setHistory(history.slice(0,i+1));
     }
 
     function selectEntity(item,type){
@@ -1973,6 +2111,7 @@ function App(){
     return h("div",{className:"app"},
         h(TopBar,{view:view,navigate:navigate,totalRecords:totalRecords.current}),
         h("div",{className:"main"},content),
+        h(TrailMap,{history:history,rewind:rewind}),
         h("div",{className:"status-bar"},
             h("span",null,h("span",{className:"live-dot"})," Supabase PostgREST · Live"),
             h("div",{className:"spacer"}),
