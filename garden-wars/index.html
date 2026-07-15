@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garden Wars — CEO Strategy RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{background:#060608;color:#fff;font-family:'DM Sans',sans-serif;overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.15)}50%{box-shadow:0 0 40px rgba(212,168,83,.4)}}
+@keyframes trailPulse{0%,100%{box-shadow:0 0 4px rgba(212,168,83,.2)}50%{box-shadow:0 0 12px rgba(212,168,83,.5)}}
+@keyframes compassItem{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes float1{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-18px) rotate(3deg)}}
+@keyframes float2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(-2deg)}}
+@keyframes float3{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.05)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes cardEntry{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:.03}50%{opacity:.07}}
+.fu{animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both}
+.tp{animation:trailPulse 2s ease infinite}
+.card-enter{animation:cardEntry .5s cubic-bezier(.16,1,.3,1) both}
+.float1{animation:float1 6s ease-in-out infinite}
+.float2{animation:float2 8s ease-in-out infinite}
+.float3{animation:float3 5s ease-in-out infinite}
+.shimmer-bar{background:linear-gradient(90deg,transparent,rgba(212,168,83,.08),transparent);background-size:200% 100%;animation:shimmer 3s ease infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const{useState,useEffect,useRef,useMemo,useCallback}=React;
+const sf="'Instrument Serif',Georgia,serif";
+const mn="'JetBrains Mono',monospace";
+const C={gold:"#D4A853",green:"#10B981",red:"#EF4444",purple:"#A78BFA",blue:"#3B8BD4",orange:"#F97316",cyan:"#06B6D4",pink:"#EC4899",lime:"#84CC16",amber:"#F59E0B",indigo:"#6366F1",teal:"#14B8A6"};
+const ez="cubic-bezier(.16,1,.3,1)";
+
+// ═══ 4-SCORE SYSTEM (Human Value, Machine Value, Fun Factor, Profitability) ═══
+// Primary metric axis per master spec. Derived from option fx unless option provides explicit s4.
+const S4_OVERRIDES={
+  "hkg_first":{hv:9.2,mv:9.0,ff:8.5,pr:8.8},
+  "bkg_first":{hv:5.5,mv:5.8,ff:7.2,pr:8.9},
+  "dual_track":{hv:8.8,mv:8.5,ff:9.5,pr:8.2},
+  "okg_bridge":{hv:7.2,mv:5.5,ff:8.8,pr:4.2},
+  "admin_lane":{hv:6.5,mv:7.2,ff:6.0,pr:9.2},
+  "patient_lane":{hv:9.0,mv:8.2,ff:8.5,pr:6.8},
+  "doctor_lane":{hv:8.8,mv:9.2,ff:8.2,pr:7.5},
+  "machine_lane":{hv:6.0,mv:9.8,ff:7.5,pr:8.0},
+  "bkg_free":{hv:5.2,mv:6.5,ff:7.0,pr:6.5},
+  "bkg_prem":{hv:5.0,mv:6.8,ff:6.5,pr:7.2},
+  "bkg_ent":{hv:4.8,mv:6.2,ff:5.5,pr:8.5},
+  "raise_now":{hv:5.0,mv:5.2,ff:6.5,pr:8.8},
+  "raise_traction":{hv:5.5,mv:5.8,ff:7.2,pr:7.5}
+};
+const score4=(o)=>{
+  if(o&&o.id&&S4_OVERRIDES[o.id]) return S4_OVERRIDES[o.id];
+  if(o&&o.s4) return {hv:o.s4.hv||5,mv:o.s4.mv||5,ff:o.s4.ff||5,pr:o.s4.pr||5};
+  const fx=o&&o.fx||{};
+  const lbl=((o&&o.label||"")+" "+(o&&o.sub||"")).toLowerCase();
+  // Profitability: log-scaled Y5 ARR (in $K) — y5=200000 → ~9.5
+  const pr=Math.max(1,Math.min(10, Math.log10(((fx.y5||0)+1000))*1.9 ));
+  // Machine Value: moat score (data density / network effects) + API/machine bonus
+  const mv=Math.max(1,Math.min(10, (fx.moat||5) + (lbl.match(/machine|api|mcp|data|graph|json|verification/)?1.5:0) ));
+  // Human Value: inverse regulatory friction + patient/consumer bonus + scale bonus
+  const hv=Math.max(1,Math.min(10, (10-(fx.reg||3)) + (lbl.match(/patient|consumer|gravity|free|public|longevity|health/)?2:0) + ((fx.y5||0)>50000?0.5:0) - 2 ));
+  // Fun Factor: low risk feels bigger/fresher + moat bonus (building a moat is exciting)
+  const ff=Math.max(1,Math.min(10, (10-(fx.risk||5)) + ((fx.moat||5)>7?1.5:0) + (lbl.match(/blitz|dual|ai|brain|frontier|platform/)?1:0) ));
+  return {hv:+hv.toFixed(1),mv:+mv.toFixed(1),ff:+ff.toFixed(1),pr:+pr.toFixed(1)};
+};
+const S4={hv:{label:"Human Value",color:"#10B981",icon:"🌱",desc:"Lives improved · health outcomes · knowledge preserved"},mv:{label:"Machine Value",color:"#A78BFA",icon:"🤖",desc:"AI citation moat · data density · MCP adoption"},ff:{label:"Fun Factor",color:"#F97316",icon:"🔥",desc:"Founder passion · creative energy · recruiting appeal"},pr:{label:"Profitability",color:"#D4A853",icon:"💰",desc:"Revenue · margins · capital efficiency"}};
+
+// ═══ Radar chart for 4-scores ═══
+const Radar4=({s,size=180})=>{
+  const cx=size/2,cy=size/2,R=size*0.38;
+  const axes=[["hv",-Math.PI/2],["mv",0],["pr",Math.PI/2],["ff",Math.PI]];
+  const pt=(val,ang)=>[cx+Math.cos(ang)*(R*val/10),cy+Math.sin(ang)*(R*val/10)];
+  const poly=axes.map(([k,a])=>pt(s[k],a).join(",")).join(" ");
+  const rings=[2.5,5,7.5,10];
+  return(
+    <svg width={size} height={size} style={{display:"block"}}>
+      {rings.map((r,i)=>(
+        <polygon key={i} points={axes.map(([,a])=>[cx+Math.cos(a)*(R*r/10),cy+Math.sin(a)*(R*r/10)].join(",")).join(" ")}
+          fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="1"/>
+      ))}
+      {axes.map(([k,a],i)=>(
+        <line key={i} x1={cx} y1={cy} x2={cx+Math.cos(a)*R} y2={cy+Math.sin(a)*R} stroke="rgba(255,255,255,.06)" strokeWidth="1"/>
+      ))}
+      <polygon points={poly} fill="rgba(212,168,83,.18)" stroke="#D4A853" strokeWidth="1.5"/>
+      {axes.map(([k,a],i)=>{
+        const [x,y]=pt(s[k],a);
+        return <circle key={i} cx={x} cy={y} r="3" fill={S4[k].color}/>;
+      })}
+      {axes.map(([k,a],i)=>{
+        const lx=cx+Math.cos(a)*(R+18), ly=cy+Math.sin(a)*(R+18);
+        return(<g key={k}>
+          <text x={lx} y={ly-3} textAnchor="middle" fontSize="9" fill={S4[k].color} fontFamily="'DM Sans',sans-serif" fontWeight="600">{S4[k].icon} {S4[k].label.split(" ")[0]}</text>
+          <text x={lx} y={ly+9} textAnchor="middle" fontSize="11" fill={S4[k].color} fontFamily="'JetBrains Mono',monospace" fontWeight="600">{s[k].toFixed(1)}</text>
+        </g>);
+      })}
+    </svg>
+  );
+};
+const I={tree:"./img/tree_roots_logo.png",hex:"./img/hex_logo_gold.png",pillH:"./img/steel_pill_heart.png",toolT:"./img/tool_tree.png",okg:"./img/okg_brain.png",hkg:"./img/hkg_heart.png",bkg:"./img/bkg_tree.png",dna:"./img/dna_hex.png",medK:"./img/medical_kit.jpg",syr:"./img/syringe.jpg",mic:"./img/microscope.jpg",ham:"./img/hammer.png",comp:"./img/compass_tool.png",stV:"./img/vintage_stethoscope.jpg",gear:"./img/gear_garden.png",draft:"./img/drafting_tools.png",heartC:"./img/heart_circuit.png",crane:"./img/crane.png"};
+
+// ═══ ALL 12 FRONTIER VERTICALS ═══
+const V=[
+{id:"bkg",n:"Construction",ic:"🏗️",tam:"$17T",tN:17000,c:C.orange,y5:50000,st:"live",deploy:"Deployed",
+w:"AI COO for contractors. Estimating, license tracking, compliance, project management for every trade — GC, roofer, HVAC, electrician, plumber, solar.",
+h:"7-step trade-specific onboarding. AI-powered estimates from project descriptions. License tracking with auto-renewal alerts. Morning Briefings replace dashboards.",
+why:"Contractors lose 10+ hrs/week on paperwork, miss bids, risk fines from expired licenses. Pays for itself in week one.",
+rev:"$49/mo solo · $149/mo crew · $499/mo enterprise GC — pure SaaS",
+mkt:"$17T global. 3.7M licensed US contractors. Rebar $14M Series A doing ONE trade. We do ALL trades.",
+moat:"Knowledge graph connects trades → materials → codes → permits → suppliers. Every contractor improves data for all others. Network effects Rebar can't match.",
+synergy:"Shares architecture with all gardens. Real estate garden shares contractor/permit data. Government garden shares licensing databases."},
+{id:"okg",n:"Botanical",ic:"🌿",tam:"$100B+",tN:100,c:C.green,y5:15000,st:"live",deploy:"Deployed",
+w:"Knowledge graph for botanical commerce. Growers, retailers, consumers, environmental sensors via Ecuagenera partnership.",
+h:"RSI heartbeat ingests growing conditions, species data, care protocols, pricing. Morning Briefings (5x engagement). Progressive disclosure for casual to commercial users.",
+why:"Growers optimize from demand signals. Retailers get curated networks. Consumers get verified provenance. Root to fruit transparency.",
+rev:"Affiliate commerce (15-25%) · Premium subscriptions · B2B data licensing · Sensor integrations",
+mkt:"$100B+ botanical/horticulture growing 8%. Rare plant market $5B+. No knowledge graph exists for this supply chain.",
+moat:"Ecuagenera = exclusive access to premier grower network. Species knowledge graph compounds. First-mover in botanical AI.",
+synergy:"Natural bridge to Agriculture garden ($8T). Sensor/IoT infrastructure extends to any environmental monitoring vertical."},
+{id:"hkg",n:"Healthcare",ic:"🏥",tam:"$12T",tN:12000,c:C.gold,y5:200000,st:"building",deploy:"Building (12.1M records)",
+w:"Operating system for $12T healthcare ecosystem. 4 lanes: admin credentialing, doctor AI intelligence, patient gravity well, machine API.",
+h:"28-table schema, 12.1M+ records, 17 federal databases. CV upload → AI parse → parallel verification vs NPI/state boards/DEA/OIG → same-day credentialing. 3-Point Verification.",
+why:"Hospitals legally require credentialing — $50-150K/yr mandatory spend. Current: 120 days manual. Free patient tools = zero-CAC gravity well.",
+rev:"Admin: $15-50/provider/mo · Doctor: CME affiliate 15-25% · Machine: API $99-$2,499/mo · Patient: Free → $9.99-29.99/mo premium",
+mkt:"$12T global. Credentialing: $2.3B. Healthcare AI: $45B by 2030. John Bou built KLAS #1 incumbent.",
+moat:"9.4M NPI records. JSON-LD = AI citation source. MCP server. RSI heartbeat. Co-founder built and sold the incumbent.",
+synergy:"Insurance garden shares provider network data. Pharma garden shares clinical trials + PubMed. Government garden shares SAM.gov data."},
+{id:"legal",n:"Legal",ic:"⚖️",tam:"$1.1T",tN:1100,c:"#8B5CF6",y5:60000,st:"future",deploy:"~6 months",
+w:"Attorney credentialing, bar status verification, case law relationship mapping, compliance monitoring, AI-powered legal research with citation provenance.",
+h:"Ingest state bar databases (50 states + DC), federal court records, case law. Graph: attorney → cases → courts → outcomes → specializations.",
+why:"Law firms spend $50K+/yr on Westlaw/LexisNexis that haven't changed in 20 years. Bar compliance is mandatory. AI-native research at fraction of cost.",
+rev:"$199-499/mo per attorney · $25-75K/yr enterprise · Legal AI API · Compliance SaaS",
+mkt:"$1.1T legal services. 1.3M attorneys. Legal tech $28B growing 9%. Westlaw/LexisNexis ripe for disruption.",
+moat:"Bar databases fragmented across 51 jurisdictions. Case law relationships reveal patterns flat databases miss. First knowledge graph: credentials → outcomes → regulatory.",
+synergy:"Closest analog to healthcare credentialing — same architecture, same mandatory compliance pattern. Government garden shares court/regulatory data."},
+{id:"edu",n:"Education",ic:"🎓",tam:"$7T",tN:7000,c:"#06B6D4",y5:40000,st:"future",deploy:"~8 months",
+w:"Teacher credentialing, certification tracking, curriculum mapping, student pathway optimization, accreditation monitoring across K-12 and higher ed.",
+h:"Ingest state teacher certification DBs, accreditation records, curriculum standards. Graph: teacher → certs → subjects → schools → outcomes.",
+why:"Teacher certification mandatory and fragmented across 50 states. Accreditation audits. Curriculum mapping is manual. AI credentialing saves hundreds of hours/yr.",
+rev:"$99-299/mo per school · $15-50K/yr per district · Curriculum marketplace · EdTech API",
+mkt:"$7T education. 3.7M US public school teachers. EdTech $340B. Teacher credentialing entirely manual in most states.",
+moat:"Even more fragmented than healthcare (50 state systems, zero interoperability). First to unify wins compliance layer. Curriculum graph creates switching costs.",
+synergy:"Government garden shares accreditation/compliance data. Healthcare garden shares professional credentialing infrastructure."},
+{id:"fin",n:"Finance",ic:"🏦",tam:"$26T",tN:26000,c:"#14B8A6",y5:80000,st:"future",deploy:"~12 months",
+w:"Advisor credentialing (FINRA, SEC, state), regulatory compliance mapping, risk relationship analysis, AI regulatory intelligence.",
+h:"Ingest FINRA BrokerCheck, SEC IARD, state registrations, enforcement data. Graph: advisor → licenses → firms → products → actions → outcomes.",
+why:"Mandatory FINRA/SEC registrations. Millions spent on compliance. Reg BI changes create constant monitoring burden. One failure = massive fines.",
+rev:"$299-999/mo per firm · $50-200K/yr enterprise · Regulatory API · Compliance SaaS",
+mkt:"$26T financial services. 630K advisors. RegTech $12B growing 20%. Bloomberg ($70B revenue) proves the model.",
+moat:"Regulatory graph connects advisors → actions → products → outcomes. Real-time monitoring creates daily dependency. First unified FINRA + SEC + state graph.",
+synergy:"Insurance garden shares regulatory/compliance infrastructure. Government garden shares enforcement data. Largest TAM on the frontier."},
+{id:"agri",n:"Agriculture",ic:"🌾",tam:"$8T",tN:8000,c:"#84CC16",y5:25000,st:"future",deploy:"~9 months",
+w:"Food supply chain — farm certification (organic, fair trade, GAP), supply chain provenance, food safety compliance, crop-to-consumer transparency.",
+h:"Ingest USDA organic cert, FDA food facility registrations, GAP/GHP audits, import/export. Graph: farm → certs → products → distributors → retailers → consumers.",
+why:"Food safety recalls cost $55B/yr. Organic fraud rampant. Retailers require documentation. One contamination = brand destruction.",
+rev:"$149-499/mo per farm · $25-100K/yr enterprise · Supply chain API · Consumer transparency SaaS",
+mkt:"$8T agriculture. $200B organic market growing 12%. Food safety tech $20B. EU Farm to Fork = regulatory mandate.",
+moat:"Provenance data compounds — every farm, shipment, certification builds the graph. OKG proves we can do agricultural knowledge graphs. Regulatory tailwinds.",
+synergy:"Direct extension of OKG (botanical). Shares supply chain + sensor infrastructure. Energy garden shares environmental/ESG data."},
+{id:"energy",n:"Energy",ic:"⚡",tam:"$6T",tN:6000,c:"#F59E0B",y5:35000,st:"future",deploy:"~10 months",
+w:"Operator certification, safety compliance, grid infrastructure mapping, regulatory monitoring, ESG tracking across utilities, renewables, oil & gas.",
+h:"Ingest FERC, NERC, state PUC, OSHA, EPA data. Graph: operator → certs → facilities → safety → regulatory → ESG metrics.",
+why:"Most regulated industry after healthcare. OSHA fines severe. ESG reporting becoming mandatory. Federal + state + local complexity.",
+rev:"$499-1,999/mo per operator · $50-200K/yr enterprise · ESG API · Regulatory monitoring SaaS",
+mkt:"$6T energy. $2T transition investment/yr. ESG reporting $1.5B growing 25%. Energy compliance $8B.",
+moat:"Spans FERC + NERC + state PUCs + EPA + OSHA — no platform unifies these. ESG requires our provenance/audit trail architecture.",
+synergy:"Agriculture garden shares environmental data. Government garden shares regulatory infrastructure. Insurance garden shares risk/compliance data."},
+{id:"re",n:"Real Estate",ic:"🏠",tam:"$3.7T",tN:3700,c:"#EC4899",y5:45000,st:"future",deploy:"~7 months",
+w:"Agent licensing, CE tracking, property knowledge graph, transaction relationship mapping, title/lien verification.",
+h:"Ingest state real estate commission DBs (50 states), MLS feeds, county recorder docs, title records. Graph: agent → licenses → transactions → properties → liens.",
+why:"Mandatory state licenses. CE credits every 2-4 yrs. Title searches manual and error-prone. Transaction graphs reveal invisible market patterns.",
+rev:"$99-299/mo per agent · $15-50K/yr per brokerage · Title verification API · Transaction analytics",
+mkt:"$3.7T real estate. 1.5M realtors. Real estate tech $18B. Licensing fragmented across 50+ jurisdictions — identical to healthcare.",
+moat:"Property knowledge graph compounds. Agent credential tracking is our core competency in a new domain. First comprehensive RE knowledge graph.",
+synergy:"Construction garden shares contractor/permit data. Finance garden shares transaction/lending data. Legal garden shares title/lien data."},
+{id:"pharma",n:"Pharma",ic:"💊",tam:"$1.5T",tN:1500,c:"#7C3AED",y5:70000,st:"future",deploy:"~14 months",
+w:"Clinical trial relationship mapping, drug interaction database, regulatory submission tracking, research synthesis across drug development lifecycle.",
+h:"Ingest ClinicalTrials.gov (33K+ loaded), FDA, PubMed (60K+ loaded), patent filings, FAERS. Graph: drug → trials → outcomes → interactions → patents → regulatory.",
+why:"Drug development costs $2.6B avg per approved drug. 90% fail. Pharma needs better intelligence on trial design, competitor pipelines, regulatory patterns.",
+rev:"$2,499-9,999/mo per pharma · $100-500K/yr enterprise · Research API · Clinical trial analytics",
+mkt:"$1.5T pharma. Drug development $200B. Clinical trial mgmt $48B. Veeva ($35B) proves pharma pays premium.",
+moat:"33K trials + 60K PubMed already loaded in HKG. Drug-trial-outcome graph is unique. Veeva does CRM; we do R&D intelligence. Complementary.",
+synergy:"Healthcare garden shares clinical data infrastructure. Insurance garden shares drug utilization data. Direct revenue from HKG's existing datasets."},
+{id:"ins",n:"Insurance",ic:"🛡️",tam:"$6T",tN:6000,c:"#0EA5E9",y5:50000,st:"future",deploy:"~11 months",
+w:"Underwriting intelligence, claims relationship analysis, provider network verification, regulatory compliance across P&C, health, life, specialty.",
+h:"Ingest state commission filings, NAIC data, provider directories, claims patterns. Graph: insurer → products → providers → claims → outcomes → regulatory.",
+why:"Insurance uses 1990s infrastructure. Claims fraud costs $80B/yr. Knowledge graph reveals relationship patterns flat data misses.",
+rev:"$999-4,999/mo per carrier · $100-500K/yr enterprise · Underwriting API · Claims intelligence",
+mkt:"$6T insurance. InsurTech $10B growing 30%. Claims fraud $80B/yr — 1% improvement = $800M value.",
+moat:"Provider → claims → outcomes → fraud graph improves with every data point. HKG provider network feeds directly. Cross-vertical synergy with healthcare.",
+synergy:"Shares provider graph with healthcare garden. Shares risk/compliance with energy and finance gardens. No Surprises Act creates mandatory directory spend."},
+{id:"gov",n:"Government",ic:"🏛️",tam:"$800B+",tN:800,c:"#6366F1",y5:40000,st:"future",deploy:"~16 months",
+w:"Security clearance credentialing, procurement relationship mapping, compliance automation, inter-agency intelligence sharing.",
+h:"Ingest SAM.gov (partially loaded), FPDS, OPM clearance frameworks, GSA schedules. Graph: contractor → clearances → contracts → agencies → performance.",
+why:"$800B+ procurement with months-long credentialing, manual compliance, no inter-agency data sharing. 200K+ clearance backlog.",
+rev:"$2,499-9,999/mo per contractor · $100-500K/yr enterprise · Procurement API · FedRAMP analytics",
+mkt:"$800B+ federal procurement. GovIT modernization $100B/yr. Palantir ($50B) proves government pays for intelligence.",
+moat:"SAM.gov/FPDS data is public but fragmented. Procurement graph reveals contracting patterns. FedRAMP = barrier to entry. Gov contracts are long-cycle sticky.",
+synergy:"Shares regulatory/compliance infrastructure with ALL other gardens. Healthcare garden shares provider/exclusion data. Legal garden shares court data."}
+];
+
+// ═══ 40 RESEARCH GARDENS (Frontier Map Tier 2: rare-knowledge databases) ═══
+const V_RESEARCH=[
+{id:"extinction",n:"Extinction",ic:"🦁",tam:"$500M",tN:500,c:"#EF4444",y5:5000,st:"research",deploy:"Research DB",w:"Global endangered species: IUCN Red List + last-sighting data + extinction causality.",h:"172K+ species, mortality timelines, habitat maps, conservation status. Species portraits + causality graph.",why:"Preserves biological knowledge before extinction erases it. Conservation, museums, media.",rev:"Conservation grants · Educator licenses · Museum partnerships",mkt:"IUCN Red List · Conservation tech $8B · UNESCO partnerships",moat:"Deepest extinction causality graph — first to map species death to human systems.",synergy:"OKG botanical. Documentary + media opportunity. Grant-funded."},
+{id:"sound",n:"Sound",ic:"🔊",tam:"$300M",tN:300,c:"#06B6D4",y5:3000,st:"research",deploy:"Research DB",w:"Wildlife audio ecology: Macaulay Library + 84M+ animal sounds + spectral visualization.",h:"84M+ bird/animal recordings, spectrograms, eBird API, audio-centric UI.",why:"Audio underserved in nature DBs. Research, education, conservation need standardized archives.",rev:"Educational licensing · Nature sound marketplace · Research API",mkt:"Macaulay Library (Cornell) · Nature edtech · Podcast production",moat:"Best-in-class audio visualization. Network of recordists globally.",synergy:"Companion to Extinction. Media/documentary gold."},
+{id:"migration",n:"Migration",ic:"🦅",tam:"$200M",tN:200,c:"#84CC16",y5:2500,st:"research",deploy:"Research DB",w:"Animal GPS tracking: Movebank + 6B+ movement records + 3K species migration paths.",h:"Animated migrations, journey narratives, seasonal patterns, climate impact.",why:"Animal movement = climate early warning. Conservation strategy.",rev:"Climate grants · Conservation partnerships · Educational licensing",mkt:"Movebank (Berlin) · Conservation NGOs · Climate research",moat:"Most detailed animal movement graph ever assembled. Temporal story dimension.",synergy:"Extinction + Neotoma. Climate narrative integration."},
+{id:"mind",n:"Mind",ic:"🧠",tam:"$150M",tN:150,c:"#A78BFA",y5:2000,st:"research",deploy:"Research DB",w:"Neural wiring: Allen Brain Atlas + connectome + neuron morphology as blueprints.",h:"Full brain mapping, neuron morphologies SVG/3D, connectivity graphs, comparative anatomy.",why:"Reverse-engineering consciousness. Foundational layer for neuroscience, biotech, AI.",rev:"Research licenses · Neurotech API partnerships",mkt:"Allen Institute (funded) · Neuroscience $5B · Biotech R&D",moat:"Best-in-class neural visualization. Research collaboration network effects.",synergy:"FaceBase. Psychedelic Garden (consciousness research)."},
+{id:"fossil",n:"Fossil",ic:"🦕",tam:"$100M",tN:100,c:"#F97316",y5:1500,st:"research",deploy:"Research DB",w:"Paleontology 3D archive: MorphoSource + 186K+ 3D fossil scans + stratigraphy.",h:"Rotatable 3D fossils, temporal layering, evolutionary trees with 3D nodes.",why:"Paleontology is visual. Museums, students, researchers need standardized platform.",rev:"Museum licensing · Educational content · Research API",mkt:"MorphoSource (Duke) · Natural history museums $2B",moat:"Best-in-class fossil visualization and curation network.",synergy:"Neotoma + PaleoMap. Deep time narrative."},
+{id:"colony",n:"Colony",ic:"🐜",tam:"$80M",tN:80,c:"#EC4899",y5:1200,st:"research",deploy:"Research DB",w:"Ant taxonomy + behavior: AntWeb + 20K+ species + caste morphology.",h:"Hexagonal caste diagrams, colony schematics, geographic distribution, behavioral data.",why:"Ants are model organisms for complexity. Biomimicry, entomology research.",rev:"Biomimic licensing · Research API · Educational",mkt:"AntWeb (Smithsonian) · Entomology · Biomimicry institutes",moat:"Most comprehensive ant behavior graph. Hexagonal visualization unique.",synergy:"OKG botanical (plant-ant). Extinction."},
+{id:"mycelium",n:"Mycelium",ic:"🍄",tam:"$120M",tN:120,c:"#10B981",y5:1800,st:"research",deploy:"Research DB",w:"Mycology: MycoBank + every named fungus + network graphs + fruiting body taxonomy.",h:"Mycorrhizal network viz, fungal taxonomy, fruiting body plates, distribution maps.",why:"Fungi = edge of consciousness frontier. Medicine, ecology, food science.",rev:"Pharma research · Food tech licensing · Educational content",mkt:"MycoBank (CBS-KNAW) · Mycology $500M · Psychedelic renaissance",moat:"First unified global fungal taxonomy graph. Cultural moment.",synergy:"Psychedelic Garden. Medicine research. OKG."},
+{id:"language",n:"Language",ic:"🗣️",tam:"$90M",tN:90,c:"#F59E0B",y5:1400,st:"research",deploy:"Research DB",w:"Endangered languages: ELAR + Pangloss + Rosetta + 7K+ languages + audio/text.",h:"Linguistic family trees, audio recordings, transcriptions, grammars, speaker networks.",why:"2K+ languages die per century. Language = cultural identity + knowledge preservation.",rev:"UNESCO funding · Educational licensing · Linguistic research",mkt:"ELAR/SOAS (UNESCO) · Anthropology research",moat:"Deepest linguistic endangerment data. Global speaker network.",synergy:"Wellcome Medicine (indigenous knowledge). Folkways."},
+{id:"deepsea",n:"Deep Sea",ic:"🌊",tam:"$70M",tN:70,c:"#14B8A6",y5:1000,st:"research",deploy:"Research DB",w:"Abyssal taxonomy: WoRMS Deep Sea + extremophiles + hydrothermal vent ecosystems.",h:"Depth distribution, pressure morphologies, bioluminescence, ecosystem networks.",why:"Deep sea = biotech frontier. Extremophiles = synthetic biology.",rev:"Biotech licensing · Research partnerships · Expedition data",mkt:"WoRMS · Marine biotech $5B · Ocean research institutes",moat:"Only unified deep-sea taxonomy. Pressure/depth relationships unique.",synergy:"Sound (whale songs). Extinction (abyss species loss)."},
+{id:"biolume",n:"Bioluminescence",ic:"✨",tam:"$60M",tN:60,c:"#84CC16",y5:800,st:"research",deploy:"Research DB",w:"Bioluminescence: UCSB DB + 1K+ glowing organisms + spectral emission + mechanisms.",h:"Spectral viz, organism glowmaps, biochemical pathway diagrams, rich media.",why:"Beautiful, viral, scientifically deep. Education + synthetic-glowing-protein biotech.",rev:"Science communication · Biotech research · Educational media",mkt:"UCSB · Bioluminescence biotech $1B · Nature documentaries",moat:"Only platform unifying bioluminescence physics + organisms + media.",synergy:"Sound. Deep Sea. Mind (GFP research)."},
+{id:"pollen",n:"Pollen",ic:"💛",tam:"$50M",tN:50,c:"#FACC15",y5:600,st:"research",deploy:"Research DB",w:"Paleoecology via pollen: European Pollen DB + 10Kyr climate reconstruction.",h:"Pollen timelines, climate reconstructions, paleovegetation maps, core site networks.",why:"Pollen = 10Kyr climate proxy. Deep-time climate + conservation strategy.",rev:"Climate grants · Academic licensing · Paleoclimate modeling API",mkt:"European Pollen DB · Paleoclimatology $200M · Climate modeling",moat:"Deepest temporal climate data. Compound knowledge from thousands of cores.",synergy:"Ocean Core + PaleoMap. PAGES."},
+{id:"herbarium",n:"Herbarium",ic:"🌱",tam:"$110M",tN:110,c:"#22C55E",y5:1700,st:"research",deploy:"Research DB",w:"Botanical specimens: JSTOR Plants + VertNet + 2.5M+ pressed plant specimens.",h:"High-res specimen scans, taxonomic hierarchy, provenance, research notes.",why:"Herbarium digitization = knowledge preservation. Plant diversity baseline.",rev:"Museum partnerships · Research licensing · Plant AI training data",mkt:"JSTOR Plants · Herbarium network · Botanical research $500M",moat:"Largest digitized herbarium network. Training data for plant AI.",synergy:"OKG + Extinction. Deep botanical knowledge layer."},
+{id:"oceancore",n:"Ocean Core",ic:"⛰️",tam:"$80M",tN:80,c:"#3B8BD4",y5:1200,st:"research",deploy:"Research DB",w:"Marine geology: IODP sediment cores + 500K samples + stratigraphic layers.",h:"Core photography, stratigraphy visualizations, paleoclimate timeseries.",why:"Ocean cores = billion-year climate records. Ocean chemistry evolution.",rev:"Paleoclimate grants · Geological consulting · Academic licensing",mkt:"IODP (international) · Paleoceanography $300M · Climate modeling",moat:"Most comprehensive ocean sediment archive. Visual/temporal layering unique.",synergy:"Pollen + PaleoMap. Neotoma. Climate narrative."},
+{id:"atom",n:"Atom",ic:"⚛️",tam:"$40M",tN:40,c:"#E879F9",y5:500,st:"research",deploy:"Research DB",w:"Nuclear data: IAEA tables + every known nucleus + decay + cross-sections.",h:"Periodic table as graph, decay chains, nuclear reaction networks.",why:"Nuclear science = energy frontier. Education, nuclear medicine, physics.",rev:"Educational licensing · Physics research API · Nuclear industry",mkt:"IAEA (UN) · Nuclear research · Physics education $200M",moat:"Only platform unifying nuclear data as knowledge graph.",synergy:"Energy Garden. Fundamental science layer."},
+{id:"varstar",n:"Variable Stars",ic:"⭐",tam:"$35M",tN:35,c:"#FBBF24",y5:400,st:"research",deploy:"Research DB",w:"Stellar observation: AAVSO + 55M+ observations since 1911 + light curves.",h:"Light curve timeseries, multi-century histories, discovery timelines, crowdsourcing.",why:"Longest observational dataset in astronomy. Supernova science. Education.",rev:"Astronomy research licensing · Educational · Observation API",mkt:"AAVSO · Astronomy education · Citizen science",moat:"Deepest temporal stellar observation data. 115-year baseline.",synergy:"Machine Lane AI. Astronomy networks."},
+{id:"suppmedic",n:"Indigenous Medicine",ic:"🌿",tam:"$45M",tN:45,c:"#059669",y5:550,st:"research",deploy:"Research DB",w:"Indigenous plant medicine: IPinCH + ethnobotany + pharmacology + ethical attribution.",h:"Plant-compound-culture relationships, traditional/modern links, ethical licensing.",why:"Indigenous knowledge = pharma frontier + biodiversity medicine. Ethical data stewardship.",rev:"Pharma (ethical) · Community benefit sharing · Research",mkt:"IPinCH (Canada) · Ethnobotany · Pharma R&D $300B",moat:"Only platform with ethical indigenous knowledge graph. Partnership moat.",synergy:"OKG + Extinction. Documentary. Meaning layer."},
+{id:"shipwreck",n:"Shipwrecks",ic:"⛵",tam:"$30M",tN:30,c:"#0EA5E9",y5:350,st:"research",deploy:"Research DB",w:"Ancient shipwrecks: Oxford DB + 2K+ wrecks + archaeology + artifact catalogs.",h:"Maritime trade maps, wreck locations, artifact relationships, historical timelines.",why:"Shipwrecks = human history + trade routes. Education + tourism.",rev:"Museum partnerships · Educational · Tourism API",mkt:"Oxford archaeology · Maritime museums · Heritage tourism $100B",moat:"Best-curated ancient maritime archaeology database.",synergy:"Archaeology. EEBO. Documentary."},
+{id:"roman",n:"Roman World",ic:"🏛️",tam:"$65M",tN:65,c:"#B45309",y5:900,st:"research",deploy:"Research DB",w:"Roman infrastructure: ORBIS (Stanford) + trade routes + cities + mobility + commerce.",h:"Interactive trade network maps, journey time calc, city relationships, economic flows.",why:"Rome = blueprint for complex systems. History, economics, urban planning.",rev:"Educational · Gaming/VR partnerships · Research API",mkt:"ORBIS (Stanford) · History education · Roman tourism $5B",moat:"Most sophisticated Roman economic-geographic modeling.",synergy:"Archaeology. Wellcome Medicine. Historical narrative."},
+{id:"wellcome",n:"Medieval Medicine",ic:"💊",tam:"$55M",tN:55,c:"#DC2626",y5:750,st:"research",deploy:"Research DB",w:"Medieval medicine: Wellcome Collection + manuscripts + treatises + illustrations + recipes.",h:"Illuminated texts, treatment timelines, herbals, surgical instruments, knowledge evolution.",why:"Medical history = understanding present. Education + medical humanities.",rev:"Museum/library partnerships · Educational · Publication rights",mkt:"Wellcome Collection · Medical humanities · History education",moat:"Best-curated medieval medical knowledge with linked modern research.",synergy:"Herbarium. Indigenous Medicine. Extinction (lost herbs)."},
+{id:"neotoma",n:"Neotoma",ic:"🦫",tam:"$40M",tN:40,c:"#65A30D",y5:500,st:"research",deploy:"Research DB",w:"Paleoecology: Neotoma + 50K+ fossil sites + paleovegetation + climate sensitivity.",h:"Paleovegetation reconstructions, species range shifts, climate-vegetation coupling.",why:"Neotoma = deep ecological time. Biodiversity baselines. Climate-vegetation science.",rev:"Paleoclimate grants · Conservation planning API · Academic licensing",mkt:"Neotoma (NSF) · Paleoclimatology $200M · Conservation",moat:"Largest paleoecological dataset. Temporal biodiversity analysis unique.",synergy:"Pollen + Ocean Core + PaleoMap. Extinction."},
+{id:"meteor",n:"Meteorites",ic:"💫",tam:"$25M",tN:25,c:"#6366F1",y5:250,st:"research",deploy:"Research DB",w:"Meteorites: Meteoritical Society + 80K+ classified + provenance + composition.",h:"Classification hierarchies, composition, find locations, collection histories.",why:"Meteorites = solar system samples + impact history + astrobiology.",rev:"Museum partnerships · Research licensing · Museum shop API",mkt:"Meteoritical Society · Natural history museums · Geology",moat:"Most comprehensive meteorite classification and curation.",synergy:"Impact. Asteroid science networks."},
+{id:"impact",n:"Impact Craters",ic:"💥",tam:"$35M",tN:35,c:"#B91C1C",y5:400,st:"research",deploy:"Research DB",w:"Impact craters: Earth Impact DB + 190+ structures + geology + paleoclimate signatures.",h:"Crater maps, age timelines, impact energy reconstructions, paleoclimate correlation.",why:"Impacts = extinction drivers + climate shocks. Understanding catastrophic change.",rev:"Geological research · Education · Climate modeling",mkt:"Impact research · Geological surveys · Paleoclimate institutes",moat:"Only unified global impact crater analysis platform.",synergy:"Extinction. PaleoMap. Meteorites."},
+{id:"facebase",n:"FaceBase",ic:"👶",tam:"$70M",tN:70,c:"#F472B6",y5:1000,st:"research",deploy:"Research DB",w:"Human facial development: NIH FaceBase + morphogenesis + 3D imaging + genetics.",h:"3D developmental imaging, facial mapping, genetic-phenotype links, clinical cases.",why:"Facial development = morphogenesis + cleft palate research + personalized medicine.",rev:"Clinical research · Genetic research · Biotech API",mkt:"NIH FaceBase · Dev bio research $500M · Clinical genetics",moat:"Only platform linking human facial development to genetic/clinical data.",synergy:"Mind. Ancient DNA. Pharmaceutical research."},
+{id:"kinsey",n:"Kinsey",ic:"❤️",tam:"$50M",tN:50,c:"#DB2777",y5:600,st:"research",deploy:"Research DB",w:"Human sexuality: Kinsey Institute archives + behavioral + longitudinal + ethical access.",h:"Anonymized datasets, temporal trends, demographics, relationship patterns.",why:"Sexuality science = human variation. Psychology, public health, medicine.",rev:"Academic research · Public health partnerships · Clinical training",mkt:"Kinsey Institute · Sexology research · Public health $100M",moat:"Most comprehensive human sexuality research archive with ethical access.",synergy:"Dream. NDE. Consciousness research."},
+{id:"endangarch",n:"Endangered Archives",ic:"📜",tam:"$80M",tN:80,c:"#CA8A04",y5:1200,st:"research",deploy:"Research DB",w:"Manuscripts: British Library EAP + 90+ countries + at-risk archives + digitization.",h:"Searchable manuscripts, geolocation, language tagging, preservation status.",why:"Thousands of manuscripts disappear yearly. Cultural genocide. Knowledge preservation.",rev:"UNESCO grants · Researcher access · Institutional partnerships",mkt:"British Library EAP · Heritage preservation $500M · UNESCO",moat:"Only platform unifying endangered manuscript archives globally.",synergy:"EEBO. Archaeology. Language. Documentary."},
+{id:"eebo",n:"Early English Books",ic:"📖",tam:"$90M",tN:90,c:"#A16207",y5:1400,st:"research",deploy:"Research DB",w:"EEBO: Every English-language book before 1700 + full-text + provenance.",h:"Full-text indexed corpus, publication timelines, author networks, textual variation.",why:"English literature foundation. Knowledge transmission. Philology.",rev:"Academic institution licensing · Research API · Digital humanities",mkt:"EEBO (commercial) · Higher ed libraries · Lit research",moat:"Most comprehensive early English literature DB with full-text graph.",synergy:"Endangered Archives + Wellcome. Language evolution."},
+{id:"archaeology",n:"Archaeology",ic:"🏺",tam:"$110M",tN:110,c:"#92400E",y5:1600,st:"research",deploy:"Research DB",w:"Archaeological record: Open Context + tDAR + DASI + 1M+ excavation records.",h:"Site maps, artifact relationships, stratigraphic correlations, researcher networks.",why:"Archaeology = human history. Cultural heritage. Anthropological research.",rev:"Museum partnerships · Research licensing · Heritage tourism",mkt:"Archaeology research · Academic libraries · Cultural heritage",moat:"Most comprehensive archaeological data federation globally.",synergy:"Shipwrecks + Roman + Endangered Archives. Human history layer."},
+{id:"ancientdna",n:"Ancient DNA",ic:"🧬",tam:"$120M",tN:120,c:"#15803D",y5:1800,st:"research",deploy:"Research DB",w:"Prehistoric genetics: Reich Lab + 100K+ ancient genomes + population + migration.",h:"Phylogenetic trees, migration maps, admixture events, phenotype-genotype links.",why:"Ancient DNA = rewriting human history. Evolution, migration, adaptation.",rev:"Research institution licensing · Biotech · Educational",mkt:"Harvard (leader) · Paleogenomics $500M · Anthropology",moat:"Most comprehensive ancient human genome database.",synergy:"PaleoMap. Archaeology. Migration."},
+{id:"folkways",n:"Folkways",ic:"🎵",tam:"$60M",tN:60,c:"#EA580C",y5:850,st:"research",deploy:"Research DB",w:"World folk music: Smithsonian Folkways + 500K+ recordings + cultural context.",h:"Audio playback, geographic mapping, cultural essays, musician bios, language tagging.",why:"Folk music = cultural identity preservation. Ethnomusicology. Education.",rev:"Music licensing · Research partnerships · Streaming API",mkt:"Smithsonian Folkways · Ethnomusicology · World music",moat:"Best-curated global folk music archive with deep cultural metadata.",synergy:"Language. Sound. Cultural preservation narrative."},
+{id:"waxcyl",n:"Wax Cylinders",ic:"📻",tam:"$35M",tN:35,c:"#BE185D",y5:400,st:"research",deploy:"Research DB",w:"Earliest recorded sound: UCSB collection + 6K+ cylinders + digitized audio.",h:"Audio playback with spectrograms, historical context, dialect analysis.",why:"Wax cylinders = first human voices recorded. Historical + linguistic baseline.",rev:"Museum partnerships · Research licensing · Documentary",mkt:"UCSB · Sound history research · Museum partnerships",moat:"Only unified digitized wax cylinder platform.",synergy:"Sound + Language. Folkways. Historical narrative."},
+{id:"paleomap",n:"PaleoMap",ic:"🌍",tam:"$75M",tN:75,c:"#0D9488",y5:1100,st:"research",deploy:"Research DB",w:"Continental drift: Scotese PaleoMAP + 1.1B years + tectonic animations.",h:"Animated continental movement, paleoclimate overlays, paleobiogeography, time-slider.",why:"Deep-time Earth = tectonics, climate, life distribution.",rev:"Geological research · Educational viz API · Gaming partnerships",mkt:"PaleoMAP · Geological research · Education",moat:"Only animated billion-year Earth reconstruction platform.",synergy:"Ocean Core + Neotoma + Impact. Deep time narrative."},
+{id:"pages",n:"PAGES 2K",ic:"📊",tam:"$65M",tN:65,c:"#1D4ED8",y5:950,st:"research",deploy:"Research DB",w:"Paleoclimate: PAGES 2K + 2Kyr climate reconstruction + proxy data + uncertainty bounds.",h:"Climate timeseries w/ confidence intervals, proxy mapping, regional analysis.",why:"Understanding past climate = predicting future. Paleoclimate baseline.",rev:"Climate research grants · Modeling API · Scientific consulting",mkt:"PAGES consortium · Climate research $2B · Climate modeling",moat:"Most authoritative 2,000-year climate dataset.",synergy:"Pollen + Ocean Core + PaleoMap. Climate science foundation."},
+{id:"dream",n:"Dream",ic:"😴",tam:"$40M",tN:40,c:"#8B5CF6",y5:500,st:"research",deploy:"Research DB",w:"Dream science: DreamBank + 20K+ annotated reports + psychology + content analysis.",h:"Dream text DB, emotion/theme tagging, psychological pattern mining, comparison.",why:"Dreams = consciousness frontier. Psychology, AI training, neuroscience.",rev:"Psychology research licensing · Educational · Entertainment licensing",mkt:"Psychology research · Neuroscience labs · Entertainment",moat:"Only comprehensive dream content + annotation platform.",synergy:"Mind + Kinsey + Psychedelic. Consciousness layer."},
+{id:"nde",n:"Near-Death",ic:"🌅",tam:"$25M",tN:25,c:"#F59E0B",y5:300,st:"research",deploy:"Research DB",w:"NDE testimony: NDERF + 5K+ near-death experiences + phenomenology + medical context.",h:"Narrative DB, common element frequency, medical correlation, cultural analysis.",why:"NDEs = consciousness frontier. Psychology, neurology, philosophy.",rev:"Research licensing · Documentary partnerships · Educational",mkt:"NDE research institutes · Consciousness studies · Documentaries",moat:"Only systematic near-death experience database platform.",synergy:"Dream + Kinsey. Consciousness-frontier narrative."},
+{id:"psychedelic",n:"Psychedelic",ic:"🌀",tam:"$55M",tN:55,c:"#C026D3",y5:750,st:"research",deploy:"Research DB",w:"Psychedelic science: Blossom + clinical trials + pharmacology + safety data + synthesis.",h:"Trial DB, compound pharmacology, safety profiles, researcher network, publication graphs.",why:"Psychedelic renaissance. PTSD, depression, end-of-life. Clinical breakthrough.",rev:"Research institution licensing · Pharma partnerships · Clinical trial platforms",mkt:"Psychedelic clinical research $2B · Pharma · Wellness",moat:"Only unified psychedelic research platform with pharma + clinical data.",synergy:"Dream + Mind + NDE. Consciousness frontier."},
+{id:"uap",n:"UAP",ic:"🛸",tam:"$20M",tN:20,c:"#475569",y5:200,st:"research",deploy:"Research DB",w:"UAP testimony: NUFORC + 150K+ sightings + geolocation + temporal + witness analysis.",h:"Sighting heatmaps, temporal trends, witness correlations, media/sensor overlap.",why:"UAP = anomaly detection frontier. Citizen science. Historical documentation.",rev:"Documentary partnerships · Research licensing · Entertainment",mkt:"Entertainment/documentary $10B · Citizen science networks",moat:"Only systematic UAP database platform.",synergy:"Media + reputational risk. Build after platform trust earned."},
+{id:"seedbank",n:"Seed Banks",ic:"🌾",tam:"$95M",tN:95,c:"#16A34A",y5:1300,st:"research",deploy:"Research DB",w:"Global seed vaults: Svalbard + Kew MSB + 7M+ accessions + provenance + viability.",h:"Accession records, genetic diversity graphs, viability timelines, distribution maps.",why:"Seed banks = agricultural backup for civilization. Food security. Crop diversity.",rev:"Ag research · Conservation grants · Breeding partnerships",mkt:"Svalbard · Kew · Crop Trust · Ag research $3B",moat:"Only unified seed-bank provenance/genetic graph.",synergy:"Herbarium + OKG + Agriculture. Food security layer."},
+{id:"rare",n:"Rare Disease",ic:"🧪",tam:"$140M",tN:140,c:"#7C3AED",y5:2200,st:"research",deploy:"Research DB",w:"Rare diseases: Orphanet + GARD + 7K+ conditions + patient registries + research.",h:"Disease relationships, patient registries, treatment trials, researcher networks.",why:"300M+ people affected globally. Underfunded research. Patient community hub.",rev:"Pharma partnerships · Patient advocacy · Clinical trial matching",mkt:"Orphanet (EU) · Rare disease market $200B · Pharma orphan drugs",moat:"Unified rare disease graph connects patients, research, treatments.",synergy:"HKG. Ancient DNA. Pharma."},
+{id:"weather",n:"Historical Weather",ic:"🌦️",tam:"$55M",tN:55,c:"#0891B2",y5:700,st:"research",deploy:"Research DB",w:"Historical weather: NOAA + Old Weather + 200+ years of observations + ship logs.",h:"Daily weather timeseries, ship log transcriptions, storm reconstructions, climate baselines.",why:"Historical weather = climate baseline + disaster reconstruction.",rev:"Insurance risk models · Climate research · Agriculture",mkt:"NOAA · Climate research · Insurance modeling $30B",moat:"Deepest historical weather reconstruction platform.",synergy:"PAGES + Pollen. Insurance Garden. Climate narrative."},
+{id:"solarstorm",n:"Solar Storms",ic:"☀️",tam:"$30M",tN:30,c:"#F97316",y5:350,st:"research",deploy:"Research DB",w:"Space weather: NOAA SWPC + solar flare DB + geomagnetic storms + auroral records.",h:"Solar event timelines, geomagnetic storm correlations, grid-impact history.",why:"Space weather disrupts grids/satellites. $2T+ infrastructure risk per century.",rev:"Grid operators · Satellite operators · Insurance partnerships",mkt:"NOAA SWPC · Space weather services · Grid protection",moat:"Only unified solar storm + infrastructure impact graph.",synergy:"Variable Stars. Energy Garden (future). Insurance."}
+];
+V.push(...V_RESEARCH);
+
+// ═══ DECISION DATA — Rich structured options ═══
+const D=[
+{id:"start",ph:0,cat:"Foundation",title:"Which Garden Leads?",desc:"Three gardens are planted. Nine more are scoped. This is the most important decision you'll make — it determines your first customers, your fundraising narrative, and which $trillion market you attack first.",
+opts:[
+{id:"hkg_first",label:"Healthcare First",sub:"$12T · 12.1M records · John's network",img:I.pillH,
+fx:{y1:0,y3:25000,y5:200000,risk:7,rev:8,team:4,cap:800,moat:9,reg:7},
+unlocks:["hkg_lane"],
+opps:["$12T addressable market — largest on the frontier","John's Modio network = warm intros to 1,000+ health systems","12.1M records already loaded = instant data moat","FDA CDS guidance (Jan 2026) loosened AI oversight — perfect timing","No Surprises Act creates mandatory insurer spend on directory accuracy","GLP-1 patent expires March 2026 = massive patient demand wave"],
+risks:["6-12 month enterprise sales cycles","HIPAA compliance required before enterprise sales ($50-100K)","Competing with funded incumbents (OpenEvidence $250M, Doximity $6.5B)","Clinical accuracy must be perfect from day one — one error = reputation destruction","Anti-kickback statute constrains referral fee structures for insured services"],
+oppCost:["BKG sits idle — Rebar ($14M) gains ground in construction","No immediate revenue to strengthen fundraising position","OKG Ecuagenera partnership may cool without attention","6-8 months before first enterprise contract signed"],
+getsEasy:["Once first 5 hospitals sign, John's network creates referral cascade","Every provider credentialed improves the dataset for every future customer","Machine Lane API builds automatically on top of the verification data","AI citation moat compounds daily — competitors fall further behind each month","Insurance, pharma, and legal gardens share healthcare data infrastructure"],
+challenges:["How do you close the first enterprise contract in under 90 days?","How do you maintain clinical accuracy with a 2-person team?","How do you handle HIPAA compliance without slowing product development?","How do you position against Modio (which John built) without cannibalizing?"],
+research:"RECOMMENDATION: Healthcare first IF you're raising within 6 months. The AI healthcare funding market is white-hot ($4B Q1 2026, 55% AI share). John's network is the unfair advantage. The 12.1M records are unprecedented for a startup using only free public data.\n\nKEY INSIGHT: Open Evidence raised $250M Series D in Q1 2026 just connecting AI to medical journals — ONE lane. You have FOUR lanes + a knowledge graph + a co-founder who built the #1 incumbent. Your story is stronger than theirs was.\n\nRISK MITIGATION: Don't try to sell enterprise on day one. Launch the Patient Gravity Well (drug interaction checker) first — it's already built, requires zero HIPAA compliance, and generates consumer traffic that makes the enterprise pitch easier ('we already have 100K patients using our tools').\n\nDATA POINT: Kyruus Health hit $125M revenue selling provider data to health plans. Ribbon Health was acquired by H1 at just $4.2M revenue, proving the ASSET value exceeds the REVENUE value of healthcare data companies."},
+
+{id:"bkg_first",label:"Construction First",sub:"$17T · Live product · Revenue THIS WEEK",img:I.toolT,
+fx:{y1:200,y3:8000,y5:50000,risk:4,rev:2,team:2,cap:200,moat:7,reg:2},
+unlocks:["bkg_rev"],
+opps:["Ship to paywall in DAYS — fastest path to proving revenue","3.7M licensed US contractors = massive addressable market","Rebar's $14M Series A (March 2026) validates the exact thesis","Zero regulatory complexity — no HIPAA, no FDA, no AKS","Morning Briefings proven at 5x engagement (from OKG)","Revenue before raising = 30-50% better fundraising terms"],
+risks:["Lower ceiling than healthcare ($50M Y5 vs $200M)","Construction is cyclical — economic downturn reduces contractor spend","Rebar has $14M and is moving fast in HVAC vertical","Harder fundraising story — 'contractor software' less exciting than 'healthcare AI'"],
+oppCost:["Healthcare market window stays open but competitors advance","John's hospital network stays cold — relationships need warming","12.1M healthcare records sit unused while you sell to roofers","Insurance/pharma/clinical trial revenue streams stay at zero"],
+getsEasy:["Immediate revenue makes EVERY future decision easier","Proves the Knowledge Garden architecture works commercially","Fundraising transforms from 'bet on vision' to 'scale what works'","Team morale — nothing motivates like paying customers","Every contractor using BKG generates data that improves estimates for others"],
+challenges:["How do you compete with Rebar's $14M war chest in specific trades?","How do you get first 100 subscribers without paid acquisition budget?","How do you tell the platform story when only one garden is generating revenue?","How do you prevent BKG from consuming all attention when HKG is the bigger prize?"],
+research:"RECOMMENDATION: Construction first IF you need revenue before raising. The product is literally ready — this is a Stripe integration away from income.\n\nKEY INSIGHT: Rebar raised $14M doing ONE trade (HVAC estimating). Their pricing is $199+/month. Your $49 entry point for solo contractors is aggressively competitive AND you do ALL trades. Rebar actually helps you — they validated the market and set price anchors above yours.\n\nCRITICAL PATH: Week 1: Stripe integration + pricing page. Week 2: Launch to 3 contractor Facebook groups (200K+ members combined). Week 3-4: First paying customers. The trades are word-of-mouth communities. One roofer who saves $500 on their first estimate tells every sub on the next job site.\n\nDATA POINT: Construction tech startups collectively raised $126M in early 2026. Procore ($1B+ revenue) proves contractors will pay for software. Your $49 entry disrupts their $400+/month enterprise pricing from below."},
+
+{id:"dual_track",label:"Dual Track Blitz",sub:"BKG revenue + HKG demo · Prove the platform",img:I.hex,
+fx:{y1:200,y3:20000,y5:250000,risk:6,rev:3,team:3,cap:500,moat:8,reg:5},
+unlocks:["bkg_rev","hkg_lane"],
+opps:["BKG revenue PROVES you can ship and sell","HKG demo PROVES the healthcare thesis","Together they PROVE the platform thesis — same architecture, different industries","Strongest possible fundraising narrative: 'working product + $12T opportunity'","Investors see platform potential (30-50x ARR) not product company (10-15x)","Both gardens feed the Machine Lane API simultaneously"],
+risks:["Split focus on a 2-person team is genuinely dangerous","Doing two things 70% is worse than doing one thing 100%","Context switching between construction and healthcare burns cognitive bandwidth","Neither product gets the full attention it deserves in the first 3 months"],
+oppCost:["OKG gets no attention — Ecuagenera relationship may weaken","Neither garden is as polished as it would be with singular focus","You're always one step behind a competitor who focuses on one market","Fundraising pitch is more complex — 'we do two things' is harder than 'we do one thing brilliantly'"],
+getsEasy:["The platform architecture ONLY makes sense if you demonstrate it across verticals","Every shared component built for both gardens accelerates all future gardens","John handles HKG enterprise conversations while Chilly ships BKG","Machine Lane API has twice the data from day one","Future gardens (Legal, Education, etc.) deploy even faster with proven multi-vertical architecture"],
+challenges:["How do you literally split 2 people across 2 products without burning out?","How do you maintain quality on both when you can't do everything?","How do you sequence the work — alternating weeks? Parallel tracks? One then other?","How do you tell a focused fundraising story while building two things?"],
+research:"RECOMMENDATION: Dual Track IF you have the discipline to timeblock ruthlessly. This is Strategy C — the one you've been circling. It's the highest-reward option but requires excellent execution.\n\nKEY INSIGHT: The platform thesis is worth 2-3x the single-vertical thesis in fundraising. Stripe didn't raise money as 'payment processing for web developers.' They raised as 'the economic infrastructure for the internet.' You're not 'healthcare credentialing' — you're 'the operating system for fragmented industries.' But you can only make that claim if you can SHOW two working gardens.\n\nEXECUTION PLAN: Weeks 1-2: Ship BKG to Stripe paywall (Chilly). Weeks 1-4: John opens 10 hospital conversations. Weeks 3-6: Polish HKG Patient Gravity Well for demo. Week 6: Begin fundraise with 'revenue + demo + platform thesis.'\n\nDATA POINT: Multi-product companies at seed stage raise at 40-60% higher valuations than single-product companies with equivalent revenue, per Carta data."},
+
+{id:"okg_bridge",label:"OKG → Agriculture Bridge",sub:"$100B botanical → $8T agriculture · Zero regulatory risk",img:I.okg,
+fx:{y1:100,y3:5000,y5:40000,risk:5,rev:4,team:2,cap:300,moat:6,reg:1},
+unlocks:["okg_rev"],
+opps:["Ecuagenera partnership is EXCLUSIVE — nobody else has this","Zero regulatory complexity (no HIPAA, no FDA, no AKS, no FTC health claims)","Natural bridge to the $8T agriculture market via supply chain infrastructure","RSI heartbeat already running — platform genuinely self-improves daily","Species knowledge graph is unique — compounds with every entry","International from day one (botanical commerce is inherently global)"],
+risks:["Smaller TAM means smaller revenue ceiling","'Orchid software' is a much harder fundraising pitch than 'healthcare AI'","Investor FOMO is in healthcare/AI, not agriculture/botanical","Slower to generate meaningful revenue for the fundraise narrative"],
+oppCost:["Healthcare AI gold rush happens without you","John's hospital network sits completely unused","12.1M healthcare records depreciate as competitors build similar datasets","Construction market open for Rebar to dominate while you sell orchid tools","Insurance, pharma, and clinical trial revenues stay at zero indefinitely"],
+getsEasy:["Agriculture Knowledge Garden ($8T) deploys directly on OKG infrastructure","Supply chain provenance is increasingly regulatory-mandated (EU Farm to Fork)","IoT/sensor integration creates hardware moat competitors can't easily replicate","Community of passionate plant collectors creates organic marketing engine","International revenue from day one — no need to 'expand internationally' later"],
+challenges:["How do you raise a $5-8M seed round with an orchid knowledge graph as the lead story?","How do you accelerate revenue beyond niche affiliate commissions?","How do you keep John engaged when his expertise is healthcare, not horticulture?","How do you compete for developer attention when the AI community is obsessed with healthcare?"],
+research:"RECOMMENDATION: OKG-first ONLY IF you're willing to bootstrap or raise a smaller round ($1-2M). The fundraising environment heavily favors healthcare AI right now. An orchid knowledge graph, no matter how technically impressive, won't compete for the same investor attention.\n\nHOWEVER — there's a contrarian case: If you can demonstrate the agriculture bridge convincingly, you're addressing an $8T market with ZERO competition in knowledge graphs. EU Farm to Fork regulation creates mandatory supply chain provenance requirements starting 2025-2026. The regulatory tailwind for agricultural transparency is strong.\n\nKEY INSIGHT: The rare plant market alone is $5B+ with passionate collectors who spend $500-5,000 per specimen. These are affluent, tech-forward consumers. Premium affiliate/marketplace revenue per user could be 10x higher than mainstream consumer health.\n\nDATA POINT: Agricultural AI startups raised $2.3B in 2025, growing 34% YoY. The space is less crowded than healthcare but the growth trajectory is steeper."}
+]},
+
+{id:"hkg_lane",ph:1,cat:"Lane Selection",title:"Which HKG Lane Leads?",desc:"Healthcare has four lanes serving four stakeholders. Each has different economics, timelines, and risk profiles. The lane you lead with determines your initial revenue model and competitive positioning.",
+requires:["hkg_first","dual_track"],
+opts:[
+{id:"admin_lane",label:"Admin: Credentialing SaaS",sub:"John's Modio playbook · $50-150K/yr contracts · Mandatory spend",img:I.medK,
+fx:{y1:500,y3:30000,y5:80000,risk:5,rev:6,team:3,cap:400,moat:8,reg:4},unlocks:["admin_micro"],
+opps:["Credentialing is LEGALLY REQUIRED — hospitals cannot operate without it","John built the KLAS #1 platform and knows every buyer","$50K-150K/year contracts with 90%+ retention","Provider Verification Engine turns 120-day process into same-day","9.4M NPI records = most comprehensive verification dataset"],
+risks:["3-6 month enterprise sales cycle","Need HIPAA compliance infrastructure ($50-100K)","Competing with John's own former product (Modio/CHG)","Enterprise customers demand features you may not have yet"],
+oppCost:["Patient tools sit unused — no consumer traffic building","GLP-1 patent wave (March 2026) passes without you capturing patients","Machine Lane API stays empty while you focus on admin dashboards","Doctor Lane intelligence features don't get built"],
+getsEasy:["Once credentialing data flows, every other lane benefits automatically","Insurance companies need the SAME provider verification data","Machine Lane API builds automatically on verification infrastructure","Second enterprise customer is 10x easier than the first — proven ROI story"],
+challenges:["How do you differentiate from Modio without John looking like he's competing with himself?","How do you build HIPAA compliance fast enough to sell enterprise?","How do you handle the first customer's feature requests without derailing the roadmap?"],
+research:"RECOMMENDATION: Admin Lane if John can close 3 enterprise contracts in 90 days using his existing network. The economics are exceptional — $50K-150K/year with 90%+ retention means a single enterprise customer is worth $250K-750K in 5-year LTV.\n\nKEY INSIGHT: Hospitals spend an average of $120K/year on credentialing. Your Provider Verification Engine doesn't just save money — it eliminates a 120-day bottleneck that directly delays revenue. A doctor who can't get credentialed can't bill. Every day of delay costs the hospital thousands. Pitch the ROI, not the technology.\n\nPRICING STRATEGY: Don't price by feature. Price by provider count: $3-10/provider/month. A 500-bed hospital with 2,000 privileged providers at $5/provider = $10K/month = $120K/year. Exactly what they're already spending — but you deliver 10x the speed.\n\nDATA POINT: CAQH charges $1.68/provider/YEAR for basic directory maintenance. You can charge 20-60x that for active verification + compliance monitoring because you're replacing a $120K/year manual process, not supplementing it."},
+
+{id:"patient_lane",label:"Patient Gravity Well",sub:"Free tools · Zero CAC · Millions of users · Affiliate + premium",img:I.syr,
+fx:{y1:100,y3:15000,y5:90000,risk:4,rev:3,team:2,cap:200,moat:7,reg:3},unlocks:["patient_micro"],
+opps:["Drug interaction checker ALREADY BUILT and working","Zero customer acquisition cost — SEO + AI citation drive traffic","GLP-1 patent March 2026 = tens of millions searching for drug info","250K+ entity pages = massive SEO footprint","Affiliate commissions 10-50% across supplements, wearables, wellness","Premium conversion at $9.99-29.99/month","GoodRx proved free-to-revenue at $792M","Health content RPMs $15-50+ (vs $2-8 entertainment)"],
+risks:["Consumer traffic takes 3-6 months to build to meaningful scale","Monetization per user is low initially ($2-26/user/year)","FTC enforcement on health claims is active in 2026","FDA patient-facing CDS guidance still requires careful positioning","Competitive with WebMD, Healthline (Red Ventures), GoodRx — all well-established"],
+oppCost:["Enterprise credentialing revenue ($50-150K/yr contracts) delayed","John's hospital network stays cold","Machine Lane has no enterprise customers to validate the data","Admin Lane mandatory-spend revenue left for competitors"],
+getsEasy:["Consumer traffic is the TOP OF FUNNEL for everything else","Doctors join because patients are already using the platform","Hospitals see patient volume and want to connect their providers","Every patient interaction generates data that improves AI intelligence","Telehealth partnerships become easy when you own the patient relationship"],
+challenges:["How do you get to 100K monthly visitors in 6 months without ad budget?","How do you monetize the free tier without compromising trust?","How do you position wellness/longevity content without triggering FTC?","How do you handle patient data privacy without HIPAA infrastructure?"],
+research:"RECOMMENDATION: Patient Lane if you want the FASTEST path to visible traction metrics (users, pageviews, engagement) that make fundraising easy. Investors love consumer traction stories.\n\nKEY INSIGHT: GLP-1 semaglutide loses patent exclusivity March 2026. When generics flood the market, tens of millions of NEW potential patients will search for information: 'Is generic Ozempic safe? What are the drug interactions? Which doctor prescribes it?' Your drug interaction checker + provider search answers ALL of these queries. This is a one-time traffic wave that could deliver 500K+ monthly visitors in 60 days.\n\nMONETIZATION STACK: Layer 1: Pharma advertising ($30-100 RPM for GLP-1 content). Layer 2: Affiliate (supplements 15-20%, wearables 2-10%, wellness retreats $1,500/booking). Layer 3: Premium subscription ($9.99-29.99/month, 3% conversion = $18-88M at 5M users). Layer 4: Telehealth referrals ($35-110/booking, Zocdoc model).\n\nDATA POINT: Hims & Hers grew from $0 to $1.48B revenue in 5 years by leading with consumer DTC health. They now have 2.4M subscribers at $73-84/month ARPU. Your knowledge graph gives you something they don't have — verified medical data that DOCTORS trust too."},
+
+{id:"doctor_lane",label:"Doctor Intelligence Hub",sub:"3-Point Verification · Liability shield · Open Evidence hit $1.2B",img:I.mic,
+fx:{y1:200,y3:12000,y5:60000,risk:6,rev:5,team:3,cap:350,moat:9,reg:6},unlocks:["doctor_micro"],
+opps:["Doctors ALREADY using ChatGPT in exam rooms — massive malpractice risk","3-Point Verification solves the liability problem no one else has addressed","Open Evidence: $1.2B valuation doing just journal access — ONE lane","FDA Jan 2026 CDS guidance explicitly supports this type of tool","CME marketplace creates sticky recurring revenue (15-25% affiliate)","60K PubMed citations + 33K clinical trials already loaded"],
+risks:["Doctors are extremely skeptical of new tools — trust must be earned","One wrong clinical recommendation = catastrophic reputation damage","Requires deep medical domain expertise to build correctly","Long adoption curve — doctors change tools slowly"],
+oppCost:["Consumer traffic goes to competitors while you build for doctors","Enterprise credentialing revenue delayed","Broader consumer healthspan economy ($600B+) goes unaddressed"],
+getsEasy:["Doctor endorsement makes EVERYTHING else credible","If doctors trust it, patients trust it, insurers trust it, AI agents trust it","CME data creates the most valuable professional network in healthcare","3-Point Verification becomes the standard that competitors must match"],
+challenges:["How do you get the first 100 doctors to use it daily?","How do you ensure clinical accuracy at the level doctors demand?","How do you build trust with a profession that's been burned by health tech before?"],
+research:"RECOMMENDATION: Doctor Lane if you're building for long-term moat depth over short-term revenue. The doctor relationship is the most valuable asset in healthcare — once earned, it compounds across every other lane.\n\nKEY INSIGHT: 83% of physicians report using AI tools at work, but only 17% trust the outputs for clinical decisions (AMA 2025 survey). The gap between usage and trust is your ENTIRE market. 3-Point Verification doesn't just add features — it adds the trust layer that every other AI health tool is missing.\n\nWARNING: Open Evidence raised $250M by going doctor-first, but they've struggled with monetization. Having the knowledge graph underneath (not just journal access) is your differentiator — you can verify claims against structured data, not just surface papers.\n\nDATA POINT: The average physician influences $2.3M in annual healthcare spending through prescribing, referrals, and procedure decisions. One doctor on your platform = $2.3M in influenced spend you can capture a fraction of across every lane."},
+
+{id:"machine_lane",label:"Machine Lane API",sub:"MCP server · JSON-LD · API tiers · 'AWS for healthcare AI'",img:I.dna,
+fx:{y1:50,y3:8000,y5:60000,risk:5,rev:8,team:3,cap:300,moat:10,reg:2},unlocks:["machine_micro"],
+opps:["Every AI company building health products needs structured verified data","MCP adoption surging — 8M+ downloads, enterprise adoption accelerating","JSON-LD + llms.txt = AI assistants cite HKG automatically at zero cost","Pure software margins (85%+) on data that compounds daily","12.1M records from 17 federal databases = unmatched public data asset","API revenue is the most scalable business model in software"],
+risks:["API-first businesses are slow to start — need first 100 developers","Revenue lags months behind enterprise SaaS","Developer adoption requires documentation, SDKs, support","Dependent on AI ecosystem growth (high confidence but still a bet)"],
+oppCost:["No consumer-facing product = no brand, no user stories, no press","Enterprise credentialing revenue stays at zero","Patient gravity well doesn't get built","Doctor community doesn't form"],
+getsEasy:["Every API consumer validates and extends your data","Machine Lane revenue is the most passive income stream possible","AI citation moat becomes self-reinforcing — more citations = more authority = more citations","Every future garden's Machine Lane plugs into the same infrastructure","Developer community becomes your unpaid R&D team building integrations"],
+challenges:["How do you get the first 50 API consumers without a developer relations team?","How do you price APIs when competitors like CAQH charge $1.68/provider/YEAR?","How do you build developer documentation good enough for self-service onboarding?","How do you compete with Optum/Change Healthcare on enterprise data distribution?"],
+research:"RECOMMENDATION: Machine Lane ONLY if you're thinking 3+ years out and have patient capital. This is the deepest moat but the longest payback period. The API-first model compounds magnificently but is nearly invisible to investors in year one.\n\nKEY INSIGHT: MCP server downloads grew 8,000% in 5 months (100K to 8M+). MCP is becoming as fundamental to AI as Docker was to cloud. Being an MCP-native data provider NOW is like being on the App Store in 2009. The early providers get permanent distribution advantages.\n\nPRICING MODEL: Tier 1 (Developer): Free — 1,000 queries/month. Tier 2 (Startup): $99/month — 50K queries. Tier 3 (Growth): $499/month — 500K queries. Tier 4 (Enterprise): $2,499-$50K/month — unlimited + SLA + custom feeds.\n\nDATA POINT: Twilio went from $0 to $1B ARR by selling API access to communications infrastructure. Your pattern is identical: sell API access to healthcare knowledge infrastructure. Their first year was $167K revenue. Year 5 was $400M. API businesses compound."}
+]},
+
+{id:"bkg_rev",ph:1,cat:"Revenue",title:"BKG: Launch Strategy",desc:"BKG is ready to ship. Pricing, positioning, and getting the first 100 paying customers.",
+requires:["bkg_first","dual_track"],
+opts:[
+{id:"bkg_free",label:"Freemium → Paid",sub:"Free estimating · $49-149/mo pro · Viral in the trades",img:I.ham,
+fx:{y1:100,y3:6000,y5:35000,risk:3,rev:1,team:1,cap:50,moat:6,reg:1},unlocks:["bkg_growth"],
+opps:["Contractors talk — viral word-of-mouth in trade communities","Free tier removes all friction from trial","2-5% conversion at scale = massive user base","Can test pricing and features before committing"],
+risks:["Free users cost money to support","May attract price-sensitive users who never convert","Rebar has no free tier — you're creating a different market expectation"],
+oppCost:["Revenue per user is lower than premium-only approach","Takes longer to hit meaningful MRR milestones","Free users may not generate useful data for the knowledge graph"],
+getsEasy:["Massive user base = massive data = better estimating for everyone","Word-of-mouth is the strongest GTM in construction","Investors love user growth metrics even before revenue","Upsell paths multiply as you add features"],
+challenges:["How do you make free good enough to hook but limited enough to convert?","How do you manage support costs on free users?"],
+research:"Freemium works best when the free tier has a clear 'aha moment' in the first session AND a visible upgrade wall. The estimating tool's aha moment is instant — contractor enters a job, gets an estimate in seconds vs. hours. Lock premium behind: saved estimates (free gets 3), license tracking, Morning Briefings, and multi-user/crew features. Slack grew to $1B ARR with this exact pattern.\n\nDATA: Freemium SaaS conversion averages 2.5% but construction productivity tools see 5-8% because the ROI is tangible and immediate — one saved estimate pays for the annual subscription."},
+
+{id:"bkg_prem",label:"Premium-Only $49-499/mo",sub:"No free tier · 14-day trial · Professional positioning",img:I.crane,
+fx:{y1:250,y3:8000,y5:50000,risk:4,rev:2,team:1,cap:50,moat:6,reg:1},unlocks:["bkg_growth"],
+opps:["Higher ARPU from day one","Positions BKG as professional-grade, not a free toy","14-day trial still removes purchase risk","Rebar charges $199+ — your $49 entry undercuts significantly"],
+risks:["Slower adoption without viral free tier","Need paid acquisition (CAC $50-150/contractor)","Miss the network effects of a large free user base"],
+oppCost:["Slower to build the massive user base that drives word-of-mouth","Less data flowing into the knowledge graph","Harder to demonstrate viral growth to investors"],
+getsEasy:["Revenue per customer is clear and predictable","Sales process is straightforward — trial converts or doesn't","Can raise prices later much more easily than lowering them","Financial model is cleaner for investors"],
+challenges:["How do you drive trial signups without a free tier?","Where do you acquire contractors? Google Ads? Facebook? Trade shows?"],
+research:"Premium-only works when the product has clear, immediate ROI. Contractors who try your estimating tool during a 14-day trial and win a bid they would have missed will convert at 30-40% trial-to-paid. The key is getting them to USE it on a real job during the trial, not just browse.\n\nPRICING: Solo $49/mo, Crew (5) $149/mo, Enterprise GC $499/mo, Enterprise+ $999/mo. Rebar at $199+ for one trade means your $49 for all trades is an aggressive value proposition.\n\nDATA: Trial-to-paid conversion for B2B SaaS with clear ROI averages 15-25%. Construction tools with immediate cost savings see 25-40%."},
+
+{id:"bkg_ent",label:"Enterprise GCs First",sub:"$499-2,499/mo · Large GCs · 10 accounts = $300K ARR",img:I.draft,
+fx:{y1:400,y3:10000,y5:50000,risk:5,rev:4,team:2,cap:150,moat:7,reg:1},unlocks:["bkg_growth"],
+opps:["Higher ACV means fewer customers needed","Large GCs manage 50-500+ subs — built-in network effect","Enterprise contracts = predictable, recurring revenue","GCs need license tracking + compliance more than solo contractors"],
+risks:["3-6 month enterprise sales cycle","Feature demands (multi-user, reporting, project management)","Higher support burden per customer"],
+oppCost:["Miss the long tail of 3.7M solo contractors","Slower to build consumer brand awareness","Less data from individual contractors flowing into knowledge graph"],
+getsEasy:["One enterprise GC referral leads to three more","Enterprise revenue makes the fundraise pitch concrete","Feature requests from GCs guide your roadmap with paying customer input"],
+challenges:["How do you close the first enterprise GC without a sales team?","What features do GCs need that you haven't built yet?"],
+research:"Enterprise-first works if you can get 5-10 GC meetings in the next 30 days through personal networks. Large GCs (100+ employees) have compliance budgets specifically for license tracking — this isn't a discretionary purchase for them.\n\nPRICING: $499/mo (small GC, 10-50 subs), $999/mo (mid, 50-200 subs), $2,499/mo (large, 200+ subs). One enterprise GC at $2,499/mo = $30K/yr. Ten = $300K ARR.\n\nDATA: Procore charges $400-2,000+/month and has 16,000+ enterprise customers. Your compliance + estimating bundle at $499-2,499 is competitively positioned below Procore but with AI-native intelligence they don't have."}
+]},
+
+{id:"fundraise",ph:2,cat:"Capital",title:"When and How Do You Raise?",desc:"This decision directly affects your dilution, your runway, your hiring, and your competitive position for the next 2 years.",
+requires:["bkg_rev","hkg_lane","okg_rev","admin_micro","patient_micro","doctor_micro","machine_micro"],
+opts:[
+{id:"raise_now",label:"Raise Now — $5-8M Seed",sub:"Demo + data + team story · AI window is WIDE OPEN",img:I.hex,
+fx:{y1:0,y3:5000,y5:20000,risk:-2,rev:0,team:0,cap:6000,moat:2,reg:0},unlocks:["hire"],
+opps:["$4B digital health funding Q1 2026 — strongest since pandemic peak","AI seed valuations carry 42% premium over non-AI","John's investor network (Oak HC/FT, Transformation Capital) is warm","Demo at health.theknowledgegardens.com is LIVE","12.1M records = tangible proof of execution"],
+risks:["Pre-revenue seed = lower valuation ($20-25M post)","3-6 months of full-time fundraising","Fundraising distracts from product development","Market could shift during the raise process"],
+oppCost:["3-6 months not building product","Pre-revenue terms mean more dilution (20-30%)","Product development pauses or slows dramatically"],
+getsEasy:["Capital solves the team bottleneck immediately","Can hire VP Eng + first 2 engineers within 60 days of close","Marketing budget enables paid acquisition for BKG","Can pursue HIPAA compliance and enterprise certifications"],
+challenges:["How do you fundraise and build product simultaneously with 2 people?","How do you hit the 42% AI premium without being dismissed as a 'ChatGPT wrapper'?","Which investors do you target first and in what sequence?"],
+research:"RECOMMENDATION: Raise NOW if John can lead the fundraise while Chilly ships product. The AI funding window is historically wide but won't last forever.\n\nTARGET SEQUENCE: Week 1-2: Warm intros from John's network (Oak HC/FT, Transformation Capital, General Catalyst). Week 3-4: Tier 1 generalists (a16z Bio+AI, Founders Fund). Week 5-8: Close competitive dynamics among interested firms. Aim for 3-5 term sheets to create FOMO.\n\nVALUATION MATH: $5-8M raise at $25-40M post = 20-32% dilution. With revenue ($10K+ MRR), same raise at $35-50M post = 16-23% dilution. The difference is $5-15M in founder equity — worth the 3-month delay if you can ship revenue fast.\n\nDATA: Rock Health Q1 2026: average deal size $36.7M, highest since Q4 2021. 12 megadeals captured 59% of total funding. You don't need a megadeal — you need one $5-8M check from a healthcare-focused firm."},
+
+{id:"raise_traction",label:"Revenue First, Then Raise",sub:"Get to $10-50K MRR · 30-50% better terms · 3-6 month delay",img:I.toolT,
+fx:{y1:300,y3:3000,y5:10000,risk:0,rev:0,team:0,cap:0,moat:3,reg:0},unlocks:["traction"],
+opps:["Revenue proves product-market fit — not just a demo","Seed valuations 30-50% higher with revenue","$50K MRR = $600K ARR pace = very fundable seed metrics","You negotiate from strength, not hope"],
+risks:["3-6 month delay means competitors move and market may shift","Bootstrapping on personal runway — financial stress","Product development is self-funded during this period","The funding window could narrow"],
+oppCost:["Competitors with funding hire faster, market faster, ship faster","The AI premium in valuations may decline as market normalizes","John's investor relationships cool without active engagement","Larger raise ($8-12M) becomes possible with traction but you may not need it"],
+getsEasy:["Fundraise conversations are 10x easier with live revenue charts","Investors compete for the deal instead of you competing for their attention","You've proven you can sell, not just build — the #1 de-risk factor","Revenue-stage seed lets you be pickier about investor fit and terms"],
+challenges:["How do you sustain personal runway for 3-6 months of pre-revenue building?","How do you keep fundraising momentum while building product?","What's the minimum MRR that transforms the raise?"],
+research:"$10K MRR is the minimum credibility threshold. $25K MRR makes you 'hot.' $50K MRR creates a bidding war. At your pricing ($49-499/mo BKG + $5-15/provider/mo HKG), $25K MRR requires approximately: 200 BKG subscribers at $125 average, OR 50 BKG + 5 small hospital contracts, OR 500K monthly Gravity Well visitors converting 3% at $9.99/mo.\n\nTIMELINE: BKG can reach $5-10K MRR in 60-90 days if you ship immediately. HKG Patient Lane can reach $5-15K MRR in 90-120 days from GLP-1 traffic + affiliate revenue. Combined: $25K MRR in 90-120 days is aggressive but achievable.\n\nDATA: Companies raising seed rounds at $25-50K MRR receive median valuations of $40-60M post-money (Carta Q4 2025). That's $35-50M in your pocket vs. $25-40M pre-revenue. The 3-month delay could be worth $10-20M in reduced dilution."}
+]}
+];
+
+const initM=()=>({y1:0,y3:0,y5:0,risk:5,rev:12,team:2,cap:0,moat:5,reg:3,turn:0});
+
+// ═══ ACT 0 — OPENING CRAWL (Star Wars style) ═══
+const OpeningCrawl=({onFinish})=>{
+  const[skipped,setSkipped]=useState(false);
+  const[showStart,setShowStart]=useState(false);
+  const styleRef=useRef(false);
+  useEffect(()=>{
+    if(styleRef.current) return;
+    styleRef.current=true;
+    const st=document.createElement("style");
+    st.textContent=`
+      @keyframes gw-crawl{0%{transform:translateY(100vh) rotateX(25deg);opacity:0}6%{opacity:1}95%{opacity:1}100%{transform:translateY(-220vh) rotateX(25deg);opacity:0}}
+      @keyframes gw-title-fade{0%,75%{opacity:0;transform:scale(.7)}85%,100%{opacity:1;transform:scale(1)}}
+      @keyframes gw-star{from{opacity:0}to{opacity:var(--o,.8)}}
+      @keyframes gw-start-pulse{0%,100%{box-shadow:0 0 20px rgba(212,168,83,.3),0 0 40px rgba(212,168,83,.15)}50%{box-shadow:0 0 40px rgba(212,168,83,.8),0 0 80px rgba(212,168,83,.3)}}
+      .gw-stars{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+      .gw-stars i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:gw-star 3s ease-out forwards}
+    `;
+    document.head.appendChild(st);
+  },[]);
+  useEffect(()=>{
+    if(skipped){setShowStart(true);return}
+    const t=setTimeout(()=>setShowStart(true),42000);
+    return()=>clearTimeout(t);
+  },[skipped]);
+  const stars=useMemo(()=>Array.from({length:140}).map((_,i)=>({
+    left:Math.random()*100,top:Math.random()*100,d:Math.random()*3,o:Math.random()*.8+.2
+  })),[]);
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"#000",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:skipped?"center":"flex-start"}}>
+      <div className="gw-stars">
+        {stars.map((s,i)=><i key={i} style={{left:s.left+"%",top:s.top+"%",animationDelay:s.d+"s","--o":s.o}}/>)}
+      </div>
+      {!skipped&&(
+        <div style={{position:"absolute",top:"40%",left:"50%",transform:"translate(-50%,-50%)",width:"min(90vw,760px)",perspective:"500px",perspectiveOrigin:"50% 100%",pointerEvents:"none"}}>
+          <div style={{animation:"gw-crawl 44s linear forwards",transformOrigin:"50% 100%",textAlign:"center",color:"#D4A853",fontFamily:sf}}>
+            <div style={{fontSize:"clamp(16px,3vw,22px)",letterSpacing:".3em",marginBottom:"3em",opacity:.6,fontFamily:mn,textTransform:"uppercase"}}>Episode III · The Knowledge Gardens</div>
+            <h1 style={{fontSize:"clamp(48px,9vw,96px)",fontWeight:400,margin:"0 0 1.2em",letterSpacing:".02em",lineHeight:1.05}}>Garden <span style={{fontStyle:"italic"}}>Wars</span></h1>
+            <div style={{fontSize:"clamp(18px,2.6vw,28px)",lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",fontWeight:300,color:"#F5C56D"}}>
+              <p style={{marginBottom:"1.4em"}}>A <b>$12 trillion</b> healthcare ecosystem, fragmented. A <b>$17 trillion</b> construction industry, still running on spreadsheets. A global botanical market starved of knowledge.</p>
+              <p style={{marginBottom:"1.4em"}}>Two founders converge.</p>
+              <p style={{marginBottom:"1.4em"}}><b>John Bou</b> — builder of Modio Health. KLAS #1 in credentialing. 700K+ providers. Acquired by CHG.</p>
+              <p style={{marginBottom:"1.4em"}}><b>Chilly Dahlgren</b> — second-generation AI pioneer. His mother Kathleen pioneered naive semantics at MIT, IBM, Cognition → Nuance. His father Dr. James Dahlgren — world-leading toxicologist. Chilly built the Ethereal Engine. It became Infinite Reality — <b>$2.5B</b> valuation, $75M acquisition.</p>
+              <p style={{marginBottom:"1.4em"}}>Now, together, they plant gardens.</p>
+              <p style={{marginBottom:"1.4em"}}>Three are live. Nine more are scoped. Forty research databases wait on the frontier map. One recursive engine gets smarter every day.</p>
+              <p style={{marginBottom:"1.4em"}}>Every decision branches into more decisions. Every path projects revenue, risk, tradeoffs. Every choice saved as a Hero's Journey.</p>
+              <p style={{fontStyle:"italic",color:"#D4A853"}}>Choose your path. Build your empire.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {(showStart||skipped)&&(
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28,animation:"gw-title-fade 1.2s ease forwards",pointerEvents:"auto"}}>
+          <h1 style={{fontFamily:sf,fontSize:"clamp(44px,9vw,88px)",color:"#D4A853",margin:0,fontWeight:400,letterSpacing:".02em"}}>Garden <span style={{fontStyle:"italic"}}>Wars</span></h1>
+          <p style={{color:"rgba(245,197,109,.55)",fontSize:13,letterSpacing:".25em",textTransform:"uppercase",fontFamily:mn,margin:0}}>CEO Strategy RPG · Knowledge Gardens</p>
+          <button onClick={onFinish} style={{marginTop:16,padding:"18px 44px",borderRadius:12,border:"none",background:"#D4A853",color:"#000",fontWeight:700,fontSize:15,letterSpacing:".08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",animation:"gw-start-pulse 2.4s ease infinite"}}>▶ Start Garden Wars</button>
+        </div>
+      )}
+      {!skipped&&!showStart&&(
+        <button onClick={()=>setSkipped(true)} style={{position:"absolute",bottom:24,right:24,padding:"8px 18px",borderRadius:8,border:"1px solid rgba(212,168,83,.3)",background:"rgba(0,0,0,.4)",color:"rgba(212,168,83,.7)",fontSize:11,cursor:"pointer",fontFamily:mn,letterSpacing:".15em",textTransform:"uppercase",zIndex:10}}>Skip ⏭</button>
+      )}
+    </div>
+  );
+};
+
+// ═══ CLAUDE RESEARCH MODAL (calls /api/research) ═══
+const ResearchModal=({open,onClose,path,decision,options})=>{
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState(null);
+  const[analysis,setAnalysis]=useState(null);
+  const[tick,setTick]=useState(0);
+  const fetchIt=useCallback(async()=>{
+    setLoading(true);setError(null);setAnalysis(null);
+    try{
+      const r=await fetch("/api/research",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path,decision:{title:decision?.title,desc:decision?.desc},options:(options||[]).map(o=>({label:o.label,sub:o.sub}))})});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||("HTTP "+r.status));
+      setAnalysis(j.analysis||"(empty response)");
+    }catch(e){setError(e.message||"Request failed")}
+    finally{setLoading(false)}
+  },[path,decision,options]);
+  useEffect(()=>{if(open) fetchIt()},[open,fetchIt]);
+  useEffect(()=>{if(!loading) return; const iv=setInterval(()=>setTick(t=>t+1),500); return()=>clearInterval(iv)},[loading]);
+  if(!open) return null;
+  const dots=".".repeat((tick%4));
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{maxWidth:720,width:"100%",maxHeight:"85vh",overflow:"auto",background:"#060608",border:"1px solid rgba(167,139,250,.25)",borderRadius:16,padding:"24px 28px",boxShadow:"0 20px 60px rgba(167,139,250,.15)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,borderBottom:"1px solid rgba(167,139,250,.15)",paddingBottom:12}}>
+          <div>
+            <div style={{fontSize:10,letterSpacing:".2em",textTransform:"uppercase",color:"#A78BFA",fontWeight:600,fontFamily:mn}}>🔬 Strategic Analysis · Claude Sonnet</div>
+            <h3 style={{fontFamily:sf,fontSize:22,color:"#fff",margin:"4px 0 0"}}>{decision?.title||"Decision"}</h3>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.12)",color:"rgba(255,255,255,.5)",width:32,height:32,borderRadius:8,cursor:"pointer",fontSize:16}}>×</button>
+        </div>
+        {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:"#A78BFA",fontFamily:mn,fontSize:13,letterSpacing:".1em"}}>Researching{dots}</div>}
+        {error&&<div style={{padding:16,borderRadius:10,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",color:"#EF4444",fontSize:13}}>⚠ {error}<div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:8}}>Tip: set <code>ANTHROPIC_API_KEY</code> in Vercel env vars and deploy <code>api/research.js</code>.</div></div>}
+        {analysis&&<div style={{fontSize:13,lineHeight:1.8,color:"rgba(255,255,255,.78)",whiteSpace:"pre-wrap",fontFamily:"'DM Sans',sans-serif"}}>{analysis}</div>}
+        {(analysis||error)&&(
+          <div style={{display:"flex",gap:8,marginTop:18,paddingTop:14,borderTop:"1px solid rgba(167,139,250,.1)"}}>
+            <button onClick={fetchIt} style={{padding:"9px 16px",borderRadius:8,border:"1px solid rgba(167,139,250,.3)",background:"rgba(167,139,250,.08)",color:"#A78BFA",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>↻ Regenerate</button>
+            {analysis&&<button onClick={()=>{navigator.clipboard?.writeText(analysis);}} style={{padding:"9px 16px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.6)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy</button>}
+            <div style={{flex:1}}/>
+            <button onClick={onClose} style={{padding:"9px 16px",borderRadius:8,border:"none",background:"#D4A853",color:"#000",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+function App(){
+  const[m,setM]=useState(initM());
+  const[hist,setHist]=useState([]);
+  const[preview,setPreview]=useState(null);// option being previewed before confirming
+  const[showSaves,setShowSaves]=useState(false);
+  const[showFrontier,setShowFrontier]=useState(false);
+  const[planted,setPlanted]=useState(["bkg","okg","hkg"]);
+  const[dashOpen,setDashOpen]=useState(false);
+  const[compOpen,setCompOpen]=useState(false);
+  const[started,setStarted]=useState(false);
+  const[crawlDone,setCrawlDone]=useState(()=>{try{return sessionStorage.getItem("gw-crawled")==="1"}catch(e){return false}});
+  const[showResearch,setShowResearch]=useState(false);
+  const[saves,setSaves]=useState(()=>{try{return JSON.parse(localStorage.getItem("gw3")||"[]")}catch(e){return[]}});
+  const trailRef=useRef(null);
+
+  const curDec=useMemo(()=>{
+    if(preview) return null;
+    const done=new Set(hist.map(h=>h._did));
+    for(const d of D){
+      if(done.has(d.id)) continue;
+      if(d.requires&&!d.requires.some(r=>hist.some(h=>h.id===r))) continue;
+      return d;
+    }
+    return null;
+  },[hist,preview]);
+
+  const apply=(fx,dir=1)=>{
+    setM(p=>{
+      const n={...p};
+      Object.entries(fx).forEach(([k,v])=>{if(k in n&&typeof v==="number"){
+        if(["risk","moat","reg","rev"].includes(k))n[k]=Math.max(0,Math.min(10,dir===1?v:p[k]));
+        else n[k]=(n[k]||0)+v*dir;
+      }});
+      n.turn+=dir;
+      return n;
+    });
+  };
+
+  const confirmChoice=()=>{
+    if(!preview) return;
+    const dec=D.find(d=>d.opts.some(o=>o.id===preview.id));
+    const entry={...preview,_did:dec?.id,_cat:dec?.cat,_ts:Date.now()};
+    setHist(p=>[...p,entry]);
+    apply(preview.fx);
+    setPreview(null);
+    setTimeout(()=>{if(trailRef.current)trailRef.current.scrollLeft=trailRef.current.scrollWidth},100);
+  };
+
+  const jumpTo=(idx)=>{
+    const removed=hist.slice(idx+1);
+    [...removed].reverse().forEach(h=>apply(h.fx,-1));
+    setHist(hist.slice(0,idx+1));
+    setPreview(null);
+  };
+
+  const goBack=()=>{if(hist.length)jumpTo(hist.length-2<0?-1:hist.length-2);if(hist.length===1){setHist([]);apply(hist[0].fx,-1)}};
+
+  const goHome=()=>{setStarted(false);setPreview(null)};
+
+  const saveFn=(name)=>{
+    const s={name,m:{...m},hist:[...hist],ts:Date.now()};
+    const ns=[...saves,s];setSaves(ns);
+    try{localStorage.setItem("gw3",JSON.stringify(ns))}catch(e){}
+  };
+  const loadFn=(s)=>{setM({...s.m});setHist([...s.hist]);setShowSaves(false);setPreview(null);setStarted(true)};
+  const delFn=(i)=>{const ns=saves.filter((_,j)=>j!==i);setSaves(ns);try{localStorage.setItem("gw3",JSON.stringify(ns))}catch(e){}};
+  const restart=()=>{if(!confirm("Start fresh? Unsaved progress lost."))return;setM(initM());setHist([]);setPreview(null)};
+  
+  const plantGarden=(id)=>{
+    if(planted.includes(id)) return;
+    setPlanted(p=>[...p,id]);
+    const g=V.find(v=>v.id===id);
+    if(g){setM(p=>({...p,y5:p.y5+g.y5,cap:p.cap+300,team:p.team+2,moat:Math.min(10,p.moat+1)}))}
+    setShowFrontier(false);
+  };
+
+  const sharePath=()=>{
+    const path=hist.map((h,i)=>(i+1)+". "+h.label+" ("+h._cat+")").join("\n");
+    const body=encodeURIComponent("Knowledge Gardens Strategy Path\n\nDecisions:\n"+path+"\n\nProjected Y5 ARR: $"+(m.y5/1000).toFixed(0)+"M\nRisk: "+m.risk+"/10\nMoat: "+m.moat+"/10\nTime to Revenue: "+m.rev+" months\n\nExplore interactively: https://garden-wars.vercel.app");
+    window.open("mailto:?subject="+encodeURIComponent("Garden Wars Strategy Path")+"&body="+body);
+  };
+
+  const copyResearchPrompt=(opt)=>{
+    const ctx="I'm the CEO of The Knowledge Gardens, a platform company building AI-native operating systems for trillion-dollar industries. We have 12.1M healthcare records, 9.4M NPI providers, and two co-founders: John Bou (built KLAS #1 credentialing platform Modio, acquired by CHG) and Chilly Dahlgren (2nd-gen AI pioneer, built the Knowledge Garden architecture).\n\nMy current strategic path: "+hist.map(h=>h.label).join(" → ")+"\n\nI'm considering: "+opt.label+" — "+opt.sub+"\n\nGive me a deep strategic analysis: competitive dynamics, specific revenue projections, regulatory risks, and what you'd do in my position. Be extremely specific with numbers and timelines.";
+    navigator.clipboard?.writeText(ctx);
+    alert("Research prompt copied! Paste into Claude for deep analysis.");
+  };
+
+  const af=(v)=>"$"+(v>=1000?(v/1000).toFixed(0)+"M":v+"K");
+  const compassItems=[
+    {icon:"🗺️",label:"Frontier",action:()=>setShowFrontier(true),color:C.gold},
+    {icon:"📊",label:"Dashboard",action:()=>setDashOpen(p=>!p),color:C.green},
+    {icon:"💾",label:"Save",action:()=>setShowSaves(true),color:C.cyan},
+    {icon:"📂",label:"Load",action:()=>setShowSaves(true),color:C.purple},
+    {icon:"📧",label:"Share",action:sharePath,color:C.blue},
+    {icon:"←",label:"Back",action:goBack,color:C.amber},
+    {icon:"↺",label:"Restart",action:restart,color:C.red},
+  ];
+
+  // ═══ ACT 0 — OPENING CRAWL ═══
+  if(!crawlDone) return <OpeningCrawl onFinish={()=>{try{sessionStorage.setItem("gw-crawled","1")}catch(e){} setCrawlDone(true); setStarted(true);}}/>;
+
+  // ═══ TITLE SCREEN ═══
+  if(!started) return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,background:"radial-gradient(ellipse at 50% 30%,rgba(212,168,83,.06) 0%,transparent 70%),#060608",textAlign:"center"}}>
+      <img src={I.tree} alt="" style={{width:80,marginBottom:20,opacity:.8}} className="fu"/>
+      <h1 className="fu" style={{fontFamily:sf,fontSize:"clamp(36px,8vw,64px)",fontWeight:400,animationDelay:".1s"}}>Garden <span style={{fontStyle:"italic",color:C.gold}}>Wars</span></h1>
+      <p className="fu" style={{fontSize:15,color:"rgba(255,255,255,.35)",maxWidth:500,lineHeight:1.7,marginTop:12,animationDelay:".2s"}}>CEO Strategy RPG for The Knowledge Gardens.<br/>Explore decisions. See consequences. Build your empire.</p>
+      <div className="fu" style={{marginTop:32,display:"flex",gap:12,animationDelay:".4s"}}>
+        <button onClick={()=>setStarted(true)} style={{padding:"14px 32px",borderRadius:12,border:"none",background:C.gold,color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",animation:"glow 3s ease infinite"}}>New Game</button>
+        {saves.length>0&&<button onClick={()=>{setShowSaves(true);setStarted(true)}} style={{padding:"14px 32px",borderRadius:12,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Load ({saves.length})</button>}
+      </div>
+      <p style={{fontSize:10,color:"rgba(255,255,255,.12)",marginTop:40}}>Chilly Dahlgren & John Bou · April 2026</p>
+      {showSaves&&<SaveModal saves={saves} onSave={saveFn} onLoad={loadFn} onDelete={delFn} onClose={()=>setShowSaves(false)}/>}
+    </div>
+  );
+
+  // ═══ GAME ═══
+  const gameOver=!curDec&&!preview;
+  return(
+    <div style={{minHeight:"100vh",paddingBottom:hist.length>0?80:0}}>
+      {/* DASHBOARD PANEL */}
+      <div style={{position:"fixed",top:0,left:0,width:dashOpen?250:0,height:"100vh",background:"rgba(8,8,12,.97)",backdropFilter:"blur(16px)",borderRight:dashOpen?"1px solid rgba(255,255,255,.06)":"none",zIndex:60,transition:"width .4s "+ez,overflow:"hidden"}}>
+        <div style={{padding:"14px 16px",width:250}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <span style={{fontSize:9,textTransform:"uppercase",letterSpacing:".15em",color:C.gold,fontWeight:600}}>Mission Control</span>
+            <button onClick={()=>setDashOpen(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,.3)",cursor:"pointer",fontSize:14}}>×</button>
+          </div>
+          {[["Y1 ARR",m.y1,2000,C.gold,af],["Y3 ARR",m.y3,50000,C.green,af],["Y5 ARR",m.y5,300000,C.blue,af],["Risk",m.risk,10,m.risk>6?C.red:C.green,v=>v+"/10"],["Moat",m.moat,10,C.purple,v=>v+"/10"],["Time to Rev",m.rev,18,m.rev>8?C.red:C.green,v=>v+"mo"],["Team",m.team,20,C.cyan,v=>v],["Capital",m.cap,8000,C.orange,v=>"$"+v+"K"],["Regulatory",m.reg,10,m.reg>6?C.red:C.amber,v=>v+"/10"]].map(([l,v,mx,c,f],i)=>(
+            <div key={i} style={{marginBottom:5}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:9,marginBottom:1}}>
+                <span style={{color:"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:".06em"}}>{l}</span>
+                <span style={{color:c,fontFamily:mn,fontSize:10}}>{f(v)}</span>
+              </div>
+              <div style={{height:3,background:"rgba(255,255,255,.04)",borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:Math.min(Math.abs(v)/mx*100,100)+"%",background:c,borderRadius:2,transition:"width .6s "+ez}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* TOP BAR */}
+      <div style={{position:"sticky",top:0,zIndex:50,background:"rgba(6,6,8,.95)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(255,255,255,.04)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div onClick={goHome} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <img src={I.hex} alt="" style={{width:20,height:20,objectFit:"contain",opacity:.6}}/>
+          <span style={{fontFamily:sf,fontSize:14,color:C.gold}}>Garden Wars</span>
+        </div>
+        <div style={{display:"flex",gap:8,fontSize:10,color:"rgba(255,255,255,.3)"}}>
+          <span style={{color:C.gold}}>{af(m.y5)}</span>
+          <span style={{color:m.risk>6?C.red:C.green}}>Risk:{m.risk}</span>
+          <span style={{color:C.purple}}>Moat:{m.moat}</span>
+          <span style={{color:"rgba(255,255,255,.2)"}}>Turn {m.turn}</span>
+        </div>
+      </div>
+
+      {/* AMBIENT FLOATING IMAGERY */}
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:0}}>
+        <img src={I.tree} alt="" className="float1" style={{position:"absolute",top:"15%",left:"3%",width:60,opacity:.025,filter:"blur(1px)"}}/>
+        <img src={I.stV} alt="" className="float2" style={{position:"absolute",top:"40%",right:"5%",width:50,opacity:.02,filter:"blur(1px)"}}/>
+        <img src={I.ham} alt="" className="float3" style={{position:"absolute",bottom:"25%",left:"8%",width:40,opacity:.02,filter:"blur(1px)"}}/>
+        <img src={I.mic} alt="" className="float1" style={{position:"absolute",top:"60%",right:"12%",width:45,opacity:.015,filter:"blur(2px)",animationDelay:"2s"}}/>
+        <img src={I.hex} alt="" className="float2" style={{position:"absolute",top:"10%",right:"20%",width:30,opacity:.03,filter:"blur(1px)",animationDelay:"1s"}}/>
+        <div style={{position:"absolute",top:"50%",left:"50%",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(212,168,83,.03) 0%,transparent 70%)",transform:"translate(-50%,-50%)",animation:"breathe 8s ease infinite"}}/>
+      </div>
+
+      {/* MAIN */}
+      <div style={{maxWidth:960,margin:"0 auto",padding:"clamp(16px,3vw,32px)"}}>
+        {/* PREVIEW MODE — deep dive into an option before confirming */}
+        {preview&&(()=>{
+          const o=preview;
+          const Section=({title,items,color,icon})=>(
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>{icon} {title}</div>
+              {items.map((item,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,.5)",lineHeight:1.7,padding:"2px 0 2px 12px",borderLeft:"2px solid "+color+"20"}}>· {item}</div>)}
+            </div>
+          );
+          return(
+            <div className="fu" style={{maxWidth:760,margin:"0 auto"}}>
+              <button onClick={()=>setPreview(null)} style={{marginBottom:12,padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,.08)",background:"transparent",color:"rgba(255,255,255,.35)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← Back to options</button>
+              <div style={{borderRadius:16,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.06)",overflow:"hidden"}}>
+                {o.img&&<div style={{height:120,overflow:"hidden",position:"relative"}}><img src={o.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:.4}}/><div style={{position:"absolute",bottom:0,left:0,right:0,height:"80%",background:"linear-gradient(transparent,rgba(6,6,8,1))"}}/></div>}
+                <div style={{padding:"20px 24px 24px"}}>
+                  <h3 style={{fontFamily:sf,fontSize:26,color:C.gold,marginBottom:4}}>{o.label}</h3>
+                  <p style={{fontSize:13,color:"rgba(255,255,255,.4)",marginBottom:20}}>{o.sub}</p>
+
+                  {/* 4-SCORE RADAR */}
+                  {(()=>{const s=score4(o);return(
+                    <div style={{display:"flex",alignItems:"center",gap:18,padding:"14px 16px",borderRadius:12,background:"rgba(212,168,83,.04)",border:"1px solid rgba(212,168,83,.14)",marginBottom:18,flexWrap:"wrap"}}>
+                      <Radar4 s={s} size={200}/>
+                      <div style={{flex:1,minWidth:200}}>
+                        <div style={{fontSize:10,fontWeight:600,color:C.gold,textTransform:"uppercase",letterSpacing:".1em",marginBottom:8}}>The 4 Scores</div>
+                        {Object.entries(S4).map(([k,meta])=>(
+                          <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                            <span style={{fontSize:12,width:16}}>{meta.icon}</span>
+                            <span style={{fontSize:11,color:meta.color,fontWeight:600,width:110}}>{meta.label}</span>
+                            <div style={{flex:1,height:4,background:"rgba(255,255,255,.05)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(s[k]*10)+"%",background:meta.color,borderRadius:2}}/>
+                            </div>
+                            <span style={{fontSize:11,fontFamily:mn,color:meta.color,width:32,textAlign:"right"}}>{s[k].toFixed(1)}</span>
+                          </div>
+                        ))}
+                        <div style={{fontSize:9,color:"rgba(255,255,255,.25)",marginTop:6,fontStyle:"italic"}}>Derived from revenue, moat, risk & regulatory exposure. Override per-option via <code style={{fontFamily:mn,color:"rgba(255,255,255,.4)"}}>{"s4:{}"}</code>.</div>
+                      </div>
+                    </div>
+                  )})()}
+
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:20}}>
+                    <div>
+                      <Section title="Opportunities" items={o.opps||[]} color={C.green} icon="🌱"/>
+                      <Section title="What Gets Easy" items={o.getsEasy||[]} color={C.cyan} icon="⚡"/>
+                    </div>
+                    <div>
+                      <Section title="Risks" items={o.risks||[]} color={C.red} icon="⚠️"/>
+                      <Section title="Opportunity Cost" items={o.oppCost||[]} color={C.amber} icon="⏳"/>
+                    </div>
+                  </div>
+                  <Section title="Challenges to Solve" items={o.challenges||[]} color={C.purple} icon="🧩"/>
+                  
+                  {/* RESEARCH PANEL */}
+                  <div style={{marginTop:16,padding:16,borderRadius:12,background:"rgba(167,139,250,.05)",border:"1px solid rgba(167,139,250,.15)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <span style={{fontSize:11,fontWeight:600,color:C.purple}}>🔬 STRATEGIC ANALYSIS</span>
+                      <button onClick={()=>copyResearchPrompt(o)} style={{padding:"4px 10px",borderRadius:5,border:"1px solid "+C.purple+"30",background:C.purple+"10",color:C.purple,fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>📋 Copy Deep Dive Prompt for Claude</button>
+                    </div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.55)",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{o.research||"No analysis available."}</div>
+                  </div>
+
+                  {/* METRIC EFFECTS */}
+                  <div style={{marginTop:16,display:"flex",flexWrap:"wrap",gap:6}}>
+                    {Object.entries(o.fx).filter(([k,v])=>v!==0).map(([k,v])=>{
+                      const L={y1:"Y1 ARR",y3:"Y3 ARR",y5:"Y5 ARR",risk:"Risk",rev:"Time to Rev",team:"Team",cap:"Capital",moat:"Moat",reg:"Regulatory"};
+                      const good=["risk","rev","cap","reg"].includes(k)?v<0:v>0;
+                      return <span key={k} style={{fontSize:9,padding:"3px 8px",borderRadius:5,background:(good?C.green:C.amber)+"12",color:good?C.green:C.amber}}>{L[k]}: {v>0?"+":""}{k.includes("y")?"$"+(v/1000).toFixed(0)+"M":v}</span>;
+                    })}
+                  </div>
+
+                  <div style={{marginTop:20,display:"flex",gap:10}}>
+                    <button onClick={confirmChoice} style={{flex:1,padding:"14px",borderRadius:10,border:"none",background:C.gold,color:"#000",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>✓ Commit to This Path</button>
+                    <button onClick={()=>setPreview(null)} style={{padding:"14px 20px",borderRadius:10,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.4)",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Back</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* DECISION CARDS */}
+        {!preview&&curDec&&(
+          <div className="fu" style={{position:"relative",zIndex:1}}>
+            <div className="shimmer-bar" style={{height:2,borderRadius:1,marginBottom:16}}/>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <span style={{fontSize:9,padding:"3px 10px",borderRadius:4,background:C.gold+"15",color:C.gold,fontWeight:600,textTransform:"uppercase",letterSpacing:".1em"}}>{curDec.cat}</span>
+              <span style={{fontSize:9,color:"rgba(255,255,255,.2)"}}>Phase {curDec.ph+1} · Turn {m.turn+1}</span>
+            </div>
+            <h2 style={{fontFamily:sf,fontSize:"clamp(24px,4.5vw,40px)",fontWeight:400,marginBottom:8,lineHeight:1.1}}>{curDec.title}</h2>
+            <p style={{fontSize:14,color:"rgba(255,255,255,.45)",lineHeight:1.7,marginBottom:12,maxWidth:700}}>{curDec.desc}</p>
+            
+            {/* KEY QUESTIONS PROMPT */}
+            <div style={{padding:"12px 16px",borderRadius:10,background:"rgba(167,139,250,.04)",border:"1px solid rgba(167,139,250,.12)",marginBottom:20,maxWidth:700}}>
+              <div style={{fontSize:9,fontWeight:600,color:C.purple,textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>🧠 Questions to Consider Before Choosing</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.45)",lineHeight:1.7}}>
+                {curDec.id==="start"&&"What's more important right now — speed to revenue or ceiling height? Can a 2-person team execute on the highest-complexity option? Which story resonates more with investors: traction proof or massive TAM?"}
+                {curDec.id==="hkg_lane"&&"Which stakeholder do you understand best? Which revenue model has the shortest path to cash? Where does John's network create the most unfair advantage? Which lane builds the data asset that powers all other lanes?"}
+                {curDec.id==="patient_scope"&&"How broad can you go without losing focus? What's the regulatory exposure of each scope level? Which scope generates the fastest traffic growth? Where do the highest per-transaction revenue opportunities live?"}
+                {curDec.id==="bkg_rev"&&"How important is viral growth vs. immediate revenue per customer? Can you afford to support free users? How do contractors find new software tools — ads, word of mouth, trade shows, app stores?"}
+                {curDec.id==="fundraise"&&"What's your personal runway in months? How much dilution are you willing to accept? Can BKG revenue realistically hit $25K MRR in 90 days? Is the AI funding window closing or opening?"}
+                {!["start","hkg_lane","patient_scope","bkg_rev","fundraise"].includes(curDec.id)&&"What are you optimizing for — speed, scale, or safety? Which option creates the most optionality for future decisions? What would you regret NOT doing in 12 months?"}
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(clamp(200px,40vw,280px),1fr))",gap:10}}>
+              {curDec.opts.map((o,i)=>(
+                <div key={o.id} onClick={()=>setPreview(o)} className="card-enter"
+                  style={{borderRadius:14,overflow:"hidden",background:"rgba(255,255,255,.02)",border:"1.5px solid rgba(255,255,255,.06)",cursor:"pointer",transition:"all .35s "+ez,display:"flex",flexDirection:"column",animationDelay:(i*.08)+"s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.18)";e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.3)"}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.06)";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none"}}>
+                  {o.img&&<div style={{height:90,overflow:"hidden",position:"relative",background:"#000"}}><img src={o.img} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:.35,transition:"opacity .4s"}}/><div style={{position:"absolute",bottom:0,left:0,right:0,height:"70%",background:"linear-gradient(transparent,rgba(0,0,0,.9))"}}/></div>}
+                  <div style={{padding:"12px 14px",flex:1}}>
+                    <div style={{fontSize:15,fontWeight:600,color:"rgba(255,255,255,.9)",marginBottom:5}}>{o.label}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,.35)",lineHeight:1.6,marginBottom:8}}>{o.sub}</div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
+                      {o.fx.y5>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:C.green+"15",color:C.green}}>Y5: {af(o.fx.y5)}</span>}
+                      <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:(o.fx.risk>6?C.red:C.green)+"15",color:o.fx.risk>6?C.red:C.green}}>Risk:{o.fx.risk}</span>
+                      <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:C.blue+"15",color:C.blue}}>{o.fx.rev}mo</span>
+                    </div>
+                    {/* 4-score mini bars */}
+                    {(()=>{const s=score4(o);return(
+                      <div style={{display:"flex",gap:6,marginBottom:8}}>
+                        {Object.entries(S4).map(([k,meta])=>(
+                          <div key={k} title={meta.label+": "+s[k].toFixed(1)+"/10"} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                            <span style={{fontSize:10}}>{meta.icon}</span>
+                            <div style={{width:"100%",height:3,background:"rgba(255,255,255,.05)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:(s[k]*10)+"%",background:meta.color}}/>
+                            </div>
+                            <span style={{fontSize:8,fontFamily:mn,color:meta.color}}>{s[k].toFixed(1)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )})()}
+                    <div style={{height:1,background:"rgba(255,255,255,.04)",marginBottom:8}}/>
+                    <div style={{fontSize:10,color:C.gold,fontWeight:600}}>🔍 Explore full analysis →</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* RESEARCH AT DECISION LEVEL */}
+            <div style={{marginTop:20,padding:"14px 18px",borderRadius:12,background:"rgba(167,139,250,.03)",border:"1px solid rgba(167,139,250,.1)",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:C.purple}}>🔬 Need more information?</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:2}}>Get AI-powered strategic analysis for this decision point</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button onClick={()=>setShowResearch(true)}
+                  style={{padding:"10px 20px",borderRadius:8,border:"1.5px solid "+C.purple+"60",background:C.purple+"20",color:C.purple,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .3s "+ez}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.purple+"30"}
+                  onMouseLeave={e=>e.currentTarget.style.background=C.purple+"20"}>
+                  🔬 Ask Claude (Live)
+                </button>
+                <button onClick={()=>{const p="I'm CEO of The Knowledge Gardens (AI-native operating systems for $trillion industries). 12.1M healthcare records, 9.4M NPI providers. Co-founders: John Bou (KLAS #1 credentialing) + Chilly Dahlgren (2nd-gen AI pioneer).\n\nPath so far: "+(hist.map(h=>h.label).join(" → ")||"Start")+"\n\nDecision: "+curDec.title+" — "+curDec.desc+"\n\nOptions: "+curDec.opts.map(o=>o.label+": "+o.sub).join(" | ")+"\n\nGive me a deep strategic analysis with specific numbers, competitive intel, and a clear recommendation. What would you do and why?";navigator.clipboard?.writeText(p);alert("Research prompt copied! Paste into Claude for deep analysis.")}}
+                  style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,.12)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  📋 Copy Prompt
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* GAME OVER */}
+        {gameOver&&(
+          <div className="fu" style={{textAlign:"center",maxWidth:550,margin:"40px auto"}}>
+            <img src={I.tree} alt="" style={{width:60,margin:"0 auto 16px",display:"block",opacity:.5}}/>
+            <h2 style={{fontFamily:sf,fontSize:32,color:C.gold,marginBottom:8}}>Strategy Complete</h2>
+            <p style={{fontSize:13,color:"rgba(255,255,255,.35)",marginBottom:20}}>Save, share, or start over to explore different paths.</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:20}}>
+              {[[af(m.y5),"Y5 ARR",C.gold],[m.risk+"/10","Risk",m.risk>6?C.red:C.green],[m.moat+"/10","Moat",C.purple]].map(([v,l,c],i)=>(
+                <div key={i} style={{padding:12,borderRadius:10,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)"}}><div style={{fontSize:22,fontWeight:700,color:c,fontFamily:sf}}>{v}</div><div style={{fontSize:9,color:"rgba(255,255,255,.3)"}}>{l}</div></div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={()=>setShowSaves(true)} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.gold,color:"#000",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>💾 Save</button>
+              <button onClick={sharePath} style={{padding:"10px 20px",borderRadius:8,border:"1px solid "+C.blue+"30",background:C.blue+"10",color:C.blue,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>📧 Share</button>
+              <button onClick={restart} style={{padding:"10px 20px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.4)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>↺ New Game</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* TRAIL MAP */}
+      {hist.length>0&&(
+        <div style={{position:"fixed",bottom:0,left:0,right:0,height:68,background:"rgba(6,6,8,.95)",backdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.06)",zIndex:55,display:"flex",alignItems:"center",padding:"0 16px"}}>
+          <div ref={trailRef} style={{display:"flex",alignItems:"center",gap:0,overflowX:"auto",flex:1,paddingRight:80}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:"rgba(255,255,255,.1)",flexShrink:0}}/>
+            <div style={{width:16,height:1,background:"rgba(255,255,255,.06)",flexShrink:0}}/>
+            {hist.map((h,i)=>{
+              const last=i===hist.length-1;
+              const cc={Foundation:C.gold,"Lane Selection":C.green,Scope:C.blue,Revenue:C.orange,Capital:C.purple,Team:C.cyan,Partnerships:C.teal,Expansion:C.pink};
+              const co=cc[h._cat]||C.gold;
+              return(
+                <React.Fragment key={i}>
+                  <div onClick={()=>jumpTo(i)} title={"Rewind to: "+h.label} className={last?"tp":""}
+                    style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",flexShrink:0,padding:"0 4px",minWidth:70}}>
+                    <div style={{width:last?12:8,height:last?12:8,borderRadius:"50%",background:last?co:co+"50",border:"2px solid "+(last?co:co+"30"),transition:"all .3s"}}/>
+                    <div style={{fontSize:8,color:last?co:"rgba(255,255,255,.3)",fontWeight:last?600:400,textAlign:"center",lineHeight:1.2,marginTop:3,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.label}</div>
+                    <div style={{fontSize:6,color:"rgba(255,255,255,.15)"}}>{h._cat}</div>
+                  </div>
+                  {i<hist.length-1&&<div style={{width:20,height:1,background:"rgba(255,255,255,.06)",flexShrink:0}}/>}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* COMPASS — UNMISSABLE */}
+      <div style={{position:"fixed",bottom:hist.length>0?82:20,right:16,zIndex:80,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+        {compOpen&&<div style={{position:"absolute",bottom:70,right:0,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+          {compassItems.map((ci,i)=>(
+            <div key={i} onClick={()=>{ci.action();setCompOpen(false)}}
+              style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:10,background:"rgba(8,8,12,.95)",border:"1.5px solid "+ci.color+"50",cursor:"pointer",animation:"compassItem .3s "+ez+" "+(i*.04)+"s both",backdropFilter:"blur(12px)",whiteSpace:"nowrap"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=ci.color}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=ci.color+"50"}>
+              <span style={{fontSize:16}}>{ci.icon}</span>
+              <span style={{fontSize:12,color:ci.color,fontWeight:600}}>{ci.label}</span>
+            </div>
+          ))}
+        </div>}
+        <button onClick={()=>setCompOpen(p=>!p)}
+          style={{width:56,height:56,borderRadius:"50%",background:compOpen?"rgba(212,168,83,.2)":"rgba(12,12,16,.95)",border:"2.5px solid "+(compOpen?C.gold:C.gold+"60"),cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",transition:"all .3s "+ez,backdropFilter:"blur(12px)",animation:compOpen?"none":"glow 3s ease infinite",boxShadow:"0 4px 20px rgba(0,0,0,.5)"}}>
+          <img src={I.hex} alt="" style={{width:26,height:26,objectFit:"contain",opacity:compOpen?1:.7,transition:"all .3s",transform:compOpen?"rotate(60deg)":"none"}}/>
+        </button>
+        {!compOpen&&<span style={{fontSize:7,color:C.gold+"80",textTransform:"uppercase",letterSpacing:".15em",fontWeight:600}}>Menu</span>}
+      </div>
+
+      {/* SAVE MODAL */}
+      {showSaves&&<SaveModal saves={saves} onSave={saveFn} onLoad={loadFn} onDelete={delFn} onClose={()=>setShowSaves(false)}/>}
+      {/* FRONTIER MAP */}
+      {showFrontier&&<FrontierMap onClose={()=>setShowFrontier(false)} planted={planted} onPlant={plantGarden}/>}
+      <ResearchModal open={showResearch} onClose={()=>setShowResearch(false)} path={hist.map(h=>h.label)} decision={curDec} options={curDec?.opts||[]}/>
+    </div>
+  );
+}
+
+function FrontierMap({onClose,planted,onPlant}){
+  const[sel,setSel]=useState(null);
+  const v=sel?V.find(x=>x.id===sel):null;
+  const isPlanted=(id)=>planted.includes(id);
+  const Sec=({t,txt,c})=><div style={{marginBottom:10}}><div style={{fontSize:9,fontWeight:600,color:c,textTransform:"uppercase",letterSpacing:".08em",marginBottom:3}}>{t}</div><div style={{fontSize:11,color:"rgba(255,255,255,.5)",lineHeight:1.7}}>{txt}</div></div>;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(4,4,6,.97)",zIndex:100,overflow:"auto",padding:"0 0 40px"}}>
+      <div style={{position:"sticky",top:0,background:"rgba(4,4,6,.95)",backdropFilter:"blur(12px)",borderBottom:"1px solid rgba(255,255,255,.06)",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:2}}>
+        <div><span style={{fontFamily:sf,fontSize:18,color:C.gold}}>Frontier Map</span><span style={{fontSize:10,color:"rgba(255,255,255,.2)",marginLeft:8}}>12 Gardens · {V.reduce((a,v)=>a+v.y5,0)/1000|0}M Combined Y5 ARR</span></div>
+        <button onClick={onClose} style={{padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,.1)",background:"transparent",color:"rgba(255,255,255,.4)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Close ×</button>
+      </div>
+      {!sel?(
+        <div style={{maxWidth:1100,margin:"20px auto",padding:"0 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:10}}>
+          {V.map(g=>{
+            const ip=isPlanted(g.id);
+            return(
+              <div key={g.id} onClick={()=>setSel(g.id)}
+                style={{borderRadius:12,padding:14,background:ip?"rgba(255,255,255,.04)":"rgba(255,255,255,.015)",border:"1.5px solid "+(ip?g.c+"40":"rgba(255,255,255,.05)"),cursor:"pointer",transition:"all .3s "+ez,position:"relative"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=g.c+"60"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=ip?g.c+"40":"rgba(255,255,255,.05)"}>
+                {ip&&<div style={{position:"absolute",top:8,right:8,fontSize:7,padding:"2px 6px",borderRadius:4,background:g.c+"20",color:g.c,fontWeight:600}}>PLANTED</div>}
+                <div style={{fontSize:22,marginBottom:6}}>{g.ic}</div>
+                <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:2}}>{g.n}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.3)",marginBottom:6}}>{g.tam} market · Y5: ${(g.y5/1000)|0}M ARR</div>
+                <div style={{fontSize:10,color:g.c}}>{g.deploy}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:6,lineHeight:1.5}}>{g.w.slice(0,100)}...</div>
+                <div style={{marginTop:8,fontSize:10,color:C.gold}}>Tap to explore →</div>
+              </div>
+            );
+          })}
+        </div>
+      ):(
+        <div className="fu" style={{maxWidth:720,margin:"20px auto",padding:"0 16px"}}>
+          <button onClick={()=>setSel(null)} style={{marginBottom:12,padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,.08)",background:"transparent",color:"rgba(255,255,255,.35)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>← All Gardens</button>
+          <div style={{borderRadius:14,background:"rgba(255,255,255,.02)",border:"1px solid "+v.c+"20",overflow:"hidden"}}>
+            <div style={{padding:"20px 22px",borderBottom:"1px solid rgba(255,255,255,.04)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <div style={{fontSize:28,marginBottom:4}}>{v.ic}</div>
+                <div style={{fontFamily:sf,fontSize:26,color:v.c}}>{v.n} Knowledge Garden</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.35)",marginTop:4}}>{v.tam} global market · Year 5 Target: ${(v.y5/1000)|0}M ARR · Deploy: {v.deploy}</div>
+              </div>
+              {isPlanted(v.id)?<span style={{fontSize:10,padding:"4px 10px",borderRadius:6,background:v.c+"20",color:v.c,fontWeight:600}}>PLANTED</span>
+              :<button onClick={()=>{onPlant(v.id);setSel(null)}} style={{padding:"8px 16px",borderRadius:8,border:"none",background:v.c,color:"#000",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🌱 Plant This Garden</button>}
+            </div>
+            <div style={{padding:"16px 22px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+              <div>
+                <Sec t="What It Does" txt={v.w} c={v.c}/>
+                <Sec t="How It Works" txt={v.h} c={C.blue}/>
+                <Sec t="Why People Buy" txt={v.why} c={C.green}/>
+              </div>
+              <div>
+                <Sec t="Revenue Model" txt={v.rev} c={C.gold}/>
+                <Sec t="Market & Competition" txt={v.mkt} c={C.orange}/>
+                <Sec t="The Moat" txt={v.moat} c={C.purple}/>
+              </div>
+            </div>
+            <div style={{padding:"0 22px 16px"}}>
+              <Sec t="Cross-Garden Synergy" txt={v.synergy} c={C.cyan}/>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SaveModal({saves,onSave,onLoad,onDelete,onClose}){
+  const[n,setN]=useState("");
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={onClose}>
+      <div className="fu" onClick={e=>e.stopPropagation()} style={{maxWidth:440,width:"100%",padding:20,borderRadius:16,background:"#121218",border:"1px solid rgba(255,255,255,.08)",maxHeight:"80vh",overflow:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <span style={{fontFamily:sf,fontSize:18,color:C.gold}}>Strategy Saves</span>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.1)",borderRadius:6,color:"rgba(255,255,255,.4)",padding:"4px 10px",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>Close</button>
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          <input value={n} onChange={e=>setN(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&n.trim()){onSave(n.trim());setN("")}}} placeholder="Name this strategy..." style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,.1)",background:"rgba(255,255,255,.04)",color:"#fff",fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+          <button onClick={()=>{if(n.trim()){onSave(n.trim());setN("")}}} style={{padding:"8px 14px",borderRadius:8,border:"none",background:C.green,color:"#000",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+        </div>
+        {saves.length===0?<div style={{textAlign:"center",padding:24,color:"rgba(255,255,255,.2)",fontSize:12}}>No saves yet. Make some decisions first!</div>
+        :saves.map((s,i)=>(
+          <div key={i} style={{padding:10,borderRadius:8,background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.04)",marginBottom:6}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontSize:12,fontWeight:600,color:C.gold}}>{s.name}</div><div style={{fontSize:9,color:"rgba(255,255,255,.2)",marginTop:1}}>{s.hist.length} decisions · Y5: ${(s.m.y5/1000).toFixed(0)}M</div></div>
+              <div style={{display:"flex",gap:4}}>
+                <button onClick={()=>onLoad(s)} style={{padding:"4px 8px",borderRadius:4,border:"1px solid "+C.green+"30",background:C.green+"10",color:C.green,fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>Load</button>
+                <button onClick={()=>onDelete(i)} style={{padding:"4px 8px",borderRadius:4,border:"1px solid "+C.red+"30",background:C.red+"10",color:C.red,fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>Del</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
