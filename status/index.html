@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Source status · Health Knowledge Garden</title>
+<meta name="description" content="Every source behind the credential data layer: the date on the publisher’s file, when the garden last read it, when it is due again, and whether it is fresh.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #fbfaf7; --ink: #15201b; --mute: #6b746f; --rule: #d9d6cf;
+    --green: #1f7a4d; --gold: #b7791f; --red: #b42318; --grey: #8a918c;
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: "DM Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper: #121715; --ink: #ecebe6; --mute: #9aa39d; --rule: #2a332e;
+    --green: #4fc48a; --gold: #e0a640; --red: #f0634f; --grey: #7c857f; color-scheme: dark;
+  } }
+  :root[data-theme="dark"] {
+    --paper: #121715; --ink: #ecebe6; --mute: #9aa39d; --rule: #2a332e;
+    --green: #4fc48a; --gold: #e0a640; --red: #f0634f; --grey: #7c857f; color-scheme: dark;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: inherit; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); line-height: 1.5; }
+  main { max-width: 68rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.05; margin: 0 0 .5rem; letter-spacing: -.01em; }
+  .lede { font-family: var(--serif); font-size: 1.35rem; color: var(--mute); margin: 0 0 2.5rem; max-width: 36em; }
+  .lede em { color: var(--ink); }
+  .asof { font-family: var(--mono); font-size: .8rem; color: var(--mute); margin-bottom: 1.25rem; }
+  .asof b { color: var(--ink); font-weight: 500; }
+  .wrap { overflow-x: auto; border-top: 1px solid var(--ink); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 52rem; }
+  th { text-align: left; font-weight: 500; color: var(--mute); padding: .75rem .6rem .5rem; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  td { padding: .8rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.src { font-family: var(--serif); font-size: 1.12rem; }
+  td.src small { display: block; font-family: var(--sans); font-size: .78rem; color: var(--mute); }
+  td.mono { font-family: var(--mono); font-size: .8rem; white-space: nowrap; }
+  td.num { font-family: var(--mono); font-size: .8rem; text-align: right; }
+  .f { display: inline-flex; align-items: center; gap: .45rem; font-family: var(--mono); font-size: .78rem; }
+  .f::before { content: ""; width: .6rem; height: .6rem; border-radius: 50%; background: var(--grey); }
+  .f-fresh::before { background: var(--green); } .f-due::before { background: var(--gold); }
+  .f-stale::before { background: var(--red); } .f-never::before, .f-unscheduled::before { background: var(--grey); }
+  .rights { font-family: var(--mono); font-size: .74rem; color: var(--mute); }
+  .rights.ok { color: var(--green); }
+  .cat { padding-top: 2.2rem; }
+  .cat td { border-bottom: none; padding: 0 .6rem .4rem; font-family: var(--sans); font-size: .8rem; color: var(--mute); }
+  .note { margin-top: 2.5rem; max-width: 40em; color: var(--mute); font-size: .92rem; }
+  .note p { margin: .5rem 0; }
+  .empty { padding: 3rem 0; color: var(--mute); font-family: var(--serif); font-size: 1.2rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Every source, and how old it is.</h1>
+  <p class="lede">The credential data layer is only as good as the file it last read. This page shows, for each source, <em>the date on the publisher’s file</em>, when the garden read it, and when it is due again. Nothing here is hidden when it goes stale.</p>
+  <div class="asof" id="asof">Loading…</div>
+  <div class="wrap">
+    <table id="t" hidden>
+      <thead><tr>
+        <th>Source</th><th>Covers</th><th>Publisher’s file date</th><th>Last read</th><th>Due again</th><th>Age</th><th>Freshness</th><th>Rights</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty" hidden></div>
+  <div class="note">
+    <p>Fresh means the source was read within its publishing cadence. Due means one cadence has passed. Stale means two. Never means no completed run yet. A monthly publisher is read monthly; polling it daily does not make it daily.</p>
+    <p>Rights shows whether the source’s terms permit redistribution and whether it has passed the acceptance test. Rows from a source that is not accepted never ship to a buyer.</p>
+    <p>Source: <code>v_source_status</code>, computed at read time from <code>ingestion_runs</code>. Written by runs, never by hand.</p>
+  </div>
+</main>
+<script>
+  // Configure these two. The anon key reads v_source_status and the portal's public tables, never receipts or runs
+  // (migrations/2026-10-20_rls_anon_read.sql).
+  // Never put the service_role key in a page.
+  const SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_0Wg68p3d3SGUHH8tuT0KvQ_XeZrYJyi";   // publishable (anon) key; safe in a page only because of RLS
+
+  const COVERS = {
+    npi_status: "NPI identity and status", oig_exclusion: "OIG exclusions", sam_exclusion: "SAM.gov exclusions",
+    state_license: "State license", state_board_action: "Board actions", medicare_optout: "Medicare opt-out",
+    pecos_enrollment: "PECOS enrollment", dea_registration: "DEA", board_certification: "Board certification",
+    medicaid_exclusion: "Medicaid exclusions", nurse_license: "Nurse license"
+  };
+  const CATS = { provider_data: "Identity", compliance: "Exclusions and enrollment", licensing: "State licensing" };
+
+  const fmtDate = (s) => s ? new Date(s).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  const fmtAge = (h) => h == null ? "—" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`;
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  async function load() {
+    const asof = document.getElementById("asof");
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/v_source_status?select=*`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+      });
+      if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+      const rows = await r.json();
+      render(rows);
+      asof.innerHTML = `As of <b>${new Date().toLocaleString()}</b> · ${rows.length} sources · ${rows.filter(x => x.freshness === "fresh").length} fresh · ${rows.filter(x => x.freshness === "stale" || x.freshness === "never").length} stale or never`;
+    } catch (e) {
+      asof.textContent = "The status view could not be read.";
+      const empty = document.getElementById("empty");
+      empty.hidden = false;
+      empty.textContent = "No status available right now. The sources are still there; this page could not reach them.";
+      console.error(e);
+    }
+  }
+
+  function render(rows) {
+    const tb = document.getElementById("rows");
+    const t = document.getElementById("t");
+    if (!rows.length) { document.getElementById("empty").hidden = false; document.getElementById("empty").textContent = "No sources registered yet."; return; }
+    t.hidden = false;
+    let lastCat = null;
+    for (const s of rows) {
+      if (s.category !== lastCat) {
+        tb.insertAdjacentHTML("beforeend", `<tr class="cat"><td colspan="8">${esc(CATS[s.category] || s.category)}</td></tr>`);
+        lastCat = s.category;
+      }
+      const covers = (s.claim_types || []).map(c => COVERS[c] || c).join(", ");
+      const rightsOk = s.redistribution_permission === "permitted" && s.accepted_for_sale;
+      const rights = rightsOk ? "permitted · accepted" : `${s.redistribution_permission}${s.accepted_for_sale ? " · accepted" : " · not accepted"}`;
+      tb.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td class="src">${esc(s.name)}${s.jurisdiction ? `<small>${esc(s.jurisdiction)}</small>` : ""}</td>
+          <td>${esc(covers)}</td>
+          <td class="mono">${fmtDate(s.file_date)}</td>
+          <td class="mono">${fmtDate(s.last_run_at)}</td>
+          <td class="mono">${fmtDate(s.next_due_at)}</td>
+          <td class="num">${fmtAge(s.age_hours)}</td>
+          <td><span class="f f-${esc(s.freshness)}">${esc(s.freshness)}</span></td>
+          <td><span class="rights${rightsOk ? " ok" : ""}">${esc(rights)}</span></td>
+        </tr>`);
+    }
+  }
+  load();
+</script>
+</body>
+</html>

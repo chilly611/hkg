@@ -235,7 +235,9 @@ var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useR
 var API="https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
 var STORAGE="https://opbrzaegvfyjpyyrmdfe.supabase.co/storage/v1/object/public/brand";
 // Service role key for full data access (RLS policies pending)
-var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTcxODE4NSwiZXhwIjoyMDkxMjk0MTg1fQ.43H90jIDQADS0qKKrAk3dkQEy6hba7pMj3VssdeAWS4";
+// Public anon key only (Supabase dashboard > Project Settings > API). Never the service_role key. See README.md.
+var SUPABASE_ANON_KEY="sb_publishable_0Wg68p3d3SGUHH8tuT0KvQ_XeZrYJyi";
+var KEY=SUPABASE_ANON_KEY;
 var HDR={apikey:KEY,Authorization:"Bearer "+KEY};
 
 function q(p,opts){

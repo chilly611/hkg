@@ -421,3 +421,11 @@ The Knowledge Garden pattern works. BKG and OKG proved it. HKG will extend it wi
 These lessons are lived experience. They're not "nice to have"—they're the difference between a tool that works and a platform that scales. Refer to them often. When you're tempted to take a shortcut (skip the spec, hardcode a rule, add a separate database), come back to these lessons. They exist because teams learned them the hard way.
 
 Build it right the first time.
+
+---
+
+## Lesson (2026-10-20): A page key is public. Only RLS makes it safe.
+
+**What happened:** The April portal shipped the service_role key in index.html, index_v2.html and index_v3.html on a public repo and a public site. Separately, about 20 tables had RLS off with anon holding full write grants, and Supabase default privileges hand anon ALL on every new table.
+
+**Action:** Pages carry the publishable (anon) key only. RLS is on for every table; anon gets SELECT on named portal tables and views, nothing else. New tables start closed (default privileges revoked) and need an explicit GRANT plus policy. Before every push, run the service_role scan in README.md.

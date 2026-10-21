@@ -461,7 +461,9 @@
 var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback,useMemo=React.useMemo;
 var API="https://opbrzaegvfyjpyyrmdfe.supabase.co/rest/v1";
 var STORAGE="https://opbrzaegvfyjpyyrmdfe.supabase.co/storage/v1/object/public/brand";
-var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTcxODE4NSwiZXhwIjoyMDkxMjk0MTg1fQ.43H90jIDQADS0qKKrAk3dkQEy6hba7pMj3VssdeAWS4";
+// Public anon key only (Supabase dashboard > Project Settings > API). Never the service_role key. See README.md.
+var SUPABASE_ANON_KEY="sb_publishable_0Wg68p3d3SGUHH8tuT0KvQ_XeZrYJyi";
+var KEY=SUPABASE_ANON_KEY;
 var HDR={apikey:KEY,Authorization:"Bearer "+KEY};
 var COLORS={provider:"#34D399",drug:"#F97316",diagnosis:"#EF4444",trial:"#F59E0B",code:"#22D3EE",exclusion:"#F472B6",taxonomy:"#A78BFA",ndc:"#8B5CF6",citation:"#6366F1",interaction:"#FB923C",address:"#2DD4BF",condition:"#EC4899"};
 var TYPE_LABELS={provider:"Provider",drug:"Drug",diagnosis:"Diagnosis",trial:"Clinical Trial",code:"Billing Code",exclusion:"OIG Exclusion",taxonomy:"Specialty",ndc:"NDC Code",citation:"PubMed",interaction:"Interaction",address:"Address",condition:"Condition"};
