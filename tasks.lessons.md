@@ -429,3 +429,9 @@ Build it right the first time.
 **What happened:** The April portal shipped the service_role key in index.html, index_v2.html and index_v3.html on a public repo and a public site. Separately, about 20 tables had RLS off with anon holding full write grants, and Supabase default privileges hand anon ALL on every new table.
 
 **Action:** Pages carry the publishable (anon) key only. RLS is on for every table; anon gets SELECT on named portal tables and views, nothing else. New tables start closed (default privileges revoked) and need an explicit GRANT plus policy. Before every push, run the service_role scan in README.md.
+
+## Lesson (2026-10-20): Core sources run through receipts, and an NPI on an exclusion must come from the publisher.
+
+**What happened:** The April loads left no artifact, no publisher date, and hand-set run timestamps. `sam_exclusions` held 5 invented test rows. Most NPIs on `oig_exclusions` came from a name match (`apply_oig_matches.py`), and some contradict the NPI that OIG itself prints. `receipts_for_exclusions` reads that column as `npi_exact`, 1.00, so a name match would ship as a verified exclusion of the wrong person.
+
+**Action:** NPPES, LEIE and SAM run only through `scripts/ingestion/core_run.py` (`run_all_core.py` runs all three): one hashed `source_artifacts` row per file, an `ingestion_runs` row that always ends completed or failed, the publisher date or NULL with [CONFIRM], and a stop when a file has under 50% of the last loaded file's rows. `oig_exclusions.npi` is set only from the LEIE file's NPI column. Do not run `apply_oig_matches.py` again; name matches belong in receipts as `candidate` / `name_only`, never in this column. SAM's daily public extract needs no API key: `sam.gov/api/prod/fileextractservices/v1/api/listfiles?domain=Exclusions/Public%20V2&privacy=Public`.
