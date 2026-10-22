@@ -9,7 +9,8 @@ record, so the sync is keyed on it: new numbers are inserted, changed rows are u
 and numbers no longer in the extract are deleted (the exclusion ended or was removed).
 
 entity_name for individuals is "Last, First Middle", the shape receipts_for_exclusions matches on.
-"Indefinite" termination dates are stored as NULL.
+"Indefinite" termination dates are stored as NULL. npi is the extract's NPI field when it is a real
+10-digit NPI; the placeholder 0000000000 is stored as NULL.
 
 source_published_at: the Julian date (YYDDD) in the extract's file name inside the zip, e.g.
 SAM_Exclusions_Public_Extract_V2_26293.CSV -> 2026-10-20. NULL with [CONFIRM] if it cannot be read.
@@ -37,7 +38,7 @@ LIST_URL = f"{SERVICE}/listfiles?domain={DOMAIN}&privacy=Public"
 FILE_RE = re.compile(r"SAM_Exclusions_Public_Extract_V2_(\d{2})(\d{3})\.(?:ZIP|CSV)$", re.I)
 SOURCE_URL = "https://sam.gov/data-services/Exclusions"
 FIELDS = ("entity_name", "cage_code", "duns_number", "exclusion_type", "exclusion_program",
-          "active_date", "termination_date", "record_status", "sam_number", "data_source", "source_url")
+          "active_date", "termination_date", "record_status", "sam_number", "npi", "data_source", "source_url")
 BATCH = 500
 MAX_DELETE_SHARE = 0.2
 
@@ -71,6 +72,13 @@ def parse_date(s):
     return datetime.strptime(s, "%Y-%m-%d").strftime("%Y-%m-%d")
 
 
+def sam_npi(s):
+    """The extract's NPI, or None. About 12K rows carry the placeholder 0000000000, which is not an NPI;
+    storing it would also hide the row from the name-only fallback in receipts_for_exclusions."""
+    s = (s or "").strip()
+    return s if re.fullmatch(r"\d{10}", s) and s != "0000000000" else None
+
+
 def parse_zip(path):
     """Returns (inner csv name, records, row_count, failed)."""
     with zipfile.ZipFile(path) as z:
@@ -100,6 +108,7 @@ def parse_zip(path):
                         "termination_date": parse_date(r["Termination Date"]),
                         "record_status": clean(r["Record Status"], 50),
                         "sam_number": r["SAM Number"].strip()[:50],
+                        "npi": sam_npi(r["NPI"]),
                         "data_source": "SAM.gov",
                         "source_url": SOURCE_URL,
                     })
