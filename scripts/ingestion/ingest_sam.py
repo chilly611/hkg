@@ -1,206 +1,196 @@
 #!/usr/bin/env python3
 """
-Ingest SAM.gov federal exclusion records into Supabase.
+SAM.gov exclusions ingestion. Downloads the latest daily "Exclusions / Public V2" extract from
+the public file-extract service (no API key needed), records the artifact and the run, and syncs
+sam_exclusions to that snapshot.
 
-ATTEMPTED APIS:
-- https://api.sam.gov/entity-information/v3/exclusions (404)
-- https://open.gsa.gov/api/sam-entity-management/ (404)
-- No working public SAM API found in current environment
+The extract holds every active exclusion record and is refreshed daily. SAM Number is unique per
+record, so the sync is keyed on it: new numbers are inserted, changed rows are updated in place,
+and numbers no longer in the extract are deleted (the exclusion ended or was removed).
 
-FALLBACK STRATEGY:
-This script generates realistic test data matching actual SAM.gov exclusion
-records. When the API becomes available, swap the data source (see fetch_sam_exclusions).
+entity_name for individuals is "Last, First Middle", the shape receipts_for_exclusions matches on.
+"Indefinite" termination dates are stored as NULL.
 
-Real exclusion records include:
-- Individuals and entities excluded from federal contracts
-- Fields: entityName, cageCode, dunsNumber, exclusionType,
-  exclusionProgram, activeDate, terminationDate, recordStatus, samNumber
+source_published_at: the Julian date (YYDDD) in the extract's file name inside the zip, e.g.
+SAM_Exclusions_Public_Extract_V2_26293.CSV -> 2026-10-20. NULL with [CONFIRM] if it cannot be read.
+
+Usage:
+  python3 ingest_sam.py              # full run against the live database
+  python3 ingest_sam.py --dry-run    # download, parse and diff; writes nothing
 """
-
-import sys
+import argparse
+import csv
+import io
 import json
-import urllib.request
-import urllib.parse
-import urllib.error
-from datetime import datetime, timedelta
-import random
+import re
+import tempfile
+import zipfile
+from datetime import datetime
+from pathlib import Path
 
-# Supabase config
-SUPABASE_URL = "https://opbrzaegvfyjpyyrmdfe.supabase.co"
-SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wYnJ6YWVndmZ5anB5eXJtZGZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTcxODE4NSwiZXhwIjoyMDkxMjk0MTg1fQ.43H90jIDQADS0qKKrAk3dkQEy6hba7pMj3VssdeAWS4"
-TABLE_NAME = "sam_exclusions"
+from core_run import Rest, chunks, download, fetch_text, in_list, log, run_source
 
-# Batch config
-BATCH_SIZE = 500
+SOURCE = "SAM.gov"
+SERVICE = "https://sam.gov/api/prod/fileextractservices/v1/api"
+DOMAIN = "Exclusions/Public%20V2"
+LIST_URL = f"{SERVICE}/listfiles?domain={DOMAIN}&privacy=Public"
+FILE_RE = re.compile(r"SAM_Exclusions_Public_Extract_V2_(\d{2})(\d{3})\.(?:ZIP|CSV)$", re.I)
+SOURCE_URL = "https://sam.gov/data-services/Exclusions"
+FIELDS = ("entity_name", "cage_code", "duns_number", "exclusion_type", "exclusion_program",
+          "active_date", "termination_date", "record_status", "sam_number", "data_source", "source_url")
+BATCH = 500
+MAX_DELETE_SHARE = 0.2
 
-# Test data - realistic SAM exclusion records
-TEST_EXCLUSIONS = [
-    {"entityName": "ABC Defense Contractors LLC", "cageCode": "1A2B3", "dunsNumber": "123456789", "excludingAgencyCode": "DOD", "exclusionType": "Debarred", "exclusionProgram": "FAR", "activeDate": "2023-01-15", "terminationDate": None, "recordStatus": "Active", "samNumber": "101234567"},
-    {"entityName": "XYZ Engineering Corp", "cageCode": "2C3D4", "dunsNumber": "987654321", "excludingAgencyCode": "GSA", "exclusionType": "Suspended", "exclusionProgram": "FAR", "activeDate": "2023-06-01", "terminationDate": "2024-06-01", "recordStatus": "Inactive", "samNumber": "102234567"},
-    {"entityName": "John Smith Construction", "cageCode": None, "dunsNumber": "555666777", "excludingAgencyCode": "HHS", "exclusionType": "Debarred", "exclusionProgram": "GSA", "activeDate": "2022-03-20", "terminationDate": None, "recordStatus": "Active", "samNumber": "103234567"},
-    {"entityName": "Global Solutions Inc", "cageCode": "5E6F7", "dunsNumber": "444555666", "excludingAgencyCode": "DOJ", "exclusionType": "Excluded", "exclusionProgram": "FAR", "activeDate": "2024-01-10", "terminationDate": None, "recordStatus": "Active", "samNumber": "104234567"},
-    {"entityName": "Regional Services Group", "cageCode": "8G9H0", "dunsNumber": "888999000", "excludingAgencyCode": "EPA", "exclusionType": "Disqualified", "exclusionProgram": "FAPIIS", "activeDate": "2023-11-05", "terminationDate": None, "recordStatus": "Active", "samNumber": "105234567"},
-]
 
-def log(msg):
-    """Log to stderr with timestamp."""
-    ts = datetime.now().isoformat()
-    print(f"[{ts}] {msg}", file=sys.stderr)
+def latest_extract():
+    text, _ = fetch_text(LIST_URL)
+    items = json.loads(text)["_embedded"]["customS3ObjectSummaryList"]
+    names = [i["displayKey"] for i in items if FILE_RE.search(i["displayKey"])]
+    if not names:
+        raise RuntimeError(f"no SAM_Exclusions_Public_Extract_V2 file listed at {LIST_URL}")
+    name = max(names, key=lambda n: FILE_RE.search(n).groups())
+    return name, f"{SERVICE}/download/{DOMAIN}/{name}?privacy=Public"
 
-def fetch_sam_exclusions(offset=0, limit=100):
-    """
-    Fetch exclusions from SAM.gov API.
 
-    REAL API (when available):
-    endpoint = "https://api.sam.gov/entity-information/v3/exclusions"
-    params = {"api_key": "YOUR_KEY", "limit": limit, "offset": offset}
+def julian_date(file_name):
+    m = FILE_RE.search(file_name)
+    if not m:
+        return None
+    return datetime.strptime("20" + m.group(1) + m.group(2), "%Y%j").strftime("%Y-%m-%d")
 
-    CURRENT: Returns test data (realistic SAM record structure)
-    """
 
-    log(f"Fetching SAM exclusions: offset={offset}, limit={limit}")
+def clean(s, n):
+    s = (s or "").strip()
+    return s[:n] or None
 
-    # FALLBACK: Return test data with pagination
-    start = offset
-    end = min(start + limit, len(TEST_EXCLUSIONS))
 
-    if start >= len(TEST_EXCLUSIONS):
-        return [], len(TEST_EXCLUSIONS)
+def parse_date(s):
+    s = (s or "").strip()
+    if not s or s.lower() == "indefinite":
+        return None
+    return datetime.strptime(s, "%Y-%m-%d").strftime("%Y-%m-%d")
 
-    records = TEST_EXCLUSIONS[start:end]
-    total = len(TEST_EXCLUSIONS)
 
-    log(f"Got {len(records)} records, total available: {total}")
-    return records, total
+def parse_zip(path):
+    """Returns (inner csv name, records, row_count, failed)."""
+    with zipfile.ZipFile(path) as z:
+        members = [n for n in z.namelist() if n.lower().endswith(".csv")]
+        if len(members) != 1:
+            raise RuntimeError(f"expected one CSV in the extract, found {members}")
+        inner = members[0]
+        records, failed, row_count = [], 0, 0
+        with z.open(inner) as raw:
+            for r in csv.DictReader(io.TextIOWrapper(raw, encoding="utf-8", newline="")):
+                row_count += 1
+                try:
+                    if r["Classification"] == "Individual" and r["Last"].strip():
+                        person = " ".join(p for p in (r["First"].strip(), r["Middle"].strip()) if p)
+                        name = f"{r['Last'].strip()}, {person}" if person else r["Last"].strip()
+                    else:
+                        name = r["Name"].strip() or " ".join(r[k].strip() for k in ("First", "Middle") if r[k].strip())
+                    if not name or not r["SAM Number"].strip():
+                        raise ValueError("missing name or SAM Number")
+                    records.append({
+                        "entity_name": name[:500],
+                        "cage_code": clean(r["CAGE"], 20),
+                        "duns_number": None,  # V2 extract carries UEI, not DUNS
+                        "exclusion_type": clean(r["Exclusion Type"], 100),
+                        "exclusion_program": clean(r["Exclusion Program"], 100),
+                        "active_date": parse_date(r["Active Date"]),
+                        "termination_date": parse_date(r["Termination Date"]),
+                        "record_status": clean(r["Record Status"], 50),
+                        "sam_number": r["SAM Number"].strip()[:50],
+                        "data_source": "SAM.gov",
+                        "source_url": SOURCE_URL,
+                    })
+                except Exception as e:
+                    failed += 1
+                    if failed <= 5:
+                        log(f"unparseable row {row_count}: {e}")
+    return inner, records, row_count, failed
 
-def map_record(sam_record):
-    """
-    Map SAM API record to Supabase table schema.
 
-    SAM fields -> Supabase columns:
-    - entityName -> entity_name (VARCHAR 500)
-    - cageCode -> cage_code (VARCHAR 20)
-    - dunsNumber -> duns_number (VARCHAR 20)
-    - excludingAgencyCode -> (for reference, not stored)
-    - exclusionType -> exclusion_type (VARCHAR 100)
-    - exclusionProgram -> exclusion_program (VARCHAR 100)
-    - activeDate -> active_date (DATE)
-    - terminationDate -> termination_date (DATE)
-    - recordStatus -> record_status (VARCHAR 50)
-    - samNumber -> sam_number (VARCHAR 50)
-    - data_source -> 'SAM.gov' (VARCHAR 255, default)
-    - source_url -> constructed from samNumber
-    """
-    return {
-        "entity_name": sam_record.get("entityName", "").strip()[:500] or None,
-        "cage_code": (sam_record.get("cageCode") or "").strip()[:20] or None,
-        "duns_number": (sam_record.get("dunsNumber") or "").strip()[:20] or None,
-        "exclusion_type": (sam_record.get("exclusionType") or "").strip()[:100] or None,
-        "exclusion_program": (sam_record.get("exclusionProgram") or "").strip()[:100] or None,
-        "active_date": sam_record.get("activeDate") or None,
-        "termination_date": sam_record.get("terminationDate") or None,
-        "record_status": (sam_record.get("recordStatus") or "").strip()[:50] or None,
-        "sam_number": (sam_record.get("samNumber") or "").strip()[:50] or None,
-        "data_source": "SAM.gov",
-        "source_url": f"https://sam.gov/entity/{sam_record.get('samNumber', 'unknown')}",
-    }
+def plan_sync(db, records):
+    existing = db.select_all("sam_exclusions", "id," + ",".join(FIELDS))
+    by_number = {}
+    duplicates = []
+    for row in existing:
+        if row["sam_number"] in by_number:
+            duplicates.append(row["id"])
+        else:
+            by_number[row["sam_number"]] = row
+    inserts, updates, unchanged, seen = [], [], 0, set()
+    for rec in records:
+        if rec["sam_number"] in seen:
+            continue
+        seen.add(rec["sam_number"])
+        row = by_number.pop(rec["sam_number"], None)
+        if row is None:
+            inserts.append(rec)
+        elif any(row[f] != rec[f] for f in FIELDS):
+            updates.append({"id": row["id"], **rec})
+        else:
+            unchanged += 1
+    deletes = [r["id"] for r in by_number.values()] + duplicates
+    return {"existing": len(existing), "inserts": inserts, "updates": updates, "deletes": deletes,
+            "unchanged": unchanged, "removed_sample": [r["entity_name"] for r in list(by_number.values())[:5]]}
 
-def batch_insert_records(records):
-    """
-    Insert a batch of records into Supabase via PostgREST.
-    Returns True on success, False on failure.
 
-    Uses:
-    - POST to /rest/v1/sam_exclusions
-    - Headers: Content-Type, apikey, Authorization, Prefer (merge-duplicates)
-    """
-    if not records:
-        return True
+def summarize(plan):
+    return (f"existing {plan['existing']:,}; insert {len(plan['inserts']):,}; update {len(plan['updates']):,}; "
+            f"delete {len(plan['deletes']):,} (e.g. {plan['removed_sample']}); unchanged {plan['unchanged']:,}")
 
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}"
 
-    headers = {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_API_KEY,
-        "Authorization": f"Bearer {SUPABASE_API_KEY}",
-        "Prefer": "resolution=merge-duplicates",
-    }
+def apply_sync(db, plan):
+    for batch in chunks(plan["inserts"], BATCH):
+        db.insert("sam_exclusions", batch)
+    for batch in chunks(plan["updates"], BATCH):
+        db.insert("sam_exclusions", batch, upsert_on="id")
+    for batch in chunks(plan["deletes"], 200):
+        db.delete("sam_exclusions", id=in_list(batch))
 
-    body = json.dumps(records).encode('utf-8')
 
-    try:
-        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=30) as response:
-            log(f"Inserted batch of {len(records)} records (HTTP {response.status})")
-            return True
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--allow-large-diff", action="store_true",
+                    help=f"permit deleting more than {MAX_DELETE_SHARE:.0%} of existing rows")
+    args = ap.parse_args(argv)
+    db = Rest()
 
-    except urllib.error.HTTPError as e:
-        log(f"Insert Error ({e.code}): {e.reason}")
-        try:
-            error_body = e.read().decode('utf-8', errors='replace')
-            log(f"Response: {error_body[:500]}")
-        except:
-            pass
-        return False
-    except Exception as e:
-        log(f"Insert failed: {e}")
-        return False
+    with tempfile.TemporaryDirectory(prefix="hkg_sam_") as workdir:
+        def fetch():
+            name, url = latest_extract()
+            path = Path(workdir) / name
+            sha, size, _, retrieved_at = download(url, path)
+            inner, records, row_count, failed = parse_zip(path)
+            return name, url, path, sha, size, retrieved_at, inner, records, row_count, failed
 
-def main():
-    log("=" * 70)
-    log("SAM.gov EXCLUSIONS INGESTION - TEST/FALLBACK MODE")
-    log("=" * 70)
-    log("Note: Public SAM APIs (v3, openGSA) returned 404")
-    log("Using test data matching real SAM exclusion record structure")
-    log("To use live API, update fetch_sam_exclusions() when SAM API is available")
-    log("=" * 70)
+        if args.dry_run:
+            name, url, path, sha, size, _, inner, records, row_count, failed = fetch()
+            log(f"dry run: {name} ({inner}) {row_count:,} rows, {failed} unparseable, "
+                f"published {julian_date(inner)}, sha256 {sha}")
+            log("dry run: " + summarize(plan_sync(db, records)))
+            return
 
-    offset = 0
-    total_records = 0
-    total_inserted = 0
-    batch_buffer = []
+        def body(run):
+            name, url, path, sha, size, retrieved_at, inner, records, row_count, failed = fetch()
+            run.set_published(julian_date(inner), f"Julian date in extract file name {inner}")
+            run.register_artifact(path, name, url, sha, size, row_count, retrieved_at)
+            run.check_row_count(row_count, table_fallback=db.count("sam_exclusions"))
+            plan = plan_sync(db, records)
+            run.note(summarize(plan))
+            if (plan["existing"] > 1000 and len(plan["deletes"]) > plan["existing"] * MAX_DELETE_SHARE
+                    and not args.allow_large_diff):
+                raise RuntimeError(f"anomalous diff: would delete {len(plan['deletes']):,} of "
+                                   f"{plan['existing']:,} rows; rerun with --allow-large-diff after review")
+            apply_sync(db, plan)
+            run.counts.update(records_processed=row_count, records_added=len(plan["inserts"]),
+                              records_updated=len(plan["updates"]), records_failed=failed)
+            run.note(f"deleted {len(plan['deletes']):,} rows no longer in the extract")
 
-    while True:
-        # Fetch next page
-        records, total_available = fetch_sam_exclusions(offset=offset, limit=100)
+        run_source(SOURCE, "full", body, db)
 
-        if not records:
-            log("No more records to fetch.")
-            break
-
-        # Map and buffer records
-        for sam_record in records:
-            mapped = map_record(sam_record)
-            batch_buffer.append(mapped)
-
-            # When buffer reaches batch size, flush it
-            if len(batch_buffer) >= BATCH_SIZE:
-                if batch_insert_records(batch_buffer):
-                    total_inserted += len(batch_buffer)
-                    log(f"Progress: {total_inserted} / {total_available} records inserted")
-                else:
-                    log(f"ERROR: Batch insert failed. Stopping.")
-                    return
-                batch_buffer = []
-
-        offset += len(records)
-        total_records = total_available
-
-        # Stop if we've fetched everything
-        if offset >= total_records:
-            break
-
-    # Flush remaining records
-    if batch_buffer:
-        if batch_insert_records(batch_buffer):
-            total_inserted += len(batch_buffer)
-            log(f"Final flush: {len(batch_buffer)} records inserted")
-
-    log("=" * 70)
-    log("INGESTION COMPLETE")
-    log(f"Total records inserted: {total_inserted}")
-    log(f"Total available: {total_records}")
-    log("=" * 70)
 
 if __name__ == "__main__":
     main()
