@@ -1,0 +1,27 @@
+# Hourly release poller: scripts/poll_sources.py detects new publisher releases and hands each
+# one to its loader. Needs two repository secrets: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+name: poll-sources
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: poll-sources
+  cancel-in-progress: false   # never kill a loader mid-run; the next poll waits
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Poll sources
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 scripts/poll_sources.py
