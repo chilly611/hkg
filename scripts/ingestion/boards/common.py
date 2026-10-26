@@ -127,8 +127,8 @@ class Matcher:
             if lic:
                 self.by_license[(family_of_license_type(r["license_type"]), lic)].add(r["provider_id"])
                 self.ref_counts["prior_exact_links"] += 1
-        for r in db.select_all("rpc/state_license_name_candidates", "provider_id,npi,last_name,first_name",
-                               order="npi", p_state=st):
+        candidates = db.request("POST", "rpc/state_license_name_candidates", body={"p_state": st}, timeout=300)[1]
+        for r in candidates:
             name = (norm_last(r["last_name"]), norm_first(r["first_name"]))
             if all(name):
                 self.by_name[name].add(r["provider_id"])

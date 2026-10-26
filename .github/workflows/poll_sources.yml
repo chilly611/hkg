@@ -1,5 +1,6 @@
 # Hourly release poller: scripts/poll_sources.py detects new publisher releases and hands each
-# one to its loader. Needs two repository secrets: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+# one to its loader. Needs two repository secrets: SUPABASE_URL and SUPABASE_SECRET_KEY (the
+# sb_secret_ key). The scripts read it as SUPABASE_SERVICE_ROLE_KEY, so the step maps it to that name.
 name: poll-sources
 
 on:
@@ -23,5 +24,5 @@ jobs:
       - name: Poll sources
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python3 scripts/poll_sources.py

@@ -58,15 +58,26 @@ JOIN LATERAL (
 
 -- 3. Individuals with a physician taxonomy (207*/208*) and an NPPES practice address in the state.
 --    The only population a name match may draw from; the loader still requires the name to be unique.
-CREATE OR REPLACE FUNCTION state_license_name_candidates(p_state VARCHAR)
-RETURNS TABLE (provider_id UUID, npi VARCHAR, last_name VARCHAR, first_name VARCHAR)
+--    One jsonb array per call: paging a set-returning function re-ran the join per page and hit the
+--    API statement timeout.
+CREATE INDEX IF NOT EXISTS idx_provider_taxonomies_physician ON provider_taxonomies(provider_id)
+  WHERE taxonomy_code LIKE '207%' OR taxonomy_code LIKE '208%';
+CREATE INDEX IF NOT EXISTS idx_provider_addresses_state_type ON provider_addresses(state, address_type, provider_id);
+
+DROP FUNCTION IF EXISTS state_license_name_candidates(VARCHAR);
+CREATE FUNCTION state_license_name_candidates(p_state VARCHAR)
+RETURNS jsonb
 LANGUAGE sql STABLE AS $$
-  SELECT DISTINCT p.id, p.npi, p.last_name, p.first_name
-  FROM provider_addresses a
-  JOIN provider_taxonomies t ON t.provider_id = a.provider_id
-                            AND (t.taxonomy_code LIKE '207%' OR t.taxonomy_code LIKE '208%')
-  JOIN providers p ON p.id = a.provider_id AND p.entity_type = 'individual'
-  WHERE a.address_type = 'practice' AND a.state = upper(p_state)
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('provider_id', c.id, 'npi', c.npi,
+                                               'last_name', c.last_name, 'first_name', c.first_name)), '[]'::jsonb)
+  FROM (
+    SELECT DISTINCT p.id, p.npi, p.last_name, p.first_name
+    FROM provider_addresses a
+    JOIN provider_taxonomies t ON t.provider_id = a.provider_id
+                              AND (t.taxonomy_code LIKE '207%' OR t.taxonomy_code LIKE '208%')
+    JOIN providers p ON p.id = a.provider_id AND p.entity_type = 'individual'
+    WHERE a.address_type = 'practice' AND a.state = upper(p_state)
+  ) c
 $$;
 
 -- 4. License receipts for a roster. One receipt per NPI per state, from the latest completed run of that
