@@ -35,3 +35,4 @@ Run in order in the Supabase SQL editor (or via the Management API query endpoin
 1. `migrations/2026-10-20_receipt_layer.sql`: rights fields, run clocks, `source_artifacts`, append-only `credential_receipts`, `v_source_status`.
 2. `migrations/2026-10-20_rls_anon_read.sql`: RLS on every table, anon read-only on portal tables and `v_source_status`.
 3. `migrations/2026-10-20b_state_receipts.sql`: run-scoped board license rows, `v_state_licenses_current`, `receipts_for_state_licenses(npis[], state)`.
+4. `migrations/2026-10-26_ca_ut_boards.sql`: California DCA source facts, the `California DCA Search API` source, `receipts_for_license_reverify(run_id)`, bulk-only source selection in `receipts_for_state_licenses`, Utah list pricing.

@@ -102,12 +102,18 @@
 - [ ] SAM.gov full exclusions: `scripts/poll_sources.py` (2026-10-25) detects new NPPES, LEIE and SAM releases hourly and runs the loader; `run_all_core.py` stays for manual runs
 - [ ] Turn on `.github/workflows/poll_sources.yml`: add repo secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, then push
 - [ ] Set detection_url for CA DCA, Utah DOPL, CMS opt-out and CMS PECOS (a person confirms each URL)
+  - CA and UT set 2026-10-26 from the publishers' own pages (dca.ca.gov/consumers/public_info, secure.utah.gov/datarequest/professionals); confirm
+- [x] California DCA: `boards/ca_dca.py` loads the Medical Board and Osteopathic Medical Board public information files (241,361 rows, 2026-10-01 release, monthly). First live run 2026-10-26: 9,203 license rows; 259 license_number_exact, 8,944 name_state_taxonomy candidates; 4.73% of currently licensed CA physicians matched; 3 NPPES license links refused for a name conflict. No NPI, no board actions in the file
+- [ ] California DCA Search API: register at https://iservices.dca.ca.gov/, subscribe to the DCA Search API, create an application, wait for DCA approval, put DCA_APP_ID / DCA_APP_KEY in .env; then `boards/ca_dca.py --reverify LICENSE --npi NPI` and fill API_STATUS from getLicenseStatuses
+- [ ] Utah DOPL: order "Professions Licensed in Utah" (Physician + Osteopathic Physician types) at https://secure.utah.gov/datarequest/professionals/index.html; $5.00 for the first 200 records + $0.03 each, or $0.01/record full list for Utah.gov subscribers. Then write `boards/ut_dopl.py` from the real file layout
+- [ ] Wire `boards/ca_dca.py` into `poll_sources.py` (detector: Box content_modified_at of the board data files)
 - [ ] Wire each state board loader into `poll_sources.py` (DETECTORS/LOADERS) once it accepts `--run-id` via `core_run.run_source(run_id=...)`
   - `boards/tx_tmb.py` and `boards/fl_mqa.py` accept `--run-id` (2026-10-25). TX detector: `rowsUpdatedAt` in https://data.texas.gov/api/views/tm3v-pfq9.json
 - [x] Texas Medical Board: `boards/tx_tmb.py` loads Texas Open Data tm3v-pfq9 (513,415 rows, daily). First live run 2026-10-25: 11,953 license rows + 873 board actions matched; 416 license_number_exact, 11,537 name_state_taxonomy candidates; 4.5% of currently licensed TX physicians matched
 - [ ] Florida MQA: portal needs a signed-in account. A person downloads Licensure (Medical Doctor + Osteopathic Physician, All Statuses), Practitioner Profile and their metadata; run `boards/fl_mqa.py --inspect`, fill FIELDS and STATUS from the real header, then load
 - [ ] Raise board match rates: provider_addresses / provider_taxonomies cover ~572K of 9.4M NPIs (6%). Complete the NPPES address + taxonomy backfill (blocked: NPPES download site in maintenance since 2026-10-20) or enrich from the NPPES Registry API (returns taxonomy license numbers)
-- [ ] Review queue for name_state_taxonomy candidates (11,537 TX rows) before any receipt from them ships
+- [ ] Review queue for name_state_taxonomy candidates (11,537 TX rows, 8,944 CA rows) before any receipt from them ships
+- [ ] TX/FL: add the CA name-conflict guard to `common.Matcher` (refuse a license_number_exact link when the NPI shares neither last nor first name with the board row)
 - [x] Drug adverse events (FDA FAERS): 139,798 records loaded from openFDA API (through Q4 2024)
 - [x] LOINC lab codes: 7,498 records loaded via NLM Clinical Tables API prefix drilling (Apr 12, 2026). Targeting 108K.
 - [x] MeSH Terms: 15 seed descriptors loaded from NCBI E-Utilities (Apr 12, 2026)
