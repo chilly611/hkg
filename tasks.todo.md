@@ -44,7 +44,7 @@
 - [x] HCPCS billing codes: 22,700 records from CMS Level II
 - [x] DRG codes: 863 MS-DRG v42 codes from CMS
 - [x] NPI full bulk load: COMPLETE — 9,427,624 providers loaded from NPPES (Apr 12, 2026)
-- [ ] OIG-NPI reconciliation: ~2,900 matched so far, ~7,214 remaining. Run: `cd scripts/ingestion && python3 apply_oig_matches.py`
+- [ ] ~~OIG-NPI reconciliation via `apply_oig_matches.py`~~ RETIRED 2026-10-20: name matches are not exact NPIs. `ingest_oig.py` sets npi from the LEIE file only (see tasks.lessons.md)
 - [x] Provider addresses: 1,175,202 extracted (Apr 11, 2026)
 - [x] Provider taxonomies: 778,330 extracted (Apr 11, 2026)
 
@@ -91,7 +91,7 @@
 - [x] Drug interactions: 5,500 drug-drug interaction records (RxNorm-linked)
 - [x] State medical board registry: 51 jurisdictions (50 states + DC) with IMLC membership
 - [ ] DailyMed drug labels (FDA): IN PROGRESS — fetching from NLM DailyMed API
-- [ ] SAM.gov federal exclusions: API returned 404s — 5 test records only, needs real API access
+- [ ] SAM.gov federal exclusions: `ingest_sam.py` loads the keyless daily public extract (2026-10-20); the 5 invented test rows are removed by the first sync
 
 ### Data Ingestion Sprint (P0b — COMPLETED)
 - [x] Medicare Part D prescribers: 70,600 records ingested (Apr 12, 2026). CMS API endpoint: dataset/9552739e-3d05-4c1b-8eff-ecabf391e2e5/data. Fields mapped: NPI, provider name/state, specialty, drug name/generic, claim counts, costs, beneficiary count, year.
@@ -99,7 +99,7 @@
 - [x] Medicare Utilization: 50,000 records from CMS Medicare Physician & Other Practitioners (Apr 12, 2026)
 
 ### Data Ingestion Sprint (P2 — COMPLETED/IN PROGRESS)
-- [ ] SAM.gov full exclusions (when API becomes available)
+- [ ] SAM.gov full exclusions: run `python3 scripts/ingestion/run_all_core.py` daily (no scheduler yet)
 - [x] Drug adverse events (FDA FAERS): 139,798 records loaded from openFDA API (through Q4 2024)
 - [x] LOINC lab codes: 7,498 records loaded via NLM Clinical Tables API prefix drilling (Apr 12, 2026). Targeting 108K.
 - [x] MeSH Terms: 15 seed descriptors loaded from NCBI E-Utilities (Apr 12, 2026)
