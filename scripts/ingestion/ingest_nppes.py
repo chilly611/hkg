@@ -14,6 +14,7 @@ Usage:
   python3 ingest_nppes.py                 # newest weekly file, live database
   python3 ingest_nppes.py --url URL       # a specific NPPES zip (weekly or monthly)
   python3 ingest_nppes.py --dry-run       # download and parse; writes nothing
+  python3 ingest_nppes.py --run-id ID     # finish a run scripts/poll_sources.py created
 """
 import argparse
 import csv
@@ -146,6 +147,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--url", help="a specific NPPES zip instead of the newest weekly file")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--run-id", help="adopt this running ingestion_runs row (set by scripts/poll_sources.py)")
     args = ap.parse_args(argv)
     db = Rest()
 
@@ -180,7 +182,7 @@ def main(argv=None):
                               records_updated=updated, records_failed=failed)
 
         run_type = "incremental" if not args.url or WEEKLY_RE.search(args.url) else "full"
-        run_source(SOURCE, run_type, body, db)
+        run_source(SOURCE, run_type, body, db, run_id=args.run_id)
 
 
 if __name__ == "__main__":

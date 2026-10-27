@@ -3,7 +3,9 @@
 Shared run bookkeeping for the core sources (NPPES, OIG LEIE, SAM.gov).
 
 Every core ingestion goes through run_source():
-  1. an ingestion_runs row is inserted with status 'running' and detected_at = now
+  1. an ingestion_runs row is inserted with status 'running' and detected_at = now, or, when
+     scripts/poll_sources.py detected the release, the poller's 'running' row is adopted by id
+     (--run-id) and its detected_at is kept
   2. the script downloads the file; register_artifact() hashes it and inserts one
      source_artifacts row, or reuses the row with the same (source_id, sha256) ("unchanged file")
   3. check_row_count() refuses to load a file with fewer than 50% of the rows of the
@@ -194,10 +196,24 @@ class Run:
             "run_type": self.run_type,
             "status": "running",
             "started_at": ts,
-            "detected_at": ts,  # no poller yet; detection is the start of this run
+            "detected_at": ts,  # run by hand, not by the poller: detection is the start of this run
         }], returning=True)[0]
         self.id = row["id"]
         log(f"run {self.id} started for {self.source['name']}")
+
+    def adopt(self, run_id):
+        """Take over a 'running' row the poller created. Its detected_at and started_at stay as written."""
+        rows = self.db.select("ingestion_runs", {"select": "id,source_id,status,run_notes", "id": f"eq.{run_id}"})
+        if not rows:
+            raise RuntimeError(f"ingestion_runs has no row {run_id}")
+        row = rows[0]
+        if row["source_id"] != self.source_id or row["status"] != "running":
+            raise RuntimeError(f"run {run_id} is {row['status']} for source {row['source_id']}; "
+                               f"expected a running run for {self.source['name']}")
+        self.id = row["id"]
+        if row.get("run_notes"):
+            self.notes.append(row["run_notes"])
+        log(f"run {self.id} adopted for {self.source['name']}")
 
     def update(self, **fields):
         self.db.patch("ingestion_runs", fields, id=f"eq.{self.id}")
@@ -268,11 +284,15 @@ class Run:
         log(f"run {self.id} FAILED: {exc}")
 
 
-def run_source(source_name, run_type, body, db=None):
-    """Create a run, call body(run), and close the run as completed or failed. Re-raises on failure."""
+def run_source(source_name, run_type, body, db=None, run_id=None):
+    """Create (or adopt, with run_id) a run, call body(run), and close the run as completed or failed.
+    Re-raises on failure."""
     db = db or Rest()
     run = Run(db, source_name, run_type)
-    run.start()
+    if run_id:
+        run.adopt(run_id)
+    else:
+        run.start()
     try:
         body(run)
     except BaseException as exc:  # KeyboardInterrupt too: never leave a run 'running'

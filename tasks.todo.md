@@ -99,7 +99,16 @@
 - [x] Medicare Utilization: 50,000 records from CMS Medicare Physician & Other Practitioners (Apr 12, 2026)
 
 ### Data Ingestion Sprint (P2 — COMPLETED/IN PROGRESS)
-- [ ] SAM.gov full exclusions: run `python3 scripts/ingestion/run_all_core.py` daily (no scheduler yet)
+- [ ] SAM.gov full exclusions: `scripts/poll_sources.py` (2026-10-25) detects new NPPES, LEIE and SAM releases hourly and runs the loader; `run_all_core.py` stays for manual runs
+- [ ] Turn on `.github/workflows/poll_sources.yml`: add repo secrets SUPABASE_URL and SUPABASE_SECRET_KEY (the sb_secret_ key), then push
+- [ ] Set detection_url for CA DCA, Utah DOPL, CMS opt-out and CMS PECOS (a person confirms each URL)
+- [ ] Wire each state board loader into `poll_sources.py` (DETECTORS/LOADERS) once it accepts `--run-id` via `core_run.run_source(run_id=...)`
+  - `boards/tx_tmb.py` and `boards/fl_mqa.py` accept `--run-id` (2026-10-25). TX detector: `rowsUpdatedAt` in https://data.texas.gov/api/views/tm3v-pfq9.json
+- [x] Texas Medical Board: `boards/tx_tmb.py` loads Texas Open Data tm3v-pfq9 (513,415 rows, daily). First live run 2026-10-25: 11,953 license rows + 873 board actions matched; 416 license_number_exact, 11,537 name_state_taxonomy candidates; 4.5% of currently licensed TX physicians matched
+- [x] Florida MQA: `boards/fl_mqa.py` loads the portal's Licensure "All Statuses" files (1501-P MD, 1901-P DO, 1512-P PA) plus profile actions (tp_ahca_discip, tp_disciplinary). First live run 2026-10-26: 224,206 rows, 5,587 license rows + 308 board actions matched; 298 license_number_exact, 5,289 name_state_taxonomy candidates; 4.4% of active FL physicians matched
+- [ ] Florida refresh needs a signed-in person each time (portal is Azure B2C); FL cadence is 720h in data_sources, so it reads 'due' after 30 days
+- [ ] Raise board match rates: provider_addresses / provider_taxonomies cover ~572K of 9.4M NPIs (6%). Complete the NPPES address + taxonomy backfill (blocked: NPPES download site in maintenance since 2026-10-20) or enrich from the NPPES Registry API (returns taxonomy license numbers)
+- [ ] Review queue for name_state_taxonomy candidates (11,537 TX rows) before any receipt from them ships
 - [x] Drug adverse events (FDA FAERS): 139,798 records loaded from openFDA API (through Q4 2024)
 - [x] LOINC lab codes: 7,498 records loaded via NLM Clinical Tables API prefix drilling (Apr 12, 2026). Targeting 108K.
 - [x] MeSH Terms: 15 seed descriptors loaded from NCBI E-Utilities (Apr 12, 2026)

@@ -18,6 +18,7 @@ SAM_Exclusions_Public_Extract_V2_26293.CSV -> 2026-10-20. NULL with [CONFIRM] if
 Usage:
   python3 ingest_sam.py              # full run against the live database
   python3 ingest_sam.py --dry-run    # download, parse and diff; writes nothing
+  python3 ingest_sam.py --run-id ID  # finish a run scripts/poll_sources.py created
 """
 import argparse
 import csv
@@ -162,6 +163,7 @@ def apply_sync(db, plan):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--run-id", help="adopt this running ingestion_runs row (set by scripts/poll_sources.py)")
     ap.add_argument("--allow-large-diff", action="store_true",
                     help=f"permit deleting more than {MAX_DELETE_SHARE:.0%} of existing rows")
     args = ap.parse_args(argv)
@@ -198,7 +200,7 @@ def main(argv=None):
                               records_updated=len(plan["updates"]), records_failed=failed)
             run.note(f"deleted {len(plan['deletes']):,} rows no longer in the extract")
 
-        run_source(SOURCE, "full", body, db)
+        run_source(SOURCE, "full", body, db, run_id=args.run_id)
 
 
 if __name__ == "__main__":
