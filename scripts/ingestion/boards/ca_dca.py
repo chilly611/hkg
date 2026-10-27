@@ -161,19 +161,33 @@ class Box:
         return sha256.hexdigest(), size, now_iso()
 
 
-def fetch_files(workdir):
-    """Download every board's data and counts files. Returns (files, counts) in folder order."""
-    box = Box()
+def board_entries(box):
+    """{board folder name: its file entries sorted by name}, read from the Box listing without downloading."""
     folders = {e["name"]: e for e in box.items(ROOT_FOLDER) if e["type"] == "folder"}
     missing = [n for n in BOARD_FOLDERS if n not in folders]
     if missing:
         raise RuntimeError(f"board folders missing from the DCA Box folder: {missing}")
-    files, counts = [], {}
+    out = {}
     for name in BOARD_FOLDERS:
         entries = sorted((e for e in box.items(folders[name]["id"]) if e["type"] == "file"), key=lambda e: e["name"])
-        data = [e for e in entries if DATA_FILE.search(e["name"])]
-        if not data:
+        if not any(DATA_FILE.search(e["name"]) for e in entries):
             raise RuntimeError(f"no *_DataNN.xls file in Box folder {name}")
+        out[name] = entries
+    return out
+
+
+def latest_release():
+    """(publisher date, signal) of the files DCA serves now, from the Box listing alone. Used by poll_sources.py."""
+    entries = board_entries(Box())
+    return publisher_date([{"item": e} for name in BOARD_FOLDERS for e in entries[name] if DATA_FILE.search(e["name"])])
+
+
+def fetch_files(workdir):
+    """Download every board's data and counts files. Returns (files, counts) in folder order."""
+    box = Box()
+    files, counts = [], {}
+    for name, entries in board_entries(box).items():
+        data = [e for e in entries if DATA_FILE.search(e["name"])]
         for e in data:
             path = Path(workdir) / e["name"]
             sha, size, retrieved_at = box.download(e, path)

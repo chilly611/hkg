@@ -9,6 +9,12 @@ Detection, per source:
   SAM.gov       newest Exclusions Public V2 extract in the file-extract service listing (the
                 detection_url page is a script-rendered app with no date in it); publisher date =
                 the Julian date in the file name
+  California    earliest Box content_modified_at of the DCA data files (boards/ca_dca.py), from the
+                folder listing alone; the landing page's hash changes without a new release
+  Texas         rowsUpdatedAt in the Socrata view metadata at detection_url (detect_generic)
+  Florida       not polled: the MQA portal sits behind an Azure B2C sign-in, so neither the release
+                date nor the files can be read unattended. A signed-in person downloads them and runs
+                boards/fl_mqa.py (PERSON_RUN)
   any other     rowsUpdatedAt when detection_url is Socrata view metadata (/api/views/<id>.json);
                 else Last-Modified of detection_url; else the body's sha256 against the latest
                 artifact, only when that artifact was downloaded from detection_url itself. ETag is
@@ -34,16 +40,26 @@ Usage:
   python3 scripts/poll_sources.py --dry-run            # detect only; writes nothing, loads nothing
   python3 scripts/poll_sources.py --source "SAM.gov"   # one source (repeatable)
 
-Exit code 1 if a detector raised an unexpected error or a loader run ended failed. A publisher
-site that says it is down for maintenance is 'unavailable', not an error.
+An unreachable publisher is a detection miss, not a poller failure. When the detector's fetch fails
+(HTTP error, DNS, refused or reset connection, timeout) or the publisher's page says it is down for
+maintenance, the poller appends one line, "unreachable: <status or error>, <timestamp>", to the
+run_notes of that source's latest run, opens no run, marks nothing completed and moves on. The
+source keeps its last clocks, so v_source_status ages it to due and stale on its own.
+
+Exit code 1 if the poller itself fails (an uncaught error, a detector that read a reachable page and
+could not parse it, a loader run that ended failed, a release that failed MAX_FAILED times) or every
+source it checked was unreachable. Unreachable sources alone never fail the run.
 Credentials: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from the repo-root .env or the
 environment (see scripts/ingestion/core_run.py). Stdlib only.
 """
 import argparse
 import hashlib
+import http.client
 import json
+import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -51,7 +67,9 @@ from pathlib import Path
 
 INGESTION = Path(__file__).resolve().parent / "ingestion"
 sys.path.insert(0, str(INGESTION))
+sys.path.insert(0, str(INGESTION / "boards"))
 
+import ca_dca  # noqa: E402
 import ingest_nppes  # noqa: E402
 import ingest_oig  # noqa: E402
 import ingest_sam  # noqa: E402
@@ -61,10 +79,25 @@ STATUS_CATEGORIES = ("provider_data", "compliance", "licensing")  # the sources 
 MAX_FAILED = 3
 LOADER_TIMEOUT = 4 * 3600
 STUCK_HOURS = 6
+MAINTENANCE = re.compile(r"down for maint", re.I)   # CMS's NPPES page reads "down for maintance"
 
 
 class Unavailable(Exception):
     """The publisher says it is down; nothing to compare."""
+
+
+# A fetch that never got a usable answer from the publisher. HTTPError is a URLError.
+UNREACHABLE = (Unavailable, urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException)
+
+
+def unreachable_reason(e):
+    if isinstance(e, urllib.error.HTTPError):
+        return f"HTTP {e.code} {e.reason}"
+    if isinstance(e, urllib.error.URLError):
+        return str(e.reason)
+    if isinstance(e, Unavailable):
+        return str(e)
+    return f"{type(e).__name__}: {e}"
 
 
 class Detection:
@@ -97,8 +130,8 @@ def detect_nppes(source):
     url = source["detection_url"]
     page, headers = fetch_text(url)
     if not ingest_nppes.WEEKLY_RE.search(page):
-        if "down for maintenance" in page.lower():
-            raise Unavailable(f"{url} says the site is down for maintenance; no files listed")
+        if MAINTENANCE.search(page):
+            raise Unavailable("publisher page says it is down for maintenance; no files listed")
         raise RuntimeError(f"no weekly V2 file listed on {url}; page layout may have changed")
     name, file_url = ingest_nppes.latest_weekly()
     published, how, _ = ingest_nppes.published_from_name(name)
@@ -121,6 +154,11 @@ def detect_sam(source):
     name, _ = ingest_sam.latest_extract()
     published = ingest_sam.julian_date(name)
     return Detection(published, f"Julian date in extract file name {name}", ingest_sam.LIST_URL, "full")
+
+
+def detect_ca(source):
+    published, signal = ca_dca.latest_release()
+    return Detection(published, signal, f"Box folder {ca_dca.ROOT_FOLDER} behind {ca_dca.PAGE_URL}", "full")
 
 
 def socrata_updated(body):
@@ -148,8 +186,26 @@ def detect_generic(source):
     return det
 
 
-DETECTORS = {"NPI Registry": detect_nppes, "OIG LEIE": detect_oig, "SAM.gov": detect_sam}
-LOADERS = {"NPI Registry": "ingest_nppes.py", "OIG LEIE": "ingest_oig.py", "SAM.gov": "ingest_sam.py"}
+DETECTORS = {
+    "NPI Registry": detect_nppes,
+    "OIG LEIE": detect_oig,
+    "SAM.gov": detect_sam,
+    "California DCA public information file": detect_ca,
+    "Texas Medical Board licensure file": detect_generic,
+}
+LOADERS = {   # paths relative to scripts/ingestion; each loader accepts --run-id
+    "NPI Registry": "ingest_nppes.py",
+    "OIG LEIE": "ingest_oig.py",
+    "SAM.gov": "ingest_sam.py",
+    "California DCA public information file": "boards/ca_dca.py",
+    "Texas Medical Board licensure file": "boards/tx_tmb.py",
+}
+# Loaders a person runs: the poller can neither read the release date nor fetch the files unattended.
+PERSON_RUN = {
+    "Florida MQA licensee data download": (
+        "the MQA portal requires a signed-in person; they download the Licensure and profile files "
+        "and run boards/fl_mqa.py --licensure ... --actions ... --published DATE"),
+}
 
 
 # ----------------------------------------------------------------------------
@@ -215,6 +271,16 @@ def open_run(db, source, det, delay_h):
     return row
 
 
+def note_miss(db, runs, line):
+    """Append line to the run_notes of the source's latest run. Returns that run's id, or None if it has none."""
+    if not runs:
+        return None
+    run_id = runs[0]["id"]   # history() orders by started_at desc
+    notes = db.select("ingestion_runs", {"select": "run_notes", "id": f"eq.{run_id}"})[0]["run_notes"]
+    db.patch("ingestion_runs", {"run_notes": f"{notes}\n{line}" if notes else line}, id=f"eq.{run_id}")
+    return run_id
+
+
 def invoke_loader(db, source, run, det):
     cmd = [sys.executable, str(INGESTION / LOADERS[source["name"]]), "--run-id", run["id"], *det.loader_args]
     log(f"loader: {' '.join(cmd[1:])}")
@@ -241,7 +307,11 @@ def invoke_loader(db, source, run, det):
 def poll(db, source, dry_run):
     """Returns a result dict for the report."""
     res = {"name": source["name"], "outcome": None, "published": None, "known": None, "signal": None,
-           "delay_h": None, "run_id": None, "run_status": None, "error": False}
+           "delay_h": None, "run_id": None, "run_status": None, "error": False, "checked": False,
+           "unreachable": False}
+    if source["name"] in PERSON_RUN:
+        res["outcome"] = f"not polled: {PERSON_RUN[source['name']]}"
+        return res
     if not source.get("detection_url"):
         res["outcome"] = "not polled: no detection_url [CONFIRM] a person sets it"
         return res
@@ -249,11 +319,19 @@ def poll(db, source, dry_run):
     runs, known = history(db, source["id"])
     res["known"] = known
     running = [r for r in runs if r["status"] == "running"]
+    res["checked"] = True
     try:
         detector = DETECTORS.get(source["name"])
         det = (detector or detect_generic)(source)
-    except Unavailable as e:
-        res["outcome"] = f"unavailable: {e}"
+    except UNREACHABLE as e:
+        # A detection miss: note it on the source, open no run, keep the last clocks.
+        line = f"unreachable: {unreachable_reason(e)}, {now_iso()}"
+        res["unreachable"] = True
+        if dry_run:
+            res["outcome"] = f"{line} (dry run: not noted)"
+        else:
+            noted = note_miss(db, runs, line)
+            res["outcome"] = f"{line} (noted on run {noted})" if noted else f"{line} (no run to note it on)"
         return res
     except Exception as e:
         res["outcome"], res["error"] = f"detection error: {e}", True
@@ -340,7 +418,12 @@ def main(argv=None):
     for r in results:
         if r["signal"]:
             print(f"  {r['name']}: signal: {r['signal']}")
+    checked = [r for r in results if r["checked"]]
+    if checked and all(r["unreachable"] for r in checked):
+        print(f"\nfailing: every source checked ({len(checked)}) was unreachable")
+        sys.exit(1)
     if any(r["error"] for r in results):
+        print("\nfailing: " + "; ".join(f"{r['name']}: {r['outcome']}" for r in results if r["error"]))
         sys.exit(1)
 
 
