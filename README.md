@@ -37,3 +37,4 @@ Run in order in the Supabase SQL editor (or via the Management API query endpoin
 3. `migrations/2026-10-20b_state_receipts.sql`: run-scoped board license rows, `v_state_licenses_current`, `receipts_for_state_licenses(npis[], state)`.
 4. `migrations/2026-10-26_ca_ut_boards.sql`: California DCA source facts, the `California DCA Search API` source, `receipts_for_license_reverify(run_id)`, bulk-only source selection in `receipts_for_state_licenses`, Utah list pricing.
 5. `migrations/2026-10-28_cms_statuses.sql`: receipt statuses `opted_out` (Medicare opt-out) and `enrolled` (PECOS), and the receipt vocabulary as column comments on `credential_receipts`.
+6. `migrations/2026-10-28_poll_late.sql`: `data_sources.last_polled_at` (stamped by `scripts/poll_sources.py` on every check) and the `poll late` freshness in `v_source_status` when a polled source has gone 90 minutes unchecked. Already applied to production on 2026-10-28; idempotent, so re-running it is harmless.

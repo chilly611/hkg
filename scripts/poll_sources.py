@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Hourly release poller. For each data_sources row with a detection_url, look for a new release
-and, when one is found, open an ingestion_runs row and hand it to the matching loader.
+Release poller, run at :17 and :47 every hour (.github/workflows/poll_sources.yml). For each
+data_sources row with a detection_url, look for a new release and, when one is found, open an
+ingestion_runs row and hand it to the matching loader.
 
 Detection, per source:
   NPI Registry  newest weekly V2 file name on detection_url; publisher date = end of its date range
@@ -48,6 +49,11 @@ An unreachable publisher is a detection miss, not a poller failure. When the det
 maintenance, the poller appends one line, "unreachable: <status or error>, <timestamp>", to the
 run_notes of that source's latest run, opens no run, marks nothing completed and moves on. The
 source keeps its last clocks, so v_source_status ages it to due and stale on its own.
+
+Every source the poller checks, reachable or not, gets data_sources.last_polled_at = the time of the
+check (a dry run stamps nothing). v_source_status reads "poll late" when that stamp is more than 90
+minutes old, so a delayed or dropped GitHub run is never shown as a publisher miss
+(migrations/2026-10-28_poll_late.sql). A failed stamp is logged and never fails the poll.
 
 Exit code 1 if the poller itself fails (an uncaught error, a detector that read a reachable page and
 could not parse it, a loader run that ended failed, a release that failed MAX_FAILED times) or every
@@ -402,6 +408,14 @@ def poll(db, source, dry_run):
     return res
 
 
+def stamp_polled(db, source, polled_at):
+    """The poller looked at this source: v_source_status ages last_polled_at into "poll late"."""
+    try:
+        db.patch("data_sources", {"last_polled_at": polled_at}, id=f"eq.{source['id']}")
+    except Exception as e:
+        log(f"    could not stamp last_polled_at: {e}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="detect only; write nothing, load nothing")
@@ -421,8 +435,11 @@ def main(argv=None):
     results = []
     for source in sources:
         log(f"=== {source['name']}")
+        polled_at = now_iso()
         res = poll(db, source, args.dry_run)
         log(f"    {res['outcome']}")
+        if res["checked"] and not args.dry_run:
+            stamp_polled(db, source, polled_at)
         results.append(res)
 
     print(f"\nPoll at {started}{' (dry run)' if args.dry_run else ''}: {len(results)} sources")

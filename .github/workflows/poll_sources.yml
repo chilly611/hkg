@@ -1,13 +1,18 @@
-# Hourly release poller: scripts/poll_sources.py detects new publisher releases and hands each
-# one to its loader. Needs two repository secrets: SUPABASE_URL and SUPABASE_SECRET_KEY (the
-# sb_secret_ key). The scripts read it as SUPABASE_SERVICE_ROLE_KEY, so the step maps it to that name.
+# Release poller: scripts/poll_sources.py detects new publisher releases and hands each one to its
+# loader. Twice an hour, off the hour: GitHub runs schedules best-effort and delays or drops runs that
+# start at :00, so :17 and :47. A late or dropped run shows on the status page as "poll late" once a
+# source has gone 90 minutes unchecked (migrations/2026-10-28_poll_late.sql), never as a publisher miss.
+# Needs two repository secrets: SUPABASE_URL and SUPABASE_SECRET_KEY (the sb_secret_ key). The scripts
+# read it as SUPABASE_SERVICE_ROLE_KEY, so the step maps it to that name.
 name: poll-sources
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
+# One run at a time, scheduled or dispatched: a run that starts while another is going waits for it.
+# GitHub keeps one waiting run per group, so a backlog collapses into the next poll instead of piling up.
 concurrency:
   group: poll-sources
   cancel-in-progress: false   # never kill a loader mid-run; the next poll waits
