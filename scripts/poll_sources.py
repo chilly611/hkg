@@ -12,6 +12,9 @@ Detection, per source:
   California    earliest Box content_modified_at of the DCA data files (boards/ca_dca.py), from the
                 folder listing alone; the landing page's hash changes without a new release
   Texas         rowsUpdatedAt in the Socrata view metadata at detection_url (detect_generic)
+  CMS opt-out   'modified' of the series' latest version in the data.cms.gov DCAT catalog
+  and PECOS     (detection_url, cms_data.py); the data API answers Last-Modified = now, so it cannot
+                date a release. Each loader writes receipts for every roster
   Florida       not polled: the MQA portal sits behind an Azure B2C sign-in, so neither the release
                 date nor the files can be read unattended. A signed-in person downloads them and runs
                 boards/fl_mqa.py (PERSON_RUN)
@@ -70,6 +73,9 @@ sys.path.insert(0, str(INGESTION))
 sys.path.insert(0, str(INGESTION / "boards"))
 
 import ca_dca  # noqa: E402
+import cms_data  # noqa: E402
+import ingest_cms_optout  # noqa: E402
+import ingest_cms_pecos  # noqa: E402
 import ingest_nppes  # noqa: E402
 import ingest_oig  # noqa: E402
 import ingest_sam  # noqa: E402
@@ -161,6 +167,13 @@ def detect_ca(source):
     return Detection(published, signal, f"Box folder {ca_dca.ROOT_FOLDER} behind {ca_dca.PAGE_URL}", "full")
 
 
+def detect_cms(series):
+    def detect(source):
+        release = cms_data.Release(series)
+        return Detection(release.published, release.signal, source["detection_url"], "full")
+    return detect
+
+
 def socrata_updated(body):
     """rowsUpdatedAt from a Socrata view's metadata (…/api/views/<id>.json), or None."""
     try:
@@ -192,6 +205,8 @@ DETECTORS = {
     "SAM.gov": detect_sam,
     "California DCA public information file": detect_ca,
     "Texas Medical Board licensure file": detect_generic,
+    ingest_cms_optout.SOURCE: detect_cms(ingest_cms_optout.SERIES),
+    ingest_cms_pecos.SOURCE: detect_cms(ingest_cms_pecos.SERIES),
 }
 LOADERS = {   # paths relative to scripts/ingestion; each loader accepts --run-id
     "NPI Registry": "ingest_nppes.py",
@@ -199,6 +214,8 @@ LOADERS = {   # paths relative to scripts/ingestion; each loader accepts --run-i
     "SAM.gov": "ingest_sam.py",
     "California DCA public information file": "boards/ca_dca.py",
     "Texas Medical Board licensure file": "boards/tx_tmb.py",
+    ingest_cms_optout.SOURCE: "ingest_cms_optout.py",
+    ingest_cms_pecos.SOURCE: "ingest_cms_pecos.py",
 }
 # Loaders a person runs: the poller can neither read the release date nor fetch the files unattended.
 PERSON_RUN = {

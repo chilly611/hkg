@@ -36,3 +36,4 @@ Run in order in the Supabase SQL editor (or via the Management API query endpoin
 2. `migrations/2026-10-20_rls_anon_read.sql`: RLS on every table, anon read-only on portal tables and `v_source_status`.
 3. `migrations/2026-10-20b_state_receipts.sql`: run-scoped board license rows, `v_state_licenses_current`, `receipts_for_state_licenses(npis[], state)`.
 4. `migrations/2026-10-26_ca_ut_boards.sql`: California DCA source facts, the `California DCA Search API` source, `receipts_for_license_reverify(run_id)`, bulk-only source selection in `receipts_for_state_licenses`, Utah list pricing.
+5. `migrations/2026-10-28_cms_statuses.sql`: receipt statuses `opted_out` (Medicare opt-out) and `enrolled` (PECOS), and the receipt vocabulary as column comments on `credential_receipts`.
