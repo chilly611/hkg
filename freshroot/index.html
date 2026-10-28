@@ -120,6 +120,7 @@ input:hover, select:hover { border-color: var(--ink-3); }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 .controls { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 0 24px; }
 @media (min-width: 720px) { .controls { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; } }
+@media (min-width: 720px) { .controls.three { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } }
 
 /* Key gate */
 .gate { max-width: 520px; }
@@ -154,37 +155,53 @@ input:hover, select:hover { border-color: var(--ink-3); }
 .figs dt { font-size: 11.5px; color: var(--ink-3); }
 .figs dd { margin: 0; font-family: var(--mono); font-size: 13px; }
 
-/* Roster */
+/* Roster: one row per physician, read like a credentialing file. The mark is the surface's one orange-red. */
 .rows { border-top: 1px solid var(--line); }
 .rhead, .rrow {
-  display: grid; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line);
-  grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name lic" "npi st" "basis read";
+  display: grid; gap: 6px 12px; padding: 14px 0 14px 20px; border-bottom: 1px solid var(--line); position: relative;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name npi" "checks checks" "times times";
 }
-.rhead { display: none; font-size: 12px; color: var(--ink-3); padding: 10px 0; }
+.rhead { display: none; font-size: 12px; color: var(--ink-3); padding-top: 10px; padding-bottom: 10px; }
 .rrow { text-decoration: none; color: var(--ink); }
 .rrow:hover { background: var(--line-2); }
-.rrow .c-name { grid-area: name; font-weight: 500; }
-.rrow .c-npi { grid-area: npi; }
-.rrow .c-st { grid-area: st; text-align: right; }
-.rrow .c-lic { grid-area: lic; text-align: right; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
-.rrow .c-basis { grid-area: basis; }
-.rrow .c-read { grid-area: read; text-align: right; }
-.rrow .c-npi, .rrow .c-read, .rrow .c-basis, .rrow .c-st { font-size: 13px; color: var(--ink-2); }
+.rrow.marked::before { content: ""; position: absolute; left: 6px; top: 20px; width: 8px; height: 8px; border-radius: 50%; background: var(--shock); }
+.mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--shock); vertical-align: 1px; }
+.rrow .c-name { grid-area: name; min-width: 0; }
+.rrow .c-name b { font-weight: 500; }
+.rrow .c-sub { display: block; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; }
+.rrow .c-npi { grid-area: npi; font-size: 13px; color: var(--ink-2); text-align: right; }
+.rrow .c-checks { grid-area: checks; display: flex; flex-wrap: wrap; gap: 6px; }
+.rrow .c-times { grid-area: times; display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 12.5px; color: var(--ink-2); }
+.rrow .c-times .t-lbl { color: var(--ink-3); }
+.rrow .c-read, .rrow .c-next { white-space: nowrap; }
+.chip .lbl { color: var(--ink-3); font-size: 11.5px; }
+.chip.ok .lbl, .chip.adv .lbl { color: inherit; opacity: .7; }
 @media (min-width: 880px) {
   .rhead, .rrow {
-    grid-template-columns: minmax(0, 2fr) 120px 56px minmax(0, 1.6fr) minmax(0, 1.4fr) 150px;
-    grid-template-areas: "name npi st lic basis read"; align-items: center; padding-left: 8px; padding-right: 8px;
+    grid-template-columns: minmax(0, 1fr) 104px repeat(4, 92px) 108px 108px;
+    grid-template-areas: "name npi lic npis oig sam read next"; align-items: center; padding-right: 8px;
   }
   .rhead { display: grid; }
   .rhead span:nth-child(1) { grid-area: name; } .rhead span:nth-child(2) { grid-area: npi; }
-  .rhead span:nth-child(3) { grid-area: st; } .rhead span:nth-child(4) { grid-area: lic; }
-  .rhead span:nth-child(5) { grid-area: basis; } .rhead span:nth-child(6) { grid-area: read; text-align: right; }
-  .rrow .c-st, .rrow .c-lic { text-align: left; justify-content: flex-start; }
+  .rhead span:nth-child(3) { grid-area: lic; } .rhead span:nth-child(4) { grid-area: npis; }
+  .rhead span:nth-child(5) { grid-area: oig; } .rhead span:nth-child(6) { grid-area: sam; }
+  .rhead span:nth-child(7) { grid-area: read; } .rhead span:nth-child(8) { grid-area: next; }
+  .rrow .c-npi { text-align: left; }
+  .rrow .c-checks, .rrow .c-times { display: contents; }
+  .rrow .c-checks > :nth-child(1) { grid-area: lic; } .rrow .c-checks > :nth-child(2) { grid-area: npis; }
+  .rrow .c-checks > :nth-child(3) { grid-area: oig; } .rrow .c-checks > :nth-child(4) { grid-area: sam; }
+  .rrow .c-checks > .chip { justify-self: start; }
+  .rrow .c-read { grid-area: read; } .rrow .c-next { grid-area: next; }
+  .rrow .c-times .t-lbl, .chip .lbl { display: none; }
+  .rrow.marked::before { top: 50%; margin-top: -4px; }
 }
 .count-line { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
 
 /* Provider */
 .prov-head { display: grid; gap: 8px; margin: 0 0 40px; }
+.summary { font-size: 19px; line-height: 1.5; letter-spacing: -.005em; max-width: 64ch; margin: 0 0 32px; }
+.summary .mark { margin-right: 8px; }
 .prov-head .ids { font-family: var(--mono); font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .cards { display: grid; gap: 24px; grid-template-columns: 1fr; }
 @media (min-width: 980px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -342,10 +359,10 @@ const state = {
   sources: null, roster: null, coverage: null, deltas: null,
   errors: {},
   claims: new Map(),       // npi -> claims response, or an Error
-  names: new Map(),        // npi -> {first, last, credential}
+  people: new Map(),       // npi -> provider facts from the API (name, credential, primary taxonomy)
   latest: new Map(),       // npi -> Map(source_name|claim_type|jurisdiction -> newest receipt)
   sim: null,               // source name under a simulated outage, or null
-  rosterQuery: "", rosterState: "", changesKind: "", changesClaim: "",
+  rosterQuery: "", rosterState: "", rosterSort: "marked", changesKind: "", changesClaim: "",
   lastNpi: null,
 };
 
@@ -382,13 +399,15 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const claimName = (type, jur) => (CLAIM_LABEL[type] || words(type)) + (jur ? ` · ${jur}` : "");
 const shortId = (id) => (id ? String(id).slice(0, 8) : "none");
 function personName(npi) {
-  const n = state.names.get(npi);
+  const n = state.people.get(npi);
   if (!n) return null;
-  const nm = [n.first, n.last].filter(Boolean).map(titleCase).join(" ");
+  const middle = n.middle_name ? titleCase(n.middle_name) + (n.middle_name.length === 1 ? "." : "") : null;
+  const nm = [n.first_name && titleCase(n.first_name), middle, n.last_name && titleCase(n.last_name)].filter(Boolean).join(" ");
   return nm ? nm + (n.credential ? `, ${n.credential}` : "") : null;
 }
+const lastName = (npi) => state.people.get(npi)?.last_name || "~";
 function titleCase(s) {
-  return String(s).toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  return String(s).toLowerCase().replace(/(^|[\s'.-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
 }
 
 // ---------- status chips ----------
@@ -405,6 +424,37 @@ function chip(status) {
 // re-check is unknown.
 const simStatus = (normalized) => (normalized == null || normalized === "not_found" || normalized === "unknown") ? "unknown" : "stale";
 const simChip = (normalized) => `<span class="chip sim">${simStatus(normalized)} · simulated</span>`;
+
+// ---------- the four roster checks ----------
+const CHECKS = [["state_license", "License"], ["npi_status", "NPI"], ["oig_exclusion", "OIG"], ["sam_exclusion", "SAM"]];
+// What a check reads as now: the simulated status if its source is offline in the demo, "stale" once the receipt is
+// past its next check, otherwise the normalized status. null when there is no receipt.
+function checkStatus(c) {
+  if (!c) return null;
+  if (state.sim && c.source_name === state.sim) return simStatus(c.normalized_status);
+  if (c.stage === "stale") return "stale";
+  return c.normalized_status;
+}
+const exclusionFound = (c) => !!c && c.normalized_status != null && c.normalized_status !== "not_found" && c.normalized_status !== "unknown";
+// The mark: any license status other than active, or any exclusion found.
+function isMarked(m) {
+  const k = m.checks || {};
+  return checkStatus(k.state_license) !== "active" || exclusionFound(k.oig_exclusion) || exclusionFound(k.sam_exclusion);
+}
+function checkChip(type, label, c) {
+  const lbl = `<span class="lbl">${label}</span>`;
+  const st = checkStatus(c);
+  if (st == null) return `<span class="chip none" title="${esc(label)}: no current receipt">${lbl}no receipt</span>`;
+  const where = [c.jurisdiction, c.license_number].filter(Boolean).join(" ");
+  const title = `${label}${where ? " " + where : ""}: ${words(c.normalized_status)}${c.raw_status ? ` ("${c.raw_status}")` : ""} · ${c.source_name} · read ${fmtShort(c.retrieved_at)} UTC`;
+  let cls = "";
+  if (state.sim && c.source_name === state.sim) cls = "sim";
+  else if (st === "active" && !type.endsWith("_exclusion")) cls = "ok";
+  else if (st === "not_found") cls = "nf";
+  else if (st === "unknown" || st === "stale") cls = "unk";
+  else if (ADVERSE.has(st) || (type.endsWith("_exclusion") && exclusionFound(c))) cls = "adv";
+  return `<span class="chip ${cls}" title="${esc(title)}">${lbl}${esc(words(st))}${cls === "sim" ? " · simulated" : ""}</span>`;
+}
 
 // ---------- key ----------
 function loadKey() { try { return localStorage.getItem(KEY_STORE); } catch { return null; } }
@@ -457,6 +507,7 @@ async function loadAll() {
     showGate(results.find((r) => r.reason?.status === 401).reason);
     return;
   }
+  for (const m of state.roster?.members || []) if (m.provider) state.people.set(m.npi, m.provider);
   indexDeltas();
   render();
 }
@@ -471,9 +522,8 @@ async function loadDeltas() {
   }
   return rows;
 }
-// Names come from npi_status receipts (NPPES first and last name); the roster route carries none.
+// The newest receipt per source and claim for each NPI, for the outage simulation.
 function indexDeltas() {
-  state.names.clear();
   state.latest.clear();
   for (const r of state.deltas || []) {
     if (!state.latest.has(r.npi)) state.latest.set(r.npi, new Map());
@@ -481,12 +531,6 @@ function indexDeltas() {
     const m = state.latest.get(r.npi);
     const prev = m.get(k);
     if (!prev || r.retrieved_at > prev.retrieved_at || (r.retrieved_at === prev.retrieved_at && r.created_at > prev.created_at)) m.set(k, r);
-    if (r.claim_type === "npi_status" && r.claim) {
-      const cur = state.names.get(r.npi);
-      if (!cur || r.retrieved_at >= cur.at) {
-        state.names.set(r.npi, { first: r.claim.first_name, last: r.claim.last_name, credential: r.claim.credential, at: r.retrieved_at });
-      }
-    }
   }
 }
 // The newest receipt this NPI holds from the simulated source, if any.
@@ -656,29 +700,30 @@ function renderRoster() {
   const members = state.roster.members || [];
   const byState = {};
   for (const m of members) byState[m.state || "none"] = (byState[m.state || "none"] || 0) + 1;
-  const adverse = members.filter((m) => ADVERSE.has(m.license_status));
+  const marked = members.filter(isMarked);
   const states = Object.keys(byState).sort();
   if (!el.dataset.built) {
     el.dataset.built = "1";
     el.innerHTML = `
       <p class="eyebrow">Roster · ${esc(state.roster.roster_id)}</p>
       <h1>${esc(state.roster.name || "Roster")}</h1>
-      <p class="lede">Each physician's license in the roster state as the latest board file reads it, with how the NPI was matched and when anything was last read for them.</p>
+      <p class="lede">One row per physician: the license in the roster state, NPI status, and the OIG and SAM exclusion lists, each as its current receipt reads it, with when anything was last read and when the next check is due.</p>
       <div class="focal" id="roster-focal"></div>
-      ${errBox(state.errors.deltas, "names (from /v1/deltas)")}
-      <div class="controls">
-        <div class="field"><label for="r-q">Search by name or NPI</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Jhaver or 1033300850"></div>
+      <div class="controls three">
+        <div class="field"><label for="r-q">Search by name or NPI</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Thomas or 1063675940"></div>
         <div class="field"><label for="r-state">State</label><select id="r-state"><option value="">All states</option>${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}</select></div>
+        <div class="field"><label for="r-sort">Sort</label><select id="r-sort"><option value="marked">Marked first</option><option value="name">Name</option></select></div>
       </div>
       <p class="count-line" id="r-count" aria-live="polite"></p>
       <div class="rows" id="r-rows"></div>`;
     $("#r-q").value = state.rosterQuery;
     $("#r-state").value = state.rosterState;
+    $("#r-sort").value = state.rosterSort;
   }
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
-    <div class="side"><span class="mono ${adverse.length ? "shock" : ""}">${adverse.length}</span> ${adverse.length === 1 ? "license is" : "licenses are"} under board action (${esc([...new Set(adverse.map((m) => words(m.license_status)))].join(", ") || "none")}).</div>
+    <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> marked: a license that is not active, or an exclusion found.</div>
     ${state.sim ? `<div class="side"><span class="chip sim">simulation</span> ${simSummary()}</div>` : ""}`;
   renderRosterRows();
 }
@@ -686,29 +731,37 @@ function renderRosterRows() {
   const members = state.roster.members || [];
   const q = state.rosterQuery.trim().toLowerCase();
   const qDigits = q.replace(/\D/g, "");
+  const byName = (a, b) => lastName(a.npi).localeCompare(lastName(b.npi)) || a.npi.localeCompare(b.npi);
   const rows = members.filter((m) => {
     if (state.rosterState && m.state !== state.rosterState) return false;
     if (!q) return true;
     if (qDigits && /^\d+$/.test(q.replace(/\s/g, "")) && m.npi.includes(qDigits)) return true;
-    const n = state.names.get(m.npi);
-    const hay = n ? `${n.first || ""} ${n.last || ""} ${n.last || ""} ${n.first || ""}`.toLowerCase() : "";
+    const p = state.people.get(m.npi);
+    const hay = p ? `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`.toLowerCase() : "";
     return q.split(/\s+/).every((t) => hay.includes(t));
-  }).sort((a, b) => (state.names.get(a.npi)?.last || "~").localeCompare(state.names.get(b.npi)?.last || "~") || a.npi.localeCompare(b.npi));
-  $("#r-count").textContent = `Showing ${rows.length} of ${members.length}`;
-  $("#r-rows").innerHTML = `<div class="rhead" aria-hidden="true"><span>Name</span><span>NPI</span><span>State</span><span>License status</span><span>Match basis</span><span>Last read</span></div>` +
-    rows.map((m) => {
-      const sims = simReceiptsFor(m.npi);
-      const licSim = sims.find((r) => r.claim_type === "state_license" && r.jurisdiction === m.state);
-      const otherSims = sims.filter((r) => r !== licSim);
-      const lic = licSim ? simChip(m.license_status) + ` <span class="faint" style="font-size:12px">was ${esc(words(m.license_status))}</span>` : chip(m.license_status);
-      const extra = otherSims.map((r) => `<span class="chip sim">${esc(CLAIM_LABEL[r.claim_type] || words(r.claim_type))}: ${simStatus(r.normalized_status)}</span>`).join("");
-      return `<a class="rrow" href="#/provider/${esc(m.npi)}">
-        <span class="c-name">${esc(personName(m.npi) || "Name not on file")}</span>
+  }).map((m) => ({ m, marked: isMarked(m) }))
+    .sort((a, b) => (state.rosterSort === "marked" ? b.marked - a.marked : 0) || byName(a.m, b.m));
+  const nMarked = rows.filter((r) => r.marked).length;
+  $("#r-count").textContent = `Showing ${rows.length} of ${members.length}${state.rosterSort === "marked" && nMarked ? `, ${nMarked} marked at the top` : ""}`;
+  $("#r-rows").innerHTML = `<div class="rhead" aria-hidden="true"><span>Physician</span><span>NPI</span><span>License</span><span>NPI status</span><span>OIG</span><span>SAM</span><span>Last read</span><span>Next check</span></div>` +
+    rows.map(({ m, marked }) => {
+      const p = state.people.get(m.npi);
+      const lic = m.checks?.state_license;
+      const sub = [
+        `${m.state || "No state"} license${lic?.license_number ? " " + lic.license_number : ""}`,
+        p?.primary_taxonomy ? `taxonomy ${p.primary_taxonomy.description || p.primary_taxonomy.code}` : null,
+      ].filter(Boolean).join(" · ");
+      const due = m.next_check_due_at;
+      const late = due && Date.parse(due) < Date.now();
+      return `<a class="rrow${marked ? " marked" : ""}" href="#/provider/${esc(m.npi)}">
+        ${marked ? `<span class="sr">Marked.</span>` : ""}
+        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b><span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
-        <span class="c-st mono">${esc(m.state || "none")}</span>
-        <span class="c-lic">${lic}${extra}</span>
-        <span class="c-basis">${esc(words(m.match_basis) || "no match")}</span>
-        <span class="c-read mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span>
+        <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t])).join("")}</span>
+        <span class="c-times">
+          <span class="c-read"><span class="t-lbl">Last read </span><span class="mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span></span>
+          <span class="c-next"><span class="t-lbl">Next check </span><span class="mono">${due ? fmtShort(due) : "none"}</span>${late ? " · past due" : ""}</span>
+        </span>
       </a>`;
     }).join("");
 }
@@ -740,10 +793,14 @@ function renderProvider() {
   }
   const claims = data.claims || [];
   const member = (state.roster?.members || []).find((m) => m.npi === npi);
-  const npiRow = claims.find((c) => c.claim_type === "npi_status");
-  if (npiRow?.claim) state.names.set(npi, { first: npiRow.claim.first_name, last: npiRow.claim.last_name, credential: npiRow.claim.credential, at: npiRow.retrieved_at });
+  if (data.provider) state.people.set(npi, data.provider);
+  const tax = state.people.get(npi)?.primary_taxonomy;
   const licenses = claims.filter((c) => c.claim_type === "state_license").map((c) => `${c.jurisdiction || ""} ${c.license_number || ""}`.trim());
-  const adverse = claims.find((c) => ADVERSE.has(c.normalized_status));
+  const pick = (t) => claims.find((c) => c.claim_type === t);
+  const marked = isMarked({ checks: {
+    state_license: claims.find((c) => c.claim_type === "state_license" && c.jurisdiction === member?.state) || pick("state_license"),
+    oig_exclusion: pick("oig_exclusion"), sam_exclusion: pick("sam_exclusion"),
+  } });
   const byType = new Map(PROVIDER_CLAIMS.map((t) => [t, []]));
   for (const c of claims) {
     if (!byType.has(c.claim_type)) byType.set(c.claim_type, []);
@@ -753,13 +810,87 @@ function renderProvider() {
     <p class="eyebrow"><a href="#/roster">Roster</a> · Provider</p>
     <div class="prov-head">
       <h1>${esc(personName(npi) || "Name not on file")}</h1>
-      <div class="ids"><span>NPI ${esc(npi)}</span><span>Roster state ${esc(member?.state || "not on roster")}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
-      ${adverse ? `<p class="side" style="margin:8px 0 0"><span class="shock">Board action on file:</span> ${esc(claimName(adverse.claim_type, adverse.jurisdiction))} reads ${esc(words(adverse.normalized_status))}.</p>` : ""}
+      <div class="ids"><span>NPI ${esc(npi)}</span><span>Roster state ${esc(member?.state || "not on roster")}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}${tax ? `<span>Primary taxonomy ${esc(tax.description || tax.code)}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
     </div>
     ${jump}
+    <p class="summary">${marked ? `<span class="mark" aria-hidden="true"></span><span class="sr">Marked. </span>` : ""}${esc(providerSummary(claims, member))}</p>
     <div class="cards">${[...byType.entries()].map(([type, rows], i) => claimCard(type, rows, i === 0)).join("")}</div>
     <p class="note" style="margin-top:24px">Times are UTC. Every row is rights pending and not shippable until its source is accepted for sale.</p>`;
 }
+// Two or three plain sentences from the current receipts: every status and date below is read off a receipt.
+const STATE_NAMES = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware",
+  DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
+  MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon",
+  PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah",
+  VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+};
+function fmtDM(iso) {
+  const d = new Date(iso);
+  if (!iso || isNaN(d)) return null;
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${d.getUTCFullYear() === new Date().getUTCFullYear() ? "" : " " + d.getUTCFullYear()}`;
+}
+// "the board file dated 27 Oct", or the read date when the source gave no file date.
+const fileWhen = (c, file) => (fmtDM(c.source_published_at) ? `the ${file} dated ${fmtDM(c.source_published_at)}` : `the ${file} read ${fmtDM(c.retrieved_at)}`);
+const simmed = (c) => !!state.sim && c.source_name === state.sim;
+// Why a receipt no longer reads as it did: past its next check, or its source offline in the demo.
+function notCurrent(c) {
+  if (simmed(c)) return `${c.source_name} is offline in this simulation, so it reads ${simStatus(c.normalized_status)}`;
+  if (c.stage === "stale") return `its next check was due ${fmtDM(c.next_check_due_at)}, so it is stale`;
+  return null;
+}
+function licenseSentence(c) {
+  const head = `${STATE_NAMES[c.jurisdiction] || c.jurisdiction || "State"} license${c.license_number ? " " + c.license_number : ""}`;
+  const st = words(c.normalized_status);
+  const raw = c.raw_status && c.raw_status.toLowerCase() !== st ? ` ("${c.raw_status}")` : "";
+  const when = fileWhen(c, "board file");
+  const late = notCurrent(c);
+  if (late) return `${head} was ${st}${raw} in ${when}; ${late}.`;
+  if (c.normalized_status === "not_found") return `${head} is not found in ${when}; not found is not clear.`;
+  if (c.normalized_status === "unknown") return `${head} is unknown: ${when} did not settle it.`;
+  return `${head} is ${st}${raw} in ${when}.`;
+}
+function npiSentence(c) {
+  if (!c) return "No NPI receipt; not checked is not clear.";
+  const late = notCurrent(c);
+  if (late) return `NPI was ${words(c.normalized_status)} in ${fileWhen(c, "registry file")}; ${late}.`;
+  if (c.normalized_status === "not_found") return `NPI not found in ${fileWhen(c, "registry file")}.`;
+  return `NPI ${words(c.normalized_status)}.`;
+}
+function exclusionSentence(oig, sam) {
+  const lists = [["OIG", oig], ["SAM", sam]];
+  const clean = lists.filter(([, c]) => c && c.normalized_status === "not_found" && !notCurrent(c));
+  const parts = [];
+  if (clean.length) {
+    const dates = clean.map(([, c]) => fmtDM(c.source_published_at) || fmtDM(c.retrieved_at));
+    parts.push(dates.every((d) => d === dates[0])
+      ? `Not found in ${clean.map(([n]) => n).join(" or ")} as of ${dates[0]}; not found is not clear.`
+      : `Not found in ${clean.map(([n], i) => `${n} as of ${dates[i]}`).join(" or ")}; not found is not clear.`);
+  }
+  for (const [n, c] of lists) {
+    if (clean.some(([m]) => m === n)) continue;
+    if (!c) { parts.push(`No ${n} receipt; not checked is not clear.`); continue; }
+    const late = notCurrent(c);
+    const when = fileWhen(c, "file");
+    if (late) parts.push(`${n}: ${words(c.normalized_status)} in ${when}; ${late}.`);
+    else if (c.normalized_status === "unknown") parts.push(`${n} unknown: ${when} could not settle a match for this NPI.`);
+    else parts.push(`Listed in ${n} as ${words(c.normalized_status)} in ${when}.`);
+  }
+  return parts.join(" ");
+}
+function providerSummary(claims, member) {
+  const lic = claims.filter((c) => c.claim_type === "state_license")
+    .sort((a, b) => (b.jurisdiction === member?.state) - (a.jurisdiction === member?.state));
+  const pick = (t) => claims.find((c) => c.claim_type === t);
+  return [
+    lic.length ? lic.map(licenseSentence).join(" ") : "No state license receipt; not checked is not clear.",
+    npiSentence(pick("npi_status")),
+    exclusionSentence(pick("oig_exclusion"), pick("sam_exclusion")),
+  ].join(" ");
+}
+
 function claimCard(type, rows, focus) {
   const head = `<div class="card-top"><h2>${esc(CLAIM_LABEL[type] || words(type))}</h2>${rows.length ? `<span class="chip">${esc(rows[0].rights === "pending" ? "rights pending" : "rights " + rows[0].rights)} · ${rows.some((r) => r.shippable) ? "shippable" : "not shippable"}</span>` : ""}</div>`;
   if (!rows.length) {
@@ -962,7 +1093,7 @@ $("#forget").addEventListener("click", () => {
 function resetData() {
   Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null });
   state.claims.clear();
-  state.names.clear();
+  state.people.clear();
   state.latest.clear();
   delete $("#s-roster").dataset.built;
 }
@@ -996,6 +1127,7 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   if (e.target.id === "r-state") { state.rosterState = e.target.value; renderRosterRows(); }
+  if (e.target.id === "r-sort") { state.rosterSort = e.target.value; renderRosterRows(); }
   if (e.target.id === "c-kind") { state.changesKind = e.target.value; renderChanges(); }
   if (e.target.id === "c-claim") { state.changesClaim = e.target.value; renderChanges(); }
 });
