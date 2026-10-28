@@ -34,7 +34,7 @@ import argparse
 import csv
 import json
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,18 +46,7 @@ REST = None
 RPC_BATCH = 50
 EXCLUSIONS_BATCH = 12  # receipts_for_exclusions name-scans SAM once per NPI; 25 hit the API statement timeout
 
-PILOT_CLAIM_TYPES = [
-    "npi_status", "oig_exclusion", "sam_exclusion", "state_license", "state_board_action",
-    "medicare_optout", "pecos_enrollment",
-]
-PILOT_STATES = ["TX", "FL", "CA", "UT"]
-NOT_YET = {
-    "dea_registration": "licensed source (NTIS DEA file); contract not in place",
-    "board_certification": "licensed source (ABMS); contract not in place",
-    "medicaid_exclusion": "state Medicaid exclusion lists; not yet ingested",
-    "nurse_license": "Nursys; terms not confirmed",
-    "npdb": "authorized queriers only; never resold. The buyer queries it.",
-}
+PILOT_STATES = ["TX", "FL", "CA", "UT"]  # the pilot claims and the not-yet list live in SQL: roster_coverage()
 
 RECEIPT_COLUMNS = [
     "npi", "claim_type", "jurisdiction", "license_number", "normalized_status", "raw_status",
@@ -180,6 +169,19 @@ def fetch_artifacts(ids):
     return out
 
 
+def fetch_coverage(npis):
+    """Coverage buckets from roster_coverage() (migrations/2026-10-27_freshroot_api.sql), the one definition the
+    FreshRoot API also serves. Returns (coverage, not_yet): NPIs with a current receipt per pilot claim key, in
+    order, and the reason for each claim type not loaded at all."""
+    try:
+        rows = rest().request("POST", "rpc/roster_coverage", body={"p_npis": npis})[1]
+    except RuntimeError as e:
+        die(str(e))
+    coverage = {r["claim_key"]: r["covered"] for r in rows if r["covered"] is not None}
+    not_yet = {r["claim_key"]: r["reason"] for r in rows if r["covered"] is None}
+    return coverage, not_yet
+
+
 def latest_run_id(source_filter):
     """The latest completed run of the one source matching source_filter, or None."""
     srcs = rest_get("data_sources", {"select": "id", **source_filter})
@@ -289,20 +291,7 @@ def build(npis, origin, out_dir):
             "artifact_sha256": art.get("sha256", ""),
         })
 
-    # Coverage: for each NPI on the roster, which pilot claim types have a current receipt.
-    have = defaultdict(set)
-    for row in rows:
-        key = row["claim_type"] + (":" + row["jurisdiction"] if row["jurisdiction"] else "")
-        have[row["npi"]].add(key)
-
-    coverage = {}
-    for ct in PILOT_CLAIM_TYPES:
-        if ct in ("state_license", "state_board_action"):
-            for st in PILOT_STATES:
-                k = f"{ct}:{st}"
-                coverage[k] = sum(1 for n in npis if k in have[n])
-        else:
-            coverage[ct] = sum(1 for n in npis if ct in have[n])
+    coverage, not_yet = fetch_coverage(npis)
 
     status_counts = Counter((row["claim_type"], row["jurisdiction"], row["normalized_status"]) for row in rows)
     review = [row for row in rows if row["stage"] == "candidate"]
@@ -336,7 +325,7 @@ def build(npis, origin, out_dir):
         "stale": len(stale),
         "not_accepted_for_sale": len(unsellable),
         "synthetic_rows": len(synthetic),
-        "not_yet_covered": NOT_YET,
+        "not_yet_covered": not_yet,
         "receipts": rows,
     }
     (out_dir / "receipts.json").write_text(json.dumps(doc, indent=2, default=str))
@@ -363,7 +352,7 @@ def build(npis, origin, out_dir):
     for (ct, jur, st), c in sorted(status_counts.items()):
         lines.append(f"| {ct} | {jur or '—'} | {st} | {c} |")
     lines += ["", "## Not yet covered", ""]
-    for k, why in NOT_YET.items():
+    for k, why in not_yet.items():
         lines.append(f"- {k}: {why}")
     lines += [
         "",

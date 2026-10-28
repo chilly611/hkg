@@ -115,6 +115,9 @@
 - [ ] Raise board match rates: provider_addresses / provider_taxonomies cover ~572K of 9.4M NPIs (6%). Complete the NPPES address + taxonomy backfill (blocked: NPPES download site in maintenance since 2026-10-20) or enrich from the NPPES Registry API (returns taxonomy license numbers)
 - [ ] Review queue for name_state_taxonomy candidates (11,537 TX rows, 8,944 CA rows) before any receipt from them ships
 - [ ] TX/FL: add the CA name-conflict guard to `common.Matcher` (refuse a license_number_exact link when the NPI shares neither last nor first name with the board row)
+- [x] FreshRoot read API (2026-10-27): edge function `freshroot` (supabase/functions/freshroot) serves sources, rosters, provider claims with history, deltas and coverage behind X-FreshRoot-Key tenant keys (`scripts/freshroot_admin.py`). Coverage buckets live in SQL `roster_coverage()`; `build_credential_packet.py` calls it
+- [ ] Receipt writers never set supersedes_id (receipts_for_npi_status, receipts_for_exclusions, receipts_for_state_licenses; only receipts_for_license_reverify does), so every /v1/deltas row reads change_kind "new" until they link the receipt they replace
+- [ ] 14 first-packet NPIs hold two npi_status receipts from one run (b2abed25, same retrieved_at); v_current_receipts breaks the tie arbitrarily. Find the double write in --write-receipts and add a deterministic tiebreak (created_at) to the view
 - [x] Drug adverse events (FDA FAERS): 139,798 records loaded from openFDA API (through Q4 2024)
 - [x] LOINC lab codes: 7,498 records loaded via NLM Clinical Tables API prefix drilling (Apr 12, 2026). Targeting 108K.
 - [x] MeSH Terms: 15 seed descriptors loaded from NCBI E-Utilities (Apr 12, 2026)
