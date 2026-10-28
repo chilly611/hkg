@@ -60,6 +60,8 @@ nav.tabs a {
 }
 nav.tabs a:hover { color: var(--ink); background: var(--line-2); }
 nav.tabs a[aria-current="page"] { color: var(--ink); background: var(--tq-tint); font-weight: 500; }
+.rpick { margin-left: auto; width: auto; padding: 5px 10px; border-radius: 999px; font-size: 13px; }
+.rpick:not([hidden]) + .keybtn { margin-left: 0; }
 .keybtn { margin-left: auto; border: 1px solid var(--line); background: var(--white); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
 .keybtn:hover { color: var(--ink); border-color: var(--ink-3); }
 
@@ -98,6 +100,10 @@ h3 { font-weight: 500; font-size: 15px; margin: 0; }
 .chip.kind-status_change { background: var(--canary); color: var(--ink); border-color: transparent; }
 .chip.kind-new { color: var(--tq-text); border-color: var(--tq); }
 .chip.kind-field_change { border-color: var(--ink); color: var(--ink); }
+.chip.kind-relabel { border-style: dashed; color: var(--ink-3); }
+details.relabels { margin: 8px 0 40px; border-top: 1px solid var(--line); padding-top: 12px; }
+details.relabels summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+details.relabels .drow { color: var(--ink-2); }
 
 /* Fixed review chip */
 .fixed-chips { position: fixed; left: var(--gutter); bottom: 16px; z-index: 30; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100vw - 2 * var(--gutter)); }
@@ -356,6 +362,8 @@ details.evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font-fami
       <a href="#/changes" data-tab="changes">Changes</a>
       <a href="#/coverage" data-tab="coverage">Coverage</a>
     </nav>
+    <label class="sr" for="roster-pick">Roster</label>
+    <select id="roster-pick" class="rpick" hidden></select>
     <button class="keybtn" id="forget" type="button" hidden>Forget key</button>
   </div>
 </header>
@@ -391,7 +399,7 @@ details.evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font-fami
 "use strict";
 
 const API = "https://opbrzaegvfyjpyyrmdfe.supabase.co/functions/v1/freshroot";
-const ROSTER_ID = "first-packet-2026-10-26";
+const ROSTER_STORE = "freshroot.rosterId";
 const KEY_STORE = "freshroot.tenantKey";
 const SURFACES = ["sources", "roster", "provider", "changes", "coverage"];
 const PROVIDER_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"];
@@ -412,6 +420,8 @@ const BUCKETS = [
 const state = {
   key: null,
   route: { tab: "sources", npi: null },
+  rosters: null,           // the rosters this key reads, from /v1/rosters; the page reads one at a time
+  rosterId: null,
   sources: null, roster: null, coverage: null, deltas: null,
   errors: {},
   claims: new Map(),       // npi -> claims response, or an Error
@@ -490,6 +500,8 @@ const simChip = (normalized) => `<span class="chip sim">${simStatus(normalized)}
 
 // ---------- the four roster checks ----------
 const CHECKS = [["state_license", "License"], ["npi_status", "NPI"], ["oig_exclusion", "OIG"], ["sam_exclusion", "SAM"]];
+// The roster route carries six current checks per physician: the four columns plus Medicare opt-out and PECOS.
+const ALL_CHECKS = [...CHECKS, ["medicare_optout", "Opt-out"], ["pecos_enrollment", "PECOS"]];
 // What a check reads as now: the simulated status if its source is offline in the demo, "stale" once the receipt is
 // past its next check, otherwise the normalized status. null when there is no receipt.
 function checkStatus(c) {
@@ -536,11 +548,11 @@ function queuesOf(m) {
   const lic = k.state_license, npi = k.npi_status;
   const adverse = (!!lic && !NOT_ADVERSE.has(lic.normalized_status)) || exclusionFound(k.oig_exclusion) ||
     exclusionFound(k.sam_exclusion) || (!!npi && ["deactivated", "inactive"].includes(npi.normalized_status));
-  const present = CHECKS.map(([t]) => k[t]).filter(Boolean);
+  const present = ALL_CHECKS.map(([t]) => k[t]).filter(Boolean);
   const unresolved = present.some((c) => checkStatus(c) === "unknown" || c.stage === "candidate") ||
     (!!lic && (lic.normalized_status === "not_found" || lic.match_basis === "none"));
   const stale = present.some((c) => checkStatus(c) === "stale") ||
-    CHECKS.some(([t]) => !k[t] && (t !== "state_license" || licenseCovered(m.state)));
+    ALL_CHECKS.some(([t]) => !k[t] && (t !== "state_license" || licenseCovered(m.state)));
   return { adverse, unresolved, stale };
 }
 const isMarked = (m) => queuesOf(m).adverse;
@@ -597,12 +609,32 @@ function errBox(e, what) {
 }
 
 // ---------- data ----------
+// The key's rosters come first: the page opens the one picked last in this browser if the key still reads it,
+// otherwise the first, and every roster read, lookup and add goes to that roster.
 async function loadAll() {
   state.errors = {};
+  try {
+    state.rosters = (await api("/v1/rosters")).rosters || [];
+  } catch (e) {
+    if (e.status === 401) return showGate(e);
+    state.rosters = [];
+    state.errors.rosters = e;
+  }
+  let saved = null;
+  try { saved = localStorage.getItem(ROSTER_STORE); } catch { /* no storage */ }
+  state.rosterId = (state.rosters.find((r) => r.id === state.rosterId) || state.rosters.find((r) => r.id === saved) || state.rosters[0])?.id || null;
+  renderPicker();
+  if (!state.rosterId) {
+    const none = new ApiError(state.errors.rosters?.status || 403, state.errors.rosters?.message || "this key reads no roster");
+    Object.assign(state.errors, { roster: none, coverage: none, deltas: none });
+    state.sources = await api("/v1/sources").then((b) => b.sources || []).catch((e) => { state.errors.sources = e; return null; });
+    render();
+    return;
+  }
   const jobs = {
     sources: api("/v1/sources").then((b) => b.sources || []),
-    roster: api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}`),
-    coverage: api("/v1/coverage", { roster_id: ROSTER_ID }),
+    roster: api(`/v1/rosters/${encodeURIComponent(state.rosterId)}`),
+    coverage: api("/v1/coverage", { roster_id: state.rosterId }),
     deltas: loadDeltas(),
   };
   const keys = Object.keys(jobs);
@@ -623,7 +655,7 @@ async function loadDeltas() {
   const rows = [];
   let cursor = null;
   for (let page = 0; page < 50; page++) {
-    const b = await api("/v1/deltas", { roster_id: ROSTER_ID, limit: 5000, cursor });
+    const b = await api("/v1/deltas", { roster_id: state.rosterId, limit: 5000, cursor });
     rows.push(...(b.deltas || []));
     if (!b.has_more || !b.next_cursor) break;
     cursor = b.next_cursor;
@@ -674,6 +706,7 @@ function showGate(err) {
   for (const s of SURFACES) $(`#s-${s}`).hidden = true;
   $("#s-key").hidden = false;
   $("#forget").hidden = true;
+  $("#roster-pick").hidden = true;
   document.querySelectorAll("nav.tabs a").forEach((a) => a.removeAttribute("aria-current"));
   const box = $("#key-err");
   if (err) {
@@ -704,6 +737,11 @@ function render() {
   renderChips();
 }
 
+function renderPicker() {
+  const pick = $("#roster-pick"), rs = state.rosters || [];
+  pick.hidden = rs.length < 2;
+  pick.innerHTML = rs.map((r) => `<option value="${esc(r.id)}" ${r.id === state.rosterId ? "selected" : ""}>${esc(r.name || r.id)} (${esc(r.count)})</option>`).join("");
+}
 function renderChips() {
   $("#review-chip").textContent = `Internal review · ${rightsWord()} · ${shippableCount()} shippable`;
   const sc = $("#sim-chip");
@@ -727,20 +765,22 @@ function renderSources() {
   // Two different things, both shown: a seeded source we have never read ("not yet loaded"), and a scheduled source
   // whose next read is past due ("missed a read on schedule"). Only the second is a miss, so only it is counted red.
   const notLoaded = src.filter((s) => s.freshness === "never");
-  const missed = src.filter((s) => s.freshness === "due" || s.freshness === "stale");
+  const missed = src.filter((s) => ["due", "stale"].includes(scheduleState(s)));
+  const pollLate = src.filter((s) => s.freshness === "poll late");
   const read = src.filter((s) => s.last_run_at);
   const withRows = new Set((state.deltas || []).map((r) => r.source_name));
   const cleared = src.filter((s) => s.accepted_for_sale).length;
-  // The poller writes a run only when it finds a release, so the latest detection on record is the last poll we can show.
-  const lastPoll = src.map((s) => s.detected_at).filter(Boolean).sort().pop();
+  // last_polled_at is stamped on every check; before a source has one, its latest detection is the last poll on record.
+  const lastPoll = src.map((s) => s.last_polled_at || s.detected_at).filter(Boolean).sort().pop();
   el.innerHTML = `
     <p class="eyebrow">Sources</p>
     <h1>How old is each source?</h1>
-    <p class="summary-line mono">sources read ${read.length} of ${src.length} · receipts ${state.deltas ? state.deltas.length.toLocaleString("en-US") : "loading"} · rights cleared ${cleared} of ${src.length} · <span title="Latest detection on record. The poller writes a run only when it finds a new release.">last poll ${lastPoll ? `${pad2(new Date(lastPoll).getUTCHours())}:${pad2(new Date(lastPoll).getUTCMinutes())} UTC` : "none on record"}</span></p>
+    <p class="summary-line mono">sources read ${read.length} of ${src.length} · receipts ${state.deltas ? state.deltas.length.toLocaleString("en-US") : "loading"} · rights cleared ${cleared} of ${src.length} · <span title="Latest poller check on record (last_polled_at; the latest detection for a source not yet stamped).">last poll ${lastPoll ? `${pad2(new Date(lastPoll).getUTCHours())}:${pad2(new Date(lastPoll).getUTCMinutes())} UTC` : "none on record"}</span></p>
     <p class="lede">Two clocks per source. Read on schedule: the bar is the time since our last completed read against that source's own schedule; the tick is when the next read is due and the end of the bar is twice that, where a source turns stale. Publisher file age: today minus the date on the publisher's file, which can be old even when we read it on time.</p>
     <div class="focal">
       <div class="fig">${read.length}<small>of ${src.length} sources read</small></div>
       <div class="side"><span class="mono ${missed.length ? "shock" : ""}">${missed.length}</span> ${missed.length === 1 ? "source" : "sources"} missed a read on schedule${missed.length ? ": " + missed.map((s) => esc(s.name)).join(", ") : ""}.</div>
+      ${pollLate.length ? `<div class="side"><span class="mono">${pollLate.length}</span> poll late: ${pollLate.map((s) => `${esc(s.name)} (checked ${fmtAge(ageHoursFrom(s.last_polled_at))} ago)`).join(", ")}. Our poller has not checked for over 90 minutes; not a missed read.</div>` : ""}
       <div class="side"><span class="mono">${notLoaded.length}</span> not yet loaded${notLoaded.length ? ": " + notLoaded.map((s) => esc(s.name)).join(", ") : ""}. Seeded, never read; not a missed read.</div>
     </div>
     <form class="demo" id="sim-form">
@@ -770,6 +810,14 @@ function simSummary() {
   if (!rows) return `Simulating ${esc(state.sim)} offline. It holds no receipts for this roster, so nothing on Roster or Provider changes.`;
   return `Simulating ${esc(state.sim)} offline: ${plural(rows, "receipt")} across ${plural(npis, "physician")} now read as stale or unknown on Roster and Provider.`;
 }
+// The read-on-schedule state, worked out from age and cadence when the view reports "poll late" (which it puts ahead
+// of due and stale): a late poll is our poller's miss, never the publisher's, and must not hide a missed read.
+function scheduleState(s) {
+  if (s.freshness !== "poll late") return s.freshness;
+  const cad = s.cadence_hours == null ? null : Number(s.cadence_hours), age = Number(s.age_hours);
+  if (!cad) return "unscheduled";
+  return age <= cad ? "fresh" : age <= 2 * cad ? "due" : "stale";
+}
 function sourceRow(s) {
   const cad = s.cadence_hours == null ? null : Number(s.cadence_hours);
   const age = s.age_hours == null ? null : Number(s.age_hours);
@@ -782,15 +830,17 @@ function sourceRow(s) {
       <div class="scale"><span>read ${fmtAge(age)} ago, no schedule</span></div>`;
   } else {
     const pct = Math.max(1.5, Math.min(100, (age / (2 * cad)) * 100));
-    bar = `<div class="track" role="img" aria-label="Read on schedule: read ${fmtAge(age)} ago; due every ${fmtAge(cad)}; ${esc(s.freshness)}">
-        <div class="fill ${esc(s.freshness)}" style="width:${pct.toFixed(1)}%"></div><div class="tick" style="left:50%"></div></div>
+    bar = `<div class="track" role="img" aria-label="Read on schedule: read ${fmtAge(age)} ago; due every ${fmtAge(cad)}; ${esc(scheduleState(s))}">
+        <div class="fill ${esc(scheduleState(s))}" style="width:${pct.toFixed(1)}%"></div><div class="tick" style="left:50%"></div></div>
       <div class="scale"><span>${fmtAge(age)} old</span><span class="mid" style="left:50%">due at ${fmtAge(cad)}</span><span class="end">stale at ${fmtAge(2 * cad)}</span></div>`;
   }
-  const fresh = s.freshness === "fresh" ? `<span class="chip ok">fresh</span>`
-    : s.freshness === "never" ? `<span class="chip unk">not yet loaded</span>`
-    : s.freshness === "due" ? `<span class="chip adv">missed a read · due</span>`
-    : s.freshness === "stale" ? `<span class="chip adv">missed a read · stale</span>`
-    : `<span class="chip">${esc(words(s.freshness))}</span>`;
+  const sched = scheduleState(s);
+  const fresh = (sched === "fresh" ? `<span class="chip ok">fresh</span>`
+    : sched === "never" ? `<span class="chip unk">not yet loaded</span>`
+    : sched === "due" ? `<span class="chip adv">missed a read · due</span>`
+    : sched === "stale" ? `<span class="chip adv">missed a read · stale</span>`
+    : `<span class="chip">${esc(words(sched))}</span>`) +
+    (s.freshness === "poll late" ? ` <span class="chip unk" title="Our poller has not checked this source for over 90 minutes. Not a publisher miss.">poll late · checked ${fmtAge(ageHoursFrom(s.last_polled_at))} ago</span>` : "");
   const sim = state.sim === s.name ? ` <span class="chip sim">offline · simulated</span>` : "";
   return `<div class="src">
     <div>
@@ -860,9 +910,17 @@ function renderRoster() {
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
+    <div class="side">${sixLine(members)}</div>
     <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> adverse: a license read as not active, an exclusion found, or an NPI deactivated or inactive. Unknown is never adverse.</div>
     ${state.sim ? `<div class="side"><span class="chip sim">simulation</span> ${simSummary()}</div>` : ""}`;
   renderRosterRows();
+}
+// How many physicians carry a current result for each of the six checks, from the roster route as returned.
+function sixLine(members) {
+  const all = members.filter((m) => ALL_CHECKS.every(([t]) => m.checks?.[t])).length;
+  const per = ALL_CHECKS.map(([t, label]) => `${label} ${members.filter((m) => m.checks?.[t]).length}`).join(" · ");
+  const n = members.reduce((a, m) => a + ALL_CHECKS.filter(([t]) => m.checks?.[t]).length, 0);
+  return `<span class="mono">${all}</span> of <span class="mono">${members.length}</span> carry all six current results (<span class="mono">${n.toLocaleString("en-US")}</span> receipts): <span class="mono">${esc(per)}</span>`;
 }
 function renderRosterRows() {
   const members = state.roster.members || [];
@@ -935,7 +993,7 @@ async function runLookup() {
   Object.assign(L, { busy: true, error: null });
   renderLookup();
   try {
-    const r = await api("/v1/lookup", { q, state: st, roster_id: ROSTER_ID });
+    const r = await api("/v1/lookup", { q, state: st, roster_id: state.rosterId });
     if (seq === L.seq) Object.assign(L, { result: r, busy: false });
   } catch (e) {
     if (seq === L.seq) Object.assign(L, { error: e, errWhat: "candidates", result: null, busy: false });
@@ -979,17 +1037,17 @@ async function addCandidate(npi) {
   Object.assign(L, { adding: npi, error: null });
   renderLookup();
   try {
-    const r = await api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}/npis`, {}, { npis: [npi] });
+    const r = await api(`/v1/rosters/${encodeURIComponent(state.rosterId)}/npis`, {}, { npis: [npi] });
     if (r.not_added?.length && !r.results?.length) throw new ApiError(422, r.not_added[0].reason);
     state.justAdded = { ...r, npi };
-    state.roster = await api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}`);
+    state.roster = await api(`/v1/rosters/${encodeURIComponent(state.rosterId)}`);
     for (const m of state.roster.members || []) if (m.provider) state.people.set(m.npi, m.provider);
     delete $("#s-roster").dataset.built;
     state.claims.delete(npi);
     Object.assign(L, { adding: null, result: null, q: "", st: "" });
     location.hash = `#/provider/${npi}`;
     // Coverage and the deltas feed now include the new receipts; refresh them behind the page.
-    Promise.allSettled([api("/v1/coverage", { roster_id: ROSTER_ID }), loadDeltas()]).then(([c, d]) => {
+    Promise.allSettled([api("/v1/coverage", { roster_id: state.rosterId }), loadDeltas()]).then(([c, d]) => {
       if (c.status === "fulfilled") state.coverage = c.value;
       if (d.status === "fulfilled") { state.deltas = d.value; indexDeltas(); }
       renderChips();
@@ -1320,6 +1378,8 @@ function renderChanges() {
     return;
   }
   const all = state.deltas;
+  // Relabels are listed apart: our normalized status moved while the source's record did not.
+  const relabels = all.filter((r) => r.change_kind === "relabel");
   const kinds = {};
   for (const r of all) kinds[r.change_kind] = (kinds[r.change_kind] || 0) + 1;
   const moved = kinds.status_change || 0;
@@ -1331,7 +1391,8 @@ function renderChanges() {
     ? `No status moved between these runs.`
     : `<span class="shock">${moved}</span> ${moved === 1 ? "status moved" : "statuses moved"} between these runs.`;
   const fieldLine = fields ? ` ${plural(fields, "field change")}: same status, a different license number, issue date, expiration date or restrictions.` : "";
-  const rows = all.filter((r) => (!state.changesKind || r.change_kind === state.changesKind) && (!state.changesClaim || r.claim_type === state.changesClaim));
+  const rows = all.filter((r) => r.change_kind !== "relabel" && (!state.changesKind || r.change_kind === state.changesKind) && (!state.changesClaim || r.claim_type === state.changesClaim));
+  const relShown = relabels.filter((r) => (!state.changesKind || state.changesKind === "relabel") && (!state.changesClaim || r.claim_type === state.changesClaim));
   const groups = new Map();
   for (const r of rows) {
     const d = r.created_at.slice(0, 10);
@@ -1342,12 +1403,12 @@ function renderChanges() {
     <p class="eyebrow">Changes · /v1/deltas</p>
     <h1>What moved</h1>
     <p class="verdict">${verdict}${esc(fieldLine)}</p>
-    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs; a field change when the status is the same but the license number, issue date, expiration date or restrictions (where the row carries them) differ; a refresh when none of those differ.</p>
+    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces, the normalized status differs, and the raw status or a canonical claim field differs too; a relabel when only our normalized label moved; a field change when the status is the same but the license number, issue date, expiration date or restrictions (where the row carries them) differ; a refresh when none of those differ.</p>
     <div class="controls">
       <div class="field"><label for="c-kind">Change kind</label><select id="c-kind"><option value="">All kinds</option>${Object.keys(kinds).sort().map((k) => `<option value="${esc(k)}" ${k === state.changesKind ? "selected" : ""}>${esc(words(k))} (${kinds[k]})</option>`).join("")}</select></div>
       <div class="field"><label for="c-claim">Claim</label><select id="c-claim"><option value="">All claims</option>${claimTypes.map((c) => `<option value="${esc(c)}" ${c === state.changesClaim ? "selected" : ""}>${esc(CLAIM_LABEL[c] || words(c))}</option>`).join("")}</select></div>
     </div>
-    <p class="count-line">Grouped by the day each receipt was written (UTC). Showing ${rows.length} of ${all.length}.</p>
+    <p class="count-line">Grouped by the day each receipt was written (UTC). Showing ${rows.length} of ${all.length - relabels.length}${relabels.length ? `; ${plural(relabels.length, "relabel")} listed apart below` : ""}.</p>
     ${[...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([d, rs]) => {
       const k = {};
       for (const r of rs) k[r.change_kind] = (k[r.change_kind] || 0) + 1;
@@ -1355,7 +1416,12 @@ function renderChanges() {
         <div class="day-head"><h2>${fmtDay(d + "T00:00:00Z")}</h2><span class="note mono">${Object.entries(k).sort().map(([a, n]) => `${n} ${esc(words(a))}`).join(" · ")}</span></div>
         ${rs.map(deltaRow).join("")}
       </div>`;
-    }).join("") || `<p class="note">No rows match these filters.</p>`}`;
+    }).join("") || `<p class="note">No rows match these filters.</p>`}
+    ${relShown.length ? `<details class="relabels">
+      <summary>Relabels · ${relShown.length}</summary>
+      <p class="note">The normalized status moved but the source's record did not: the raw status is the same, or both receipts were read from the same file (same sha256) by different loader versions. These are changes in our labels, not in the source, so they are not counted as status changes.</p>
+      ${relShown.map(deltaRow).join("")}
+    </details>` : ""}`;
 }
 function deltaRow(r) {
   const fc = r.change_kind === "field_change" && (r.field_changes || []).length;
@@ -1425,7 +1491,8 @@ $("#forget").addEventListener("click", () => {
   showGate();
 });
 function resetData() {
-  Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null, justAdded: null });
+  Object.assign(state, { rosters: null, rosterId: null, sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null, justAdded: null, lastNpi: null });
+  Object.assign(state, { rosterQuery: "", rosterState: "", rosterQueue: "" });
   Object.assign(state.lookup, { q: "", st: "", busy: false, result: null, error: null, adding: null });
   state.claims.clear();
   state.evidence.clear();
@@ -1462,7 +1529,20 @@ document.addEventListener("click", (e) => {
   const copy = t.closest?.("[data-copy]");
   if (copy) {
     const done = (ok) => { copy.textContent = ok ? "Copied" : "Copy failed: select the ID by hand"; setTimeout(() => { copy.textContent = "Copy receipt ID"; }, 1600); };
-    (navigator.clipboard ? navigator.clipboard.writeText(copy.dataset.copy) : Promise.reject()).then(() => done(true), () => done(false));
+    // Where the async clipboard is refused (an embedded view, an older browser), copy from a selected field instead.
+    const fallback = () => {
+      const ta = Object.assign(document.createElement("textarea"), { value: copy.dataset.copy });
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { /* not supported */ }
+      ta.remove();
+      return ok;
+    };
+    (navigator.clipboard ? navigator.clipboard.writeText(copy.dataset.copy) : Promise.reject())
+      .then(() => done(true), () => done(fallback()));
     return;
   }
   const cand = t.closest?.("[data-add]");
@@ -1499,6 +1579,16 @@ document.addEventListener("input", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
+  if (e.target.id === "roster-pick") {
+    try { localStorage.setItem(ROSTER_STORE, e.target.value); } catch { /* no storage */ }
+    const rosters = state.rosters;
+    resetData();
+    state.rosters = rosters;
+    state.rosterId = e.target.value;
+    location.hash = "#/roster";
+    render();
+    loadAll();
+  }
   if (e.target.id === "r-state") { state.rosterState = e.target.value; renderRosterRows(); }
   if (e.target.id === "r-sort") { state.rosterSort = e.target.value; renderRosterRows(); }
   if (e.target.id === "c-kind") { state.changesKind = e.target.value; renderChanges(); }
@@ -1506,8 +1596,20 @@ document.addEventListener("change", (e) => {
 });
 
 // ---------- boot ----------
+// A key may arrive in the link as #k=<key>. It is stored exactly as the field stores it, then dropped from the URL
+// with replaceState, which rewrites the current history entry, so it is not in the address bar, a screenshot or
+// Back. A fragment never reaches a server. The field stays for everyone else.
+{
+  const m = location.hash.match(/^#k=([^&]*)/);
+  if (m) {
+    let k = "";
+    try { k = decodeURIComponent(m[1]).trim(); } catch { /* malformed: fall through to the field */ }
+    history.replaceState(null, "", location.pathname + location.search);
+    if (k) { saveKey(k); state.key = k; }
+  }
+}
 state.route = parseRoute();
-state.key = loadKey();
+state.key = state.key || loadKey();
 render();
 if (state.key) loadAll();
 </script>

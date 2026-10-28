@@ -3,14 +3,15 @@
 //   GET  /v1/sources                         v_source_status, each row with lookup_url (the source row's official
 //                                            public lookup, when it carries one) and, for a catalog source, the
 //                                            catalog's release_date and file_period
-//   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the four
-//                                            current checks (state license, NPI, OIG, SAM)
+//   GET  /v1/rosters                         the rosters this key reads: id, name, member count
+//   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the six
+//                                            current checks (state license, NPI, OIG, SAM, Medicare opt-out, PECOS)
 //   GET  /v1/providers/{npi}/claims          provider facts and current receipts, each with its history; a license
 //                                            receipt that matched more than one license lists them all
 //   GET  /v1/receipts/{id}/source            the evidence behind one receipt: the source rows it was built from as
 //                                            stored (when retained), the artifact hash, capture time and writer
 //   GET  /v1/deltas?roster_id=&cursor=&limit= receipts created after the cursor, with change_kind (new,
-//                                            status_change, field_change, refresh)
+//                                            status_change, relabel, field_change, refresh)
 //   GET  /v1/coverage?roster_id=             roster_coverage(): covered today, in 30 days, under license, never
 //   GET  /v1/lookup?q=&state=&roster_id=     up to 20 individual providers by NPI or name, each marked on_roster.
 //                                            Reads only; it writes nothing.
@@ -142,11 +143,24 @@ function decodeCursor(cursor: string): { createdAt: string; id: string } {
   }
 }
 
-// PostgREST takes these lists in the query string and caps a response at 1000 rows; chunks of 100 keep each URL
-// short and each response well under the cap (a roster NPI has a handful of current receipts).
-const IN_CHUNK = 100;
+// PostgREST returns at most 1,000 rows per request (the project's max-rows) and says nothing when it stops there.
+// Every table or view read that could reach that goes through restAll, which pages with an explicit limit and
+// offset in a stable order until a short page. The RPCs are not capped: freshroot_roster, freshroot_claims and
+// freshroot_deltas each return one jsonb value, and freshroot_coverage returns 18 rows.
+const PAGE_ROWS = 1000;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
+async function restAll(path: string, params: Record<string, string>, order = "id"): Promise<Row[]> {
+  const out: Row[] = [];
+  for (let offset = 0; ; offset += PAGE_ROWS) {
+    const page: Row[] = await rest("GET", path, { ...params, order, limit: String(PAGE_ROWS), offset: String(offset) });
+    out.push(...page);
+    if (page.length < PAGE_ROWS) return out;
+  }
+}
+
+// IN lists go in the query string; chunks of 100 keep each URL short.
+const IN_CHUNK = 100;
 async function inChunks(values: string[], fetchChunk: (inList: string) => Promise<Row[]>): Promise<Row[]> {
   const chunks: string[][] = [];
   for (let i = 0; i < values.length; i += IN_CHUNK) chunks.push(values.slice(i, i + IN_CHUNK));
@@ -191,7 +205,7 @@ function toFacts(p: Row): ProviderFacts {
 }
 
 async function providerFacts(npis: string[]): Promise<Map<string, ProviderFacts>> {
-  const rows = await inChunks(npis, (inList) => rest("GET", "providers", { select: FACTS_SELECT, ...PRACTICE_ONLY, npi: inList }));
+  const rows = await inChunks(npis, (inList) => restAll("providers", { select: FACTS_SELECT, ...PRACTICE_ONLY, npi: inList }, "npi"));
   return new Map(rows.map((p) => [p.npi, toFacts(p)]));
 }
 
@@ -205,10 +219,10 @@ function licenseBoard(f: ProviderFacts, licenses: Map<string, string>): string |
 
 const quoteList = (ids: string[]) => `in.(${ids.map((r) => `"${r.replace(/"/g, "")}"`).join(",")})`;
 
-// The four checks a roster row shows, each the current receipt (v_current_receipts) read through
+// The six checks a roster row carries, each the current receipt (v_current_receipts) read through
 // v_freshroot_receipts so stage carries "stale" and rights match every other route. The license is the one in
-// the roster state, latest retrieved first, as freshroot_roster picks it.
-const CHECK_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"] as const;
+// the roster state, latest retrieved first, as freshroot_roster picks it. 200 NPIs hold about 1,200 of these.
+const CHECK_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion", "medicare_optout", "pecos_enrollment"] as const;
 const CHECK_FIELDS = "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,stage,source_name," +
   "source_published_at,retrieved_at,next_check_due_at,created_at,match_basis,match_confidence,limitations," +
   "accepted_for_sale,shippable,rights";
@@ -217,9 +231,9 @@ async function rosterChecks(members: { npi: string; state: string | null }[], in
   const npis = members.map((m) => m.npi);
   const claimFilter = `in.(${CHECK_CLAIMS.join(",")})`;
   const current = await inChunks(npis, (inList) =>
-    rest("GET", "v_current_receipts", { select: "id", npi: inList, claim_type: claimFilter }));
+    restAll("v_current_receipts", { select: "id", npi: inList, claim_type: claimFilter }));
   const rows = await inChunks(current.map((r) => r.id), (inList) =>
-    rest("GET", "v_freshroot_receipts", { select: CHECK_FIELDS, id: inList }));
+    restAll("v_freshroot_receipts", { select: CHECK_FIELDS, id: inList }));
   const stateOf = new Map(members.map((m) => [m.npi, m.state]));
   const out = new Map<string, Record<string, Record<string, unknown> | null>>();
   for (const npi of npis) out.set(npi, Object.fromEntries(CHECK_CLAIMS.map((c) => [c, null])));
@@ -273,9 +287,9 @@ async function licenseRuns(): Promise<Map<string, string>> {
 
 async function notYetWritten(npis: string[], claimType: string, runId: string): Promise<string[]> {
   const done = new Set((await inChunks(npis, (inList) =>
-    rest("GET", "credential_receipts", {
+    restAll("credential_receipts", {
       select: "npi", claim_type: `eq.${claimType}`, run_id: `eq.${runId}`, origin: `eq.${ORIGIN}`, npi: inList,
-    }))).map((r) => r.npi));
+    }, "npi"))).map((r) => r.npi));
   return npis.filter((n) => !done.has(n));
 }
 
@@ -466,7 +480,7 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
 
   const { ids, failed } = await writeReceipts(members, licenses);
   const [writtenRows, checks, countAfter] = await Promise.all([
-    inChunks(ids, (inList) => rest("GET", "v_freshroot_receipts", { select: CHECK_FIELDS, id: inList })),
+    inChunks(ids, (inList) => restAll("v_freshroot_receipts", { select: CHECK_FIELDS, id: inList })),
     rosterChecks(members, includeUnaccepted),
     rosterCount(rosterId),
   ]);
@@ -494,6 +508,18 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
   };
 }
 
+// ---------- rosters ----------
+
+// The rosters this key reads, in the tenant's own order (the page opens the first), each with its member count.
+async function listRosters(tenant: Tenant) {
+  if (!tenant.roster_ids.length) return { rosters: [] };
+  const rows = await restAll("rosters", { select: "id,name,created_at", id: quoteList(tenant.roster_ids) });
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ids = tenant.roster_ids.filter((id) => byId.has(id));
+  const counts = await Promise.all(ids.map(rosterCount));
+  return { rosters: ids.map((id, i) => ({ ...byId.get(id), count: counts[i] })) };
+}
+
 // ---------- sources ----------
 
 // A data.cms.gov catalog source names two dates in its run notes: the catalog's "modified" date (the release) and
@@ -502,9 +528,9 @@ const CATALOG_NOTE = /from 'modified' of '[^']*? : (\d{4}-\d{2}(?:-\d{2})?)'/;
 
 async function sources() {
   const [status, rows] = await Promise.all([
-    rest("GET", "v_source_status", { select: "*" }),
+    restAll("v_source_status", { select: "*" }, "name"),
     // select=* so lookup_url is read once the column exists, and null before it does.
-    rest("GET", "data_sources", { select: "*", claim_types: "not.is.null" }),
+    restAll("data_sources", { select: "*", claim_types: "not.is.null" }),
   ]);
   const byName = new Map((rows as Row[]).map((s) => [s.name, s]));
   const catalog = await Promise.all((rows as Row[])
@@ -594,10 +620,10 @@ async function addMatchedLicenses(claims: Row[]) {
   const multi = claims.filter((c) => c.claim_type === "state_license" && Number(c.claim?.licenses_matched) > 1);
   if (!multi.length) return;
   const lineage = new Map((await inChunks(multi.map((c) => c.receipt_id), (inList) =>
-    rest("GET", "credential_receipts", { select: "id,lineage", id: inList }))).map((r) => [r.id, r.lineage ?? []]));
+    restAll("credential_receipts", { select: "id,lineage", id: inList }))).map((r) => [r.id, r.lineage ?? []]));
   const ids = [...new Set([...lineage.values()].flat().filter((e: Row) => e.table === "state_license_lookups").map((e: Row) => e.id))];
   const rows = new Map((await inChunks(ids as string[], (inList) =>
-    rest("GET", "state_license_lookups", { select: LICENSE_ROW_FIELDS, id: inList }))).map((l) => [l.id, l]));
+    restAll("state_license_lookups", { select: LICENSE_ROW_FIELDS, id: inList }))).map((l) => [l.id, l]));
   const rank = (a: Row, b: Row) =>
     Number(b.match_confidence) - Number(a.match_confidence) ||
     Number(b.normalized_status === "active") - Number(a.normalized_status === "active") ||
@@ -616,9 +642,17 @@ async function addMatchedLicenses(claims: Row[]) {
 
 // ---------- deltas ----------
 
-// field_change: the normalized status is unchanged but a canonical claim field differs from the superseded row.
-// Compared: license_number (the receipt column), and issue_date, expiration_date and restrictions in claim;
-// restrictions only when either row carries the key. Everything else unchanged stays refresh.
+// freshroot_deltas compares normalized_status only (new, status_change, refresh). Here each superseding row is
+// compared with the row it replaces, on raw_status and the canonical claim fields:
+//   status_change  the normalized status differs and so does the source's own record: raw_status or a canonical
+//                  claim field
+//   relabel        the normalized status differs but the source record does not: raw_status is the same, or both
+//                  rows were read from the same artifact (same sha256) by different writer versions, so only our
+//                  rendering changed (the CMS loaders' v1 -> v2 relabel to opted_out and enrolled)
+//   field_change   the normalized status is the same but a canonical claim field differs
+//   refresh        neither differs
+// Canonical claim fields: license_number (the receipt column), and issue_date, expiration_date and restrictions in
+// claim; restrictions only when either row carries the key.
 const FIELD_CHANGE_FIELDS: [string, (r: Row) => unknown, (r: Row) => boolean][] = [
   ["license_number", (r) => r.license_number, () => true],
   ["issue_date", (r) => r.claim?.issue_date, () => true],
@@ -627,21 +661,40 @@ const FIELD_CHANGE_FIELDS: [string, (r: Row) => unknown, (r: Row) => boolean][] 
 ];
 const norm = (v: unknown) => (v === undefined || v === null || v === "" ? null : JSON.stringify(v));
 
-async function markFieldChanges(rows: Row[]) {
-  const refresh = rows.filter((r) => r.change_kind === "refresh" && r.supersedes_id);
-  if (!refresh.length) return;
-  const prior = new Map((await inChunks([...new Set(refresh.map((r) => r.supersedes_id as string))], (inList) =>
-    rest("GET", "credential_receipts", { select: "id,license_number,claim", id: inList }))).map((p) => [p.id, p]));
-  for (const r of refresh) {
-    const p = prior.get(r.supersedes_id);
+const RECEIPT_COMPARE = "id,license_number,claim,raw_status,parser_version,source_artifacts(sha256)";
+
+async function classifyChanges(rows: Row[]) {
+  const superseding = rows.filter((r) => (r.change_kind === "refresh" || r.change_kind === "status_change") && r.supersedes_id);
+  if (!superseding.length) return;
+  const moved = superseding.filter((r) => r.change_kind === "status_change");
+  const [prior, cur] = await Promise.all([
+    inChunks([...new Set(superseding.map((r) => r.supersedes_id as string))], (inList) =>
+      restAll("credential_receipts", { select: RECEIPT_COMPARE, id: inList })),
+    inChunks(moved.map((r) => r.receipt_id as string), (inList) =>
+      restAll("credential_receipts", { select: "id,parser_version", id: inList })),
+  ]);
+  const priorById = new Map(prior.map((p) => [p.id, p]));
+  const writerOf = new Map(cur.map((c) => [c.id, c.parser_version]));
+  for (const r of superseding) {
+    const p = priorById.get(r.supersedes_id);
     if (!p) continue;
     const changes = FIELD_CHANGE_FIELDS
       .filter(([, get, present]) => (present(r) || present(p)) && norm(get(r)) !== norm(get(p)))
       .map(([field, get]) => ({ field, old: get(p) ?? null, new: get(r) ?? null }));
-    if (!changes.length) continue;
-    r.change_kind = "field_change";
-    r.field_changes = changes;
+    if (changes.length) {
+      r.field_changes = changes;
+      r.prior_receipt_id = r.supersedes_id;
+    }
+    if (r.change_kind === "refresh") {
+      if (changes.length) r.change_kind = "field_change";
+      continue;
+    }
+    const sameFile = !!r.artifact_sha256 && p.source_artifacts?.sha256 === r.artifact_sha256;
+    const rawSame = (p.raw_status ?? null) === (r.raw_status ?? null) ||
+      (sameFile && !!p.parser_version && p.parser_version !== writerOf.get(r.receipt_id));
+    r.prior_raw_status = p.raw_status ?? null;
     r.prior_receipt_id = r.supersedes_id;
+    if (rawSame && !changes.length) r.change_kind = "relabel";
   }
 }
 
@@ -667,6 +720,8 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
   if (path === "/v1/lookup") return lookup(url, tenant);
 
   if (path === "/v1/sources") return sources();
+
+  if (path === "/v1/rosters") return listRosters(tenant);
 
   if ((m = path.match(/^\/v1\/receipts\/([^/]+)\/source$/))) return receiptSource(url, tenant, decodeURIComponent(m[1]));
 
@@ -713,7 +768,7 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
       p_include_unaccepted: includeUnaccepted,
     });
     const page = rows.slice(0, limit);
-    await markFieldChanges(page);
+    await classifyChanges(page);
     const last = page[page.length - 1];
     return {
       roster_id: rosterId,
