@@ -198,6 +198,29 @@ input:hover, select:hover { border-color: var(--ink-3); }
 }
 .count-line { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
 
+/* Look up a physician */
+.lookup { border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 0 0 40px; }
+.lookup h2 { font-size: 16px; margin: 0 0 4px; }
+.lookup .note { margin: 0 0 16px; }
+.lk-form { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 0 12px; }
+@media (min-width: 720px) { .lk-form { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) auto; align-items: end; } }
+.cand {
+  display: grid; width: 100%; text-align: left; gap: 6px 12px; padding: 12px 8px; border: 0; border-top: 1px solid var(--line);
+  background: none; cursor: pointer; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name npi" "act act";
+}
+.cand:hover { background: var(--line-2); }
+.cand:disabled { opacity: .5; cursor: wait; }
+.cand .c-name { grid-area: name; min-width: 0; }
+.cand .c-name b { font-weight: 500; }
+.cand .c-sub { display: block; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; }
+.cand .c-npi { grid-area: npi; font-size: 13px; color: var(--ink-2); }
+.cand .c-act { grid-area: act; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cand .add { font-size: 13px; font-weight: 500; color: var(--tq-text); text-decoration: underline; text-underline-offset: 3px; }
+@media (min-width: 880px) {
+  .cand { grid-template-columns: minmax(0, 1fr) 104px auto; grid-template-areas: "name npi act"; align-items: center; }
+  .cand .c-act { justify-content: flex-end; }
+}
+
 /* Provider */
 .prov-head { display: grid; gap: 8px; margin: 0 0 40px; }
 .summary { font-size: 19px; line-height: 1.5; letter-spacing: -.005em; max-width: 64ch; margin: 0 0 32px; }
@@ -255,6 +278,8 @@ details.hist[open] summary::before { content: "-"; }
 details.claimf { margin-top: 12px; font-size: 13px; }
 details.claimf summary { cursor: pointer; color: var(--ink-2); }
 details.claimf pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; background: var(--line-2); padding: 12px; border-radius: 10px; }
+.plainline { font-size: 15px; margin: -16px 0 32px; max-width: 64ch; }
+.note.added { margin: 0 0 16px; }
 .npi-jump { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; max-width: 420px; margin: 0 0 24px; }
 
 /* Changes */
@@ -364,6 +389,8 @@ const state = {
   sim: null,               // source name under a simulated outage, or null
   rosterQuery: "", rosterState: "", rosterSort: "marked", changesKind: "", changesClaim: "",
   lastNpi: null,
+  lookup: { q: "", st: "", seq: 0, busy: false, result: null, error: null, errWhat: "", adding: null, timer: 0 },
+  justAdded: null,         // the roster-add response for the NPI just added, shown once on its Provider page
 };
 
 // ---------- small helpers ----------
@@ -436,14 +463,38 @@ function checkStatus(c) {
   return c.normalized_status;
 }
 const exclusionFound = (c) => !!c && c.normalized_status != null && c.normalized_status !== "not_found" && c.normalized_status !== "unknown";
-// The mark: any license status other than active, or any exclusion found.
+// States with a board file we read (license_states from the API). A member's roster state is its board: one of its
+// NPPES license states that we cover, never its practice address. Without one there is no license receipt to show,
+// and the page says so instead of guessing.
+const licenseCovered = (st) => !!st && (state.roster?.license_states || []).includes(st);
+const coveredList = () => (state.roster?.license_states || []).join(", ");
+// The states shown for a physician: NPPES practice states when known, otherwise its NPPES license states.
+const shownStates = (p) => (p?.practice_states?.length ? p.practice_states : p?.license_states || []);
+const stateWhere = (p) => p?.practice_states?.length ? `practice ${p.practice_states.join(", ")}`
+  : p?.license_states?.length ? `licensed ${p.license_states.join(", ")}` : "no state on file";
+function noBoardLine(p) {
+  const shown = shownStates(p);
+  if (!shown.length) return "State license: NPPES lists no license state or practice state for this physician, so no board was checked.";
+  if (!shown.some(licenseCovered)) return `State license: not covered yet for ${shown.map((s) => STATE_NAMES[s] || s).join(", ")}.`;
+  return `State license: NPPES records no license in ${coveredList()} for this physician, so no board was checked.`;
+}
+const noBoardShort = (p) => {
+  const shown = shownStates(p);
+  return shown.length && !shown.some(licenseCovered) ? "license not covered yet" : `no ${coveredList()} license on file`;
+};
+// The mark: any license status other than active, or any exclusion found. A state we do not cover has no license
+// status at all, so it is not marked for that.
 function isMarked(m) {
   const k = m.checks || {};
-  return checkStatus(k.state_license) !== "active" || exclusionFound(k.oig_exclusion) || exclusionFound(k.sam_exclusion);
+  const licenseBad = (k.state_license || licenseCovered(m.state)) && checkStatus(k.state_license) !== "active";
+  return !!licenseBad || exclusionFound(k.oig_exclusion) || exclusionFound(k.sam_exclusion);
 }
-function checkChip(type, label, c) {
+function checkChip(type, label, c, member) {
   const lbl = `<span class="lbl">${label}</span>`;
   const st = checkStatus(c);
+  if (st == null && type === "state_license" && !licenseCovered(member.state)) {
+    return `<span class="chip none" title="${esc(noBoardLine(state.people.get(member.npi)))}">${lbl}no board</span>`;
+  }
   if (st == null) return `<span class="chip none" title="${esc(label)}: no current receipt">${lbl}no receipt</span>`;
   const where = [c.jurisdiction, c.license_number].filter(Boolean).join(" ");
   const title = `${label}${where ? " " + where : ""}: ${words(c.normalized_status)}${c.raw_status ? ` ("${c.raw_status}")` : ""} · ${c.source_name} · read ${fmtShort(c.retrieved_at)} UTC`;
@@ -464,20 +515,22 @@ function dropKey() { try { localStorage.removeItem(KEY_STORE); } catch { /* noth
 class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
-async function api(path, params = {}) {
+async function api(path, params = {}, body) {
   const u = new URL(API + path);
   u.searchParams.set("include_unaccepted", "true");
   for (const [k, v] of Object.entries(params)) if (v != null && v !== "") u.searchParams.set(k, v);
+  const init = { headers: { "X-FreshRoot-Key": state.key }, cache: "no-store" };
+  if (body !== undefined) Object.assign(init, { method: "POST", body: JSON.stringify(body), headers: { ...init.headers, "Content-Type": "application/json" } });
   let resp;
   try {
-    resp = await fetch(u, { headers: { "X-FreshRoot-Key": state.key }, cache: "no-store" });
+    resp = await fetch(u, init);
   } catch {
     throw new ApiError(0, "network error, or the request was blocked by CORS (this page must run on health.theknowledgegardens.com or localhost:5173)");
   }
-  let body = null;
-  try { body = await resp.json(); } catch { /* empty or non-JSON body */ }
-  if (!resp.ok) throw new ApiError(resp.status, body?.error || resp.statusText || "request failed");
-  return body;
+  let out = null;
+  try { out = await resp.json(); } catch { /* empty or non-JSON body */ }
+  if (!resp.ok) throw new ApiError(resp.status, out?.error || resp.statusText || "request failed");
+  return out;
 }
 const isAuth = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
 function errBox(e, what) {
@@ -616,7 +669,10 @@ function renderSources() {
     return;
   }
   const src = state.sources;
-  const missed = src.filter((s) => s.freshness === "never" || s.freshness === "due" || s.freshness === "stale");
+  // Two different things, both shown: a seeded source we have never read ("not yet loaded"), and a scheduled source
+  // whose next read is past due ("missed a read on schedule"). Only the second is a miss, so only it is counted red.
+  const notLoaded = src.filter((s) => s.freshness === "never");
+  const missed = src.filter((s) => s.freshness === "due" || s.freshness === "stale");
   const read = src.filter((s) => s.last_run_at);
   const withRows = new Set((state.deltas || []).map((r) => r.source_name));
   el.innerHTML = `
@@ -625,7 +681,8 @@ function renderSources() {
     <p class="lede">Each bar is the time since the last completed read, against that source's own schedule. The tick is when the next read is due; the end of the bar is twice that, where a source turns stale.</p>
     <div class="focal">
       <div class="fig">${read.length}<small>of ${src.length} sources read</small></div>
-      <div class="side"><span class="mono ${missed.length ? "shock" : ""}">${missed.length}</span> ${missed.length === 1 ? "source is" : "sources are"} missing a read on schedule${missed.length ? ": " + missed.map((s) => esc(s.name)).join(", ") : ""}.</div>
+      <div class="side"><span class="mono ${missed.length ? "shock" : ""}">${missed.length}</span> ${missed.length === 1 ? "source" : "sources"} missed a read on schedule${missed.length ? ": " + missed.map((s) => esc(s.name)).join(", ") : ""}.</div>
+      <div class="side"><span class="mono">${notLoaded.length}</span> not yet loaded${notLoaded.length ? ": " + notLoaded.map((s) => esc(s.name)).join(", ") : ""}. Seeded, never read; not a missed read.</div>
     </div>
     <form class="demo" id="sim-form">
       <div class="demo-head">
@@ -659,7 +716,7 @@ function sourceRow(s) {
   const age = s.age_hours == null ? null : Number(s.age_hours);
   let bar;
   if (!s.last_run_at) {
-    bar = `<div class="track never">never read: no completed run on record</div>`;
+    bar = `<div class="track never">not yet loaded: no completed run on record</div>`;
   } else if (!cad) {
     bar = `<div class="track" role="img" aria-label="Read ${fmtAge(age)} ago; no schedule"><div class="fill unscheduled" style="width:100%"></div></div>
       <div class="scale"><span>read ${fmtAge(age)} ago, no schedule</span></div>`;
@@ -670,9 +727,9 @@ function sourceRow(s) {
       <div class="scale"><span>${fmtAge(age)} old</span><span class="mid" style="left:50%">due at ${fmtAge(cad)}</span><span class="end">stale at ${fmtAge(2 * cad)}</span></div>`;
   }
   const fresh = s.freshness === "fresh" ? `<span class="chip ok">fresh</span>`
-    : s.freshness === "never" ? `<span class="chip unk">never read</span>`
-    : s.freshness === "due" ? `<span class="chip adv">due</span>`
-    : s.freshness === "stale" ? `<span class="chip adv">stale</span>`
+    : s.freshness === "never" ? `<span class="chip unk">not yet loaded</span>`
+    : s.freshness === "due" ? `<span class="chip adv">missed a read · due</span>`
+    : s.freshness === "stale" ? `<span class="chip adv">missed a read · stale</span>`
     : `<span class="chip">${esc(words(s.freshness))}</span>`;
   const sim = state.sim === s.name ? ` <span class="chip sim">offline · simulated</span>` : "";
   return `<div class="src">
@@ -709,6 +766,17 @@ function renderRoster() {
       <h1>${esc(state.roster.name || "Roster")}</h1>
       <p class="lede">One row per physician: the license in the roster state, NPI status, and the OIG and SAM exclusion lists, each as its current receipt reads it, with when anything was last read and when the next check is due.</p>
       <div class="focal" id="roster-focal"></div>
+      <section class="lookup" aria-labelledby="lk-h">
+        <h2 id="lk-h">Look up a physician</h2>
+        <p class="note">Type a name (Last, First or First Last) or a 10-digit NPI. Pick one to add it to this roster and write its receipts, then its Provider page opens. A license is read only in a state where NPPES records the physician's license and whose board file we hold (${esc(coveredList())}), and only by an NPI or license-number link or by name with state and physician taxonomy; never by name alone.</p>
+        <form class="lk-form" id="lk-form" autocomplete="off">
+          <div class="field"><label for="lk-q">Name or NPI</label><input id="lk-q" type="search" spellcheck="false" placeholder="e.g. Garcia, Maria or 1063675940"></div>
+          <div class="field"><label for="lk-st">State (optional)</label><input id="lk-st" type="text" maxlength="2" spellcheck="false" placeholder="TX"></div>
+          <button class="btn" type="submit">Look up</button>
+        </form>
+        <p class="count-line" id="lk-status" aria-live="polite"></p>
+        <div id="lk-results"></div>
+      </section>
       <div class="controls three">
         <div class="field"><label for="r-q">Search by name or NPI</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Thomas or 1063675940"></div>
         <div class="field"><label for="r-state">State</label><select id="r-state"><option value="">All states</option>${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}</select></div>
@@ -719,7 +787,10 @@ function renderRoster() {
     $("#r-q").value = state.rosterQuery;
     $("#r-state").value = state.rosterState;
     $("#r-sort").value = state.rosterSort;
+    $("#lk-q").value = state.lookup.q;
+    $("#lk-st").value = state.lookup.st;
   }
+  renderLookup();
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
@@ -733,7 +804,7 @@ function renderRosterRows() {
   const qDigits = q.replace(/\D/g, "");
   const byName = (a, b) => lastName(a.npi).localeCompare(lastName(b.npi)) || a.npi.localeCompare(b.npi);
   const rows = members.filter((m) => {
-    if (state.rosterState && m.state !== state.rosterState) return false;
+    if (state.rosterState && (m.state || "none") !== state.rosterState) return false;
     if (!q) return true;
     if (qDigits && /^\d+$/.test(q.replace(/\s/g, "")) && m.npi.includes(qDigits)) return true;
     const p = state.people.get(m.npi);
@@ -748,7 +819,8 @@ function renderRosterRows() {
       const p = state.people.get(m.npi);
       const lic = m.checks?.state_license;
       const sub = [
-        `${m.state || "No state"} license${lic?.license_number ? " " + lic.license_number : ""}`,
+        lic || licenseCovered(m.state) ? `${m.state || "No state"} license${lic?.license_number ? " " + lic.license_number : ""}`
+          : `${shownStates(p).join(", ") || "No state on file"} · ${noBoardShort(p)}`,
         p?.primary_taxonomy ? `taxonomy ${p.primary_taxonomy.description || p.primary_taxonomy.code}` : null,
       ].filter(Boolean).join(" · ");
       const due = m.next_check_due_at;
@@ -757,13 +829,96 @@ function renderRosterRows() {
         ${marked ? `<span class="sr">Marked.</span>` : ""}
         <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b><span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
-        <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t])).join("")}</span>
+        <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m)).join("")}</span>
         <span class="c-times">
           <span class="c-read"><span class="t-lbl">Last read </span><span class="mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span></span>
           <span class="c-next"><span class="t-lbl">Next check </span><span class="mono">${due ? fmtShort(due) : "none"}</span>${late ? " · past due" : ""}</span>
         </span>
       </a>`;
     }).join("");
+}
+
+// Look up a physician: /v1/lookup reads candidates; picking one posts it to /v1/rosters/{id}/npis, which adds it and
+// writes its receipts (the only path that writes them), then its Provider page opens.
+function lookupReady(q) {
+  const digits = q.replace(/[\s-]/g, "");
+  return /^\d+$/.test(digits) ? digits.length === 10 : q.replace(/[^A-Za-z]/g, "").length >= 2;
+}
+async function runLookup() {
+  const L = state.lookup;
+  const q = L.q.trim(), st = L.st.trim().toUpperCase();
+  const seq = ++L.seq;
+  if (!lookupReady(q) || (st && !/^[A-Z]{2}$/.test(st))) {
+    Object.assign(L, { busy: false, result: null, error: null });
+    renderLookup();
+    return;
+  }
+  Object.assign(L, { busy: true, error: null });
+  renderLookup();
+  try {
+    const r = await api("/v1/lookup", { q, state: st, roster_id: ROSTER_ID });
+    if (seq === L.seq) Object.assign(L, { result: r, busy: false });
+  } catch (e) {
+    if (seq === L.seq) Object.assign(L, { error: e, errWhat: "candidates", result: null, busy: false });
+  }
+  if (seq === L.seq && state.route.tab === "roster") renderLookup();
+}
+function renderLookup() {
+  const L = state.lookup;
+  const status = $("#lk-status"), box = $("#lk-results");
+  if (!status) return;
+  if (L.adding) {
+    status.textContent = `Adding NPI ${L.adding} and writing its receipts. This reads the latest NPI, OIG, SAM and board files; it can take a few seconds.`;
+  } else if (L.busy) {
+    status.textContent = "Looking up";
+  } else if (L.error) {
+    status.textContent = "";
+  } else if (L.result) {
+    const r = L.result;
+    status.textContent = r.count
+      ? `${plural(r.count, "candidate")}${r.more ? ", more match: add a first name or a state to narrow it" : ""} · ${r.took_ms} ms`
+      : `No individual provider matches${r.state ? ` in ${r.state}` : ""}.`;
+  } else {
+    status.textContent = L.q.trim() ? "Keep typing: at least 2 letters of a last name, or all 10 digits of an NPI." : "";
+  }
+  box.innerHTML = L.error ? errBox(L.error, L.errWhat)
+    : (L.result?.candidates || []).map((c) => {
+      const nm = [c.first_name, c.middle_name, c.last_name].filter(Boolean).map(titleCase).join(" ") || "Name not on file";
+      const lic = c.license_board ? `${c.license_board} license read on add` : noBoardShort(c);
+      return `<button type="button" class="cand" data-add="${esc(c.npi)}" ${L.adding ? "disabled" : ""}>
+        <span class="c-name"><b>${esc(nm)}${c.credential ? `, ${esc(c.credential)}` : ""}</b>
+          <span class="c-sub">${esc([stateWhere(c), c.primary_taxonomy ? `taxonomy ${c.primary_taxonomy.description || c.primary_taxonomy.code}` : null, `NPI ${words(c.npi_status || "status not on file")}`].filter(Boolean).join(" · "))}</span></span>
+        <span class="c-npi mono">${esc(c.npi)}</span>
+        <span class="c-act">${c.on_roster ? `<span class="chip ok">on roster · open</span>` : `<span class="chip">${esc(lic)}</span><span class="add">Add</span>`}</span>
+      </button>`;
+    }).join("");
+}
+async function addCandidate(npi) {
+  const L = state.lookup;
+  const cand = (L.result?.candidates || []).find((c) => c.npi === npi);
+  if (cand?.on_roster) { location.hash = `#/provider/${npi}`; return; }
+  Object.assign(L, { adding: npi, error: null });
+  renderLookup();
+  try {
+    const r = await api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}/npis`, {}, { npis: [npi] });
+    if (r.not_added?.length && !r.results?.length) throw new ApiError(422, r.not_added[0].reason);
+    state.justAdded = { ...r, npi };
+    state.roster = await api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}`);
+    for (const m of state.roster.members || []) if (m.provider) state.people.set(m.npi, m.provider);
+    delete $("#s-roster").dataset.built;
+    state.claims.delete(npi);
+    Object.assign(L, { adding: null, result: null, q: "", st: "" });
+    location.hash = `#/provider/${npi}`;
+    // Coverage and the deltas feed now include the new receipts; refresh them behind the page.
+    Promise.allSettled([api("/v1/coverage", { roster_id: ROSTER_ID }), loadDeltas()]).then(([c, d]) => {
+      if (c.status === "fulfilled") state.coverage = c.value;
+      if (d.status === "fulfilled") { state.deltas = d.value; indexDeltas(); }
+      renderChips();
+    });
+  } catch (e) {
+    Object.assign(L, { adding: null, error: e, errWhat: "the roster add" });
+    renderLookup();
+  }
 }
 
 // 3. Provider
@@ -794,14 +949,19 @@ function renderProvider() {
   const claims = data.claims || [];
   const member = (state.roster?.members || []).find((m) => m.npi === npi);
   if (data.provider) state.people.set(npi, data.provider);
-  const tax = state.people.get(npi)?.primary_taxonomy;
+  const person = state.people.get(npi);
+  const tax = person?.primary_taxonomy;
   const licenses = claims.filter((c) => c.claim_type === "state_license").map((c) => `${c.jurisdiction || ""} ${c.license_number || ""}`.trim());
   const pick = (t) => claims.find((c) => c.claim_type === t);
-  const marked = isMarked({ checks: {
+  // Outside the states we cover there is no license card: the three federal cards and one plain line.
+  const showLicense = licenses.length > 0 || licenseCovered(member?.state);
+  const marked = isMarked({ state: member?.state, checks: {
     state_license: claims.find((c) => c.claim_type === "state_license" && c.jurisdiction === member?.state) || pick("state_license"),
     oig_exclusion: pick("oig_exclusion"), sam_exclusion: pick("sam_exclusion"),
   } });
-  const byType = new Map(PROVIDER_CLAIMS.map((t) => [t, []]));
+  const added = state.justAdded?.npi === npi ? state.justAdded : null;
+  state.justAdded = null;
+  const byType = new Map(PROVIDER_CLAIMS.filter((t) => t !== "state_license" || showLicense).map((t) => [t, []]));
   for (const c of claims) {
     if (!byType.has(c.claim_type)) byType.set(c.claim_type, []);
     byType.get(c.claim_type).push(c);
@@ -810,10 +970,12 @@ function renderProvider() {
     <p class="eyebrow"><a href="#/roster">Roster</a> · Provider</p>
     <div class="prov-head">
       <h1>${esc(personName(npi) || "Name not on file")}</h1>
-      <div class="ids"><span>NPI ${esc(npi)}</span><span>Roster state ${esc(member?.state || "not on roster")}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}${tax ? `<span>Primary taxonomy ${esc(tax.description || tax.code)}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
+      <div class="ids"><span>NPI ${esc(npi)}</span><span>${member ? `License board ${esc(member.state || "none")}` : "Not on roster"}</span><span>${esc(stateWhere(person))}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}${tax ? `<span>Primary taxonomy ${esc(tax.description || tax.code)}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
     </div>
     ${jump}
-    <p class="summary">${marked ? `<span class="mark" aria-hidden="true"></span><span class="sr">Marked. </span>` : ""}${esc(providerSummary(claims, member))}</p>
+    ${added ? addedNote(added) : ""}
+    <p class="summary">${marked ? `<span class="mark" aria-hidden="true"></span><span class="sr">Marked. </span>` : ""}${esc(providerSummary(claims, member, showLicense))}</p>
+    ${showLicense ? "" : `<p class="plainline">${esc(noBoardLine(person))}</p>`}
     <div class="cards">${[...byType.entries()].map(([type, rows], i) => claimCard(type, rows, i === 0)).join("")}</div>
     <p class="note" style="margin-top:24px">Times are UTC. Every row is rights pending and not shippable until its source is accepted for sale.</p>`;
 }
@@ -880,15 +1042,21 @@ function exclusionSentence(oig, sam) {
   }
   return parts.join(" ");
 }
-function providerSummary(claims, member) {
+function providerSummary(claims, member, showLicense = true) {
   const lic = claims.filter((c) => c.claim_type === "state_license")
     .sort((a, b) => (b.jurisdiction === member?.state) - (a.jurisdiction === member?.state));
   const pick = (t) => claims.find((c) => c.claim_type === t);
   return [
-    lic.length ? lic.map(licenseSentence).join(" ") : "No state license receipt; not checked is not clear.",
+    !showLicense ? null : lic.length ? lic.map(licenseSentence).join(" ") : "No state license receipt; not checked is not clear.",
     npiSentence(pick("npi_status")),
     exclusionSentence(pick("oig_exclusion"), pick("sam_exclusion")),
-  ].join(" ");
+  ].filter(Boolean).join(" ");
+}
+// Shown once, on the Provider page the lookup opened: what the roster-add did.
+function addedNote(a) {
+  const r = (a.results || []).find((x) => x.npi === a.npi);
+  const n = r ? r.receipts_written.length : 0;
+  return `<p class="note added">${r?.added ? "Added to the roster just now" : "Already on the roster"}: roster <span class="mono">${esc(a.roster_count_before)}</span> → <span class="mono">${esc(a.roster_count_after)}</span>, ${plural(n, "receipt")} written.${(a.write_failures || []).length ? ` Not written: ${esc(a.write_failures.join("; "))}. Adding again retries only what is missing.` : ""}</p>`;
 }
 
 function claimCard(type, rows, focus) {
@@ -1091,7 +1259,8 @@ $("#forget").addEventListener("click", () => {
   showGate();
 });
 function resetData() {
-  Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null });
+  Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null, justAdded: null });
+  Object.assign(state.lookup, { q: "", st: "", busy: false, result: null, error: null, adding: null });
   state.claims.clear();
   state.people.clear();
   state.latest.clear();
@@ -1102,6 +1271,10 @@ document.addEventListener("submit", (e) => {
     e.preventDefault();
     state.sim = $("#sim-source").value || null;
     render();
+  } else if (e.target.id === "lk-form") {
+    e.preventDefault();
+    clearTimeout(state.lookup.timer);
+    runLookup();
   } else if (e.target.id === "npi-jump") {
     e.preventDefault();
     const v = $("#npi-in").value.replace(/\D/g, "");
@@ -1111,6 +1284,8 @@ document.addEventListener("submit", (e) => {
 document.addEventListener("click", (e) => {
   const t = e.target;
   if (t.id === "end-sim" || t.id === "sim-end-inline") { state.sim = null; render(); return; }
+  const cand = t.closest?.("[data-add]");
+  if (cand && !cand.disabled) { addCandidate(cand.dataset.add); return; }
   const goto = t.closest?.("[data-goto]");
   if (goto) {
     const target = document.getElementById(`rcpt-${goto.dataset.goto}`);
@@ -1124,6 +1299,11 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "r-q") { state.rosterQuery = e.target.value; renderRosterRows(); }
+  if (e.target.id === "lk-q" || e.target.id === "lk-st") {
+    state.lookup[e.target.id === "lk-q" ? "q" : "st"] = e.target.value;
+    clearTimeout(state.lookup.timer);
+    state.lookup.timer = setTimeout(runLookup, 350);
+  }
 });
 document.addEventListener("change", (e) => {
   if (e.target.id === "r-state") { state.rosterState = e.target.value; renderRosterRows(); }
