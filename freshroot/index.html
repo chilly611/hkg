@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreshRoot evaluator</title>
+<meta name="description" content="FreshRoot evaluator: internal review of provider credential receipts, source freshness, changes and coverage.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<style>
+/* Knowledge Gardens 2026: white ground, ink, turquoise, one orange-red shock per surface, canary highlight. */
+:root {
+  --ink: #0E1416;
+  --ink-2: rgba(14, 20, 22, .66);
+  --ink-3: rgba(14, 20, 22, .44);
+  --line: rgba(14, 20, 22, .14);
+  --line-2: rgba(14, 20, 22, .07);
+  --tq: #14C4C4;
+  --tq-text: #067F82;
+  --tq-tint: rgba(20, 196, 196, .12);
+  --shock: #FF4A1C;
+  --canary: #FFE11A;
+  --white: #FFFFFF;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --gutter: 16px;
+  --max: 1120px;
+}
+@media (min-width: 720px) { :root { --gutter: 32px; } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--white); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  overflow-x: hidden; padding-bottom: 120px;
+}
+a { color: var(--tq-text); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--tq-text); outline-offset: 2px; border-radius: 4px; }
+.mono { font-family: var(--mono); font-feature-settings: "tnum" 1; }
+.muted { color: var(--ink-2); }
+.faint { color: var(--ink-3); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+[hidden] { display: none !important; }
+
+/* Top bar */
+.bar { position: relative; z-index: 20; background: var(--white); border-bottom: 1px solid var(--line); }
+@media (min-width: 720px) { .bar { position: sticky; top: 0; } }
+.bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+.brand { font-weight: 600; letter-spacing: -.01em; font-size: 17px; text-decoration: none; color: var(--ink); white-space: nowrap; }
+.brand span { font-weight: 400; color: var(--ink-3); margin-left: 6px; }
+nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto; }
+nav.tabs a {
+  text-decoration: none; color: var(--ink-2); padding: 6px 12px; border-radius: 999px;
+  font-size: 14px; line-height: 20px; white-space: nowrap;
+}
+nav.tabs a:hover { color: var(--ink); background: var(--line-2); }
+nav.tabs a[aria-current="page"] { color: var(--ink); background: var(--tq-tint); font-weight: 500; }
+.keybtn { margin-left: auto; border: 1px solid var(--line); background: var(--white); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
+.keybtn:hover { color: var(--ink); border-color: var(--ink-3); }
+
+/* Bands */
+section.surface { padding: 56px 0 24px; }
+@media (min-width: 720px) { section.surface { padding-top: 88px; } }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--tq-text); margin: 0 0 12px; }
+h1 { font-weight: 300; font-size: clamp(34px, 5.4vw, 56px); line-height: 1.05; letter-spacing: -.025em; margin: 0 0 16px; }
+h2 { font-weight: 500; font-size: 20px; letter-spacing: -.01em; margin: 0 0 8px; }
+h3 { font-weight: 500; font-size: 15px; margin: 0; }
+.lede { font-size: 17px; color: var(--ink-2); max-width: 62ch; margin: 0 0 40px; }
+.focal { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 40px; margin: 0 0 48px; }
+.focal .fig { font-family: var(--mono); font-size: clamp(44px, 7vw, 72px); font-weight: 400; letter-spacing: -.03em; line-height: 1; }
+.focal .fig small { font-size: 15px; letter-spacing: 0; color: var(--ink-2); font-family: var(--sans); margin-left: 8px; }
+.focal .side { font-size: 15px; color: var(--ink-2); }
+.shock { color: var(--shock); }
+.hl { background: var(--canary); color: var(--ink); padding: 0 4px; border-radius: 2px; }
+.note { font-size: 13px; color: var(--ink-2); max-width: 70ch; }
+.err { border-left: 3px solid var(--ink); padding: 12px 16px; background: var(--line-2); margin: 0 0 24px; max-width: 70ch; }
+.err strong { font-family: var(--mono); }
+.loading { color: var(--ink-3); padding: 24px 0; }
+
+/* Chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); font-size: 12.5px; line-height: 18px; padding: 2px 9px;
+  border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; background: var(--white);
+}
+.chip.ok { color: var(--tq-text); background: var(--tq-tint); border-color: transparent; }
+.chip.adv { background: var(--canary); color: var(--ink); border-color: transparent; font-weight: 500; }
+.chip.nf { border-style: solid; color: var(--ink); }
+.chip.unk, .chip.none { border-style: dashed; color: var(--ink-2); }
+.chip.sim {
+  color: var(--ink); border: 1px dashed var(--ink);
+  background: repeating-linear-gradient(135deg, var(--white) 0 5px, rgba(255, 225, 26, .55) 5px 7px);
+}
+.chip.kind-status_change { background: var(--canary); color: var(--ink); border-color: transparent; }
+.chip.kind-new { color: var(--tq-text); border-color: var(--tq); }
+
+/* Fixed review chip */
+.fixed-chips { position: fixed; left: var(--gutter); bottom: 16px; z-index: 30; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100vw - 2 * var(--gutter)); }
+.review-chip, .sim-chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  font-size: 13px; background: var(--white); border: 1px solid var(--ink); box-shadow: 0 2px 12px rgba(14, 20, 22, .08);
+}
+.review-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tq); flex: none; }
+.sim-chip { background: var(--canary); border-color: var(--canary); }
+.sim-chip button { border: 0; background: var(--ink); color: var(--white); border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--ink-2); }
+input[type="text"], input[type="search"], input[type="password"], select {
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--white); min-width: 0; width: 100%;
+}
+input:hover, select:hover { border-color: var(--ink-3); }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--white); border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.btn.ghost { background: var(--white); color: var(--ink); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.controls { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 0 24px; }
+@media (min-width: 720px) { .controls { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; } }
+
+/* Key gate */
+.gate { max-width: 520px; }
+.gate form { display: grid; gap: 12px; margin-top: 8px; }
+
+/* Sources */
+.demo {
+  border: 1px dashed var(--ink-3); border-radius: 14px; padding: 20px; margin: 0 0 48px;
+  display: grid; gap: 12px; grid-template-columns: 1fr;
+}
+@media (min-width: 720px) { .demo { grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; } }
+.demo .demo-head { grid-column: 1 / -1; }
+.demo .demo-head h2 { font-size: 16px; margin: 0 0 4px; }
+.src { display: grid; grid-template-columns: 1fr; gap: 12px 32px; padding: 24px 0; border-top: 1px solid var(--line); }
+.src:last-child { border-bottom: 1px solid var(--line); }
+@media (min-width: 880px) { .src { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.3fr); align-items: center; } }
+.src .meta { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.track { position: relative; height: 10px; border-radius: 999px; background: var(--line-2); overflow: visible; }
+.track .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+.fill.fresh { background: var(--tq); }
+.fill.due { background: var(--canary); }
+.fill.stale { background: var(--ink); }
+.fill.unscheduled { background: var(--ink-3); }
+.track .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); transform: translateX(-1px); }
+.track.never { background: transparent; border: 1px dashed var(--ink-3); height: 22px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: var(--ink); }
+.scale { position: relative; height: 18px; margin-top: 6px; font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); }
+.scale span { position: absolute; top: 0; white-space: nowrap; }
+.scale .mid { transform: translateX(-50%); }
+.scale .end { right: 0; }
+.figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+@media (min-width: 520px) { .figs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.figs dt { font-size: 11.5px; color: var(--ink-3); }
+.figs dd { margin: 0; font-family: var(--mono); font-size: 13px; }
+
+/* Roster */
+.rows { border-top: 1px solid var(--line); }
+.rhead, .rrow {
+  display: grid; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name lic" "npi st" "basis read";
+}
+.rhead { display: none; font-size: 12px; color: var(--ink-3); padding: 10px 0; }
+.rrow { text-decoration: none; color: var(--ink); }
+.rrow:hover { background: var(--line-2); }
+.rrow .c-name { grid-area: name; font-weight: 500; }
+.rrow .c-npi { grid-area: npi; }
+.rrow .c-st { grid-area: st; text-align: right; }
+.rrow .c-lic { grid-area: lic; text-align: right; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.rrow .c-basis { grid-area: basis; }
+.rrow .c-read { grid-area: read; text-align: right; }
+.rrow .c-npi, .rrow .c-read, .rrow .c-basis, .rrow .c-st { font-size: 13px; color: var(--ink-2); }
+@media (min-width: 880px) {
+  .rhead, .rrow {
+    grid-template-columns: minmax(0, 2fr) 120px 56px minmax(0, 1.6fr) minmax(0, 1.4fr) 150px;
+    grid-template-areas: "name npi st lic basis read"; align-items: center; padding-left: 8px; padding-right: 8px;
+  }
+  .rhead { display: grid; }
+  .rhead span:nth-child(1) { grid-area: name; } .rhead span:nth-child(2) { grid-area: npi; }
+  .rhead span:nth-child(3) { grid-area: st; } .rhead span:nth-child(4) { grid-area: lic; }
+  .rhead span:nth-child(5) { grid-area: basis; } .rhead span:nth-child(6) { grid-area: read; text-align: right; }
+  .rrow .c-st, .rrow .c-lic { text-align: left; justify-content: flex-start; }
+}
+.count-line { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+
+/* Provider */
+.prov-head { display: grid; gap: 8px; margin: 0 0 40px; }
+.prov-head .ids { font-family: var(--mono); font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.cards { display: grid; gap: 24px; grid-template-columns: 1fr; }
+@media (min-width: 980px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.card { border: 1px solid var(--line); border-radius: 18px; padding: 24px; background: var(--white); min-width: 0; }
+.card.focus { border-color: var(--ink); }
+.card-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 16px; }
+.card-top h2 { font-size: 13px; font-family: var(--mono); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--tq-text); margin: 0; }
+.receipt + .receipt { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
+.status-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 0 0 6px; }
+.status-line .raw { font-family: var(--mono); font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.status-line .arrow { color: var(--ink-3); }
+.status-line .norm { font-size: 28px; font-weight: 400; letter-spacing: -.02em; }
+.status-why { font-size: 13px; color: var(--ink-2); margin: 0 0 16px; max-width: 60ch; }
+.kv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; font-size: 13px; margin: 16px 0 0; }
+@media (min-width: 520px) { .kv { grid-template-columns: 120px minmax(0, 1fr); } }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.hash { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; user-select: all; }
+.simnote { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; font-size: 13px; background: repeating-linear-gradient(135deg, var(--white) 0 6px, rgba(255, 225, 26, .45) 6px 8px); border: 1px dashed var(--ink); }
+
+/* Timeline: three clocks on one line */
+.tl { position: relative; height: 112px; margin: 20px 4px 4px; }
+.tl .axis { position: absolute; left: 0; right: 0; top: 46px; height: 2px; background: var(--line); }
+.tl .valid { position: absolute; top: 45px; height: 4px; background: var(--tq); border-radius: 2px; }
+.tl .late { position: absolute; top: 45px; height: 4px; background: var(--canary); border-radius: 2px; }
+.tl .dot { position: absolute; top: 40px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--white); border: 2px solid var(--ink); }
+.tl .dot.retrieved { background: var(--ink); }
+.tl .now { position: absolute; top: 30px; height: 36px; width: 0; border-left: 1px dashed var(--ink); }
+.tl .lab { position: absolute; font-size: 11.5px; line-height: 1.3; white-space: nowrap; color: var(--ink-2); }
+.tl .lab b { display: block; font-weight: 500; color: var(--ink); }
+.tl .lab.up { top: 0; }
+.tl .lab.down { top: 62px; }
+.tl .lab.low { top: 94px; font-family: var(--mono); color: var(--ink); }
+.tl .lab.c { transform: translateX(-50%); text-align: center; }
+.tl .lab.r { transform: translateX(-100%); text-align: right; }
+.clocks { display: grid; grid-template-columns: 1fr; gap: 4px; margin: 8px 0 0; font-size: 12.5px; }
+@media (min-width: 520px) { .clocks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.clocks div { min-width: 0; }
+.clocks dt { color: var(--ink-3); font-size: 11.5px; }
+.clocks dd { margin: 0; font-family: var(--mono); }
+
+details.hist { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
+details.hist summary { cursor: pointer; font-size: 13px; font-weight: 500; list-style: none; display: flex; align-items: center; gap: 8px; }
+details.hist summary::-webkit-details-marker { display: none; }
+details.hist summary::before { content: "+"; font-family: var(--mono); width: 16px; height: 16px; border: 1px solid var(--line); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+details.hist[open] summary::before { content: "-"; }
+.hrow { padding: 10px 0; border-bottom: 1px solid var(--line-2); font-size: 13px; display: grid; gap: 2px; }
+.hrow.cur { color: var(--ink); }
+.hrow.flash { background: var(--canary); }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--tq-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: var(--mono); font-size: 12px; }
+details.claimf { margin-top: 12px; font-size: 13px; }
+details.claimf summary { cursor: pointer; color: var(--ink-2); }
+details.claimf pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; background: var(--line-2); padding: 12px; border-radius: 10px; }
+.npi-jump { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; max-width: 420px; margin: 0 0 24px; }
+
+/* Changes */
+.day { margin: 0 0 40px; }
+.day-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; padding: 0 0 10px; border-bottom: 1px solid var(--ink); }
+.drow {
+  display: grid; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink);
+  grid-template-columns: minmax(0, 1fr) auto; font-size: 14px;
+}
+.drow:hover { background: var(--line-2); }
+.drow .who { font-weight: 500; }
+.drow .what { color: var(--ink-2); font-size: 13px; }
+.drow .move { font-family: var(--mono); font-size: 13px; }
+@media (min-width: 880px) {
+  .drow { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.4fr) 120px; align-items: center; padding-left: 8px; padding-right: 8px; }
+}
+.verdict { font-size: clamp(22px, 3vw, 30px); font-weight: 300; letter-spacing: -.015em; margin: 0 0 8px; max-width: 40ch; }
+
+/* Coverage */
+.buckets { display: grid; gap: 24px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .buckets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1040px) { .buckets { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.bucket { border-top: 2px solid var(--ink); padding-top: 16px; min-width: 0; }
+.bucket.first { border-top-color: var(--tq); }
+.bucket .n { font-family: var(--mono); font-size: 48px; line-height: 1; letter-spacing: -.03em; margin: 8px 0 4px; }
+.bucket ul { list-style: none; margin: 16px 0 0; padding: 0; }
+.bucket li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.bucket li .k { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.bucket li .why { color: var(--ink-2); display: block; }
+.meter { height: 4px; background: var(--line-2); border-radius: 2px; margin-top: 6px; }
+.meter i { display: block; height: 100%; background: var(--tq); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#/sources">FreshRoot<span>evaluator</span></a>
+    <nav class="tabs" aria-label="Surfaces">
+      <a href="#/sources" data-tab="sources">Sources</a>
+      <a href="#/roster" data-tab="roster">Roster</a>
+      <a href="#/provider" data-tab="provider">Provider</a>
+      <a href="#/changes" data-tab="changes">Changes</a>
+      <a href="#/coverage" data-tab="coverage">Coverage</a>
+    </nav>
+    <button class="keybtn" id="forget" type="button" hidden>Forget key</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="surface gate" id="s-key" hidden>
+    <p class="eyebrow">FreshRoot · internal review</p>
+    <h1>Enter the tenant key</h1>
+    <p class="lede">This page reads the FreshRoot API with a tenant key. The key stays in this browser's local storage and is sent only as the X-FreshRoot-Key header.</p>
+    <div class="err" id="key-err" role="alert" hidden></div>
+    <form id="key-form" autocomplete="off">
+      <div class="field">
+        <label for="key-input">Tenant key</label>
+        <input id="key-input" type="password" autocomplete="off" spellcheck="false" required>
+      </div>
+      <div><button class="btn" type="submit">Use this key</button></div>
+    </form>
+  </section>
+
+  <section class="surface" id="s-sources" hidden></section>
+  <section class="surface" id="s-roster" hidden></section>
+  <section class="surface" id="s-provider" hidden></section>
+  <section class="surface" id="s-changes" hidden></section>
+  <section class="surface" id="s-coverage" hidden></section>
+</main>
+
+<div class="fixed-chips" aria-live="polite">
+  <span class="review-chip" id="review-chip">Internal review · rights pending · 0 shippable</span>
+  <span class="sim-chip" id="sim-chip" hidden></span>
+</div>
+
+<script>
+"use strict";
+
+const API = "https://opbrzaegvfyjpyyrmdfe.supabase.co/functions/v1/freshroot";
+const ROSTER_ID = "first-packet-2026-10-26";
+const KEY_STORE = "freshroot.tenantKey";
+const SURFACES = ["sources", "roster", "provider", "changes", "coverage"];
+const PROVIDER_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"];
+const ADVERSE = new Set(["probation", "revoked", "suspended", "surrendered", "restricted", "cancelled", "excluded", "debarred"]);
+const CLAIM_LABEL = {
+  state_license: "State license", npi_status: "NPI status", oig_exclusion: "OIG exclusion", sam_exclusion: "SAM exclusion",
+  state_board_action: "State board action", medicare_optout: "Medicare opt-out", pecos_enrollment: "PECOS enrollment",
+  dea_registration: "DEA registration", board_certification: "Board certification", medicaid_exclusion: "Medicaid exclusion",
+  nurse_license: "Nurse license", npdb: "NPDB",
+};
+const BUCKETS = [
+  ["covered_today", "Covered today", "A current receipt exists for at least one roster physician."],
+  ["in_30_days", "In 30 days", "Source seeded or planned; no current receipt for this roster yet."],
+  ["under_license", "Under license", "Needs a contract or confirmed terms before it can be loaded."],
+  ["never", "Never", "The garden will not resell it."],
+];
+
+const state = {
+  key: null,
+  route: { tab: "sources", npi: null },
+  sources: null, roster: null, coverage: null, deltas: null,
+  errors: {},
+  claims: new Map(),       // npi -> claims response, or an Error
+  names: new Map(),        // npi -> {first, last, credential}
+  latest: new Map(),       // npi -> Map(source_name|claim_type|jurisdiction -> newest receipt)
+  sim: null,               // source name under a simulated outage, or null
+  rosterQuery: "", rosterState: "", changesKind: "", changesClaim: "",
+  lastNpi: null,
+};
+
+// ---------- small helpers ----------
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const words = (s) => String(s ?? "").replace(/_/g, " ");
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const pad2 = (n) => String(n).padStart(2, "0");
+function fmtDay(iso) {
+  if (!iso) return "none";
+  const d = new Date(iso);
+  if (isNaN(d)) return "none";
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+function fmtTime(iso) {
+  if (!iso) return "none";
+  const d = new Date(iso);
+  if (isNaN(d)) return "none";
+  return `${fmtDay(iso)}, ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())} UTC`;
+}
+function fmtShort(iso) {
+  const d = new Date(iso);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+}
+function fmtAge(hours) {
+  if (hours == null || isNaN(hours)) return "none";
+  const h = Number(hours);
+  if (Math.abs(h) < 48) return `${h.toFixed(1)} h`;
+  return `${(h / 24).toFixed(1)} d`;
+}
+const ageHoursFrom = (iso) => (Date.now() - Date.parse(iso)) / 3.6e6;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
+const claimName = (type, jur) => (CLAIM_LABEL[type] || words(type)) + (jur ? ` · ${jur}` : "");
+const shortId = (id) => (id ? String(id).slice(0, 8) : "none");
+function personName(npi) {
+  const n = state.names.get(npi);
+  if (!n) return null;
+  const nm = [n.first, n.last].filter(Boolean).map(titleCase).join(" ");
+  return nm ? nm + (n.credential ? `, ${n.credential}` : "") : null;
+}
+function titleCase(s) {
+  return String(s).toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+}
+
+// ---------- status chips ----------
+function chip(status) {
+  if (status == null || status === "") return `<span class="chip none">no receipt</span>`;
+  const s = String(status);
+  if (s === "active") return `<span class="chip ok">active</span>`;
+  if (s === "not_found") return `<span class="chip nf">not found</span>`;
+  if (s === "unknown") return `<span class="chip unk">unknown</span>`;
+  if (ADVERSE.has(s)) return `<span class="chip adv">${esc(words(s))}</span>`;
+  return `<span class="chip">${esc(words(s))}</span>`;
+}
+// Under a simulated outage a row is never clear: a value we cannot re-read is stale, and an absence we cannot
+// re-check is unknown.
+const simStatus = (normalized) => (normalized == null || normalized === "not_found" || normalized === "unknown") ? "unknown" : "stale";
+const simChip = (normalized) => `<span class="chip sim">${simStatus(normalized)} · simulated</span>`;
+
+// ---------- key ----------
+function loadKey() { try { return localStorage.getItem(KEY_STORE); } catch { return null; } }
+function saveKey(k) { try { localStorage.setItem(KEY_STORE, k); } catch { /* private mode: key lives for this page only */ } }
+function dropKey() { try { localStorage.removeItem(KEY_STORE); } catch { /* nothing stored */ } }
+
+class ApiError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+async function api(path, params = {}) {
+  const u = new URL(API + path);
+  u.searchParams.set("include_unaccepted", "true");
+  for (const [k, v] of Object.entries(params)) if (v != null && v !== "") u.searchParams.set(k, v);
+  let resp;
+  try {
+    resp = await fetch(u, { headers: { "X-FreshRoot-Key": state.key }, cache: "no-store" });
+  } catch {
+    throw new ApiError(0, "network error, or the request was blocked by CORS (this page must run on health.theknowledgegardens.com or localhost:5173)");
+  }
+  let body = null;
+  try { body = await resp.json(); } catch { /* empty or non-JSON body */ }
+  if (!resp.ok) throw new ApiError(resp.status, body?.error || resp.statusText || "request failed");
+  return body;
+}
+const isAuth = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
+function errBox(e, what) {
+  if (!e) return "";
+  const code = e.status ? `${e.status}` : "error";
+  const hint = e.status === 401 ? " The API did not accept this key. Use Forget key and enter another."
+    : e.status === 403 ? " This key is not allowed to read it." : "";
+  return `<div class="err" role="alert">Could not load ${esc(what)}: <strong>${esc(code)}</strong> ${esc(e.message)}.${esc(hint)}</div>`;
+}
+
+// ---------- data ----------
+async function loadAll() {
+  state.errors = {};
+  const jobs = {
+    sources: api("/v1/sources").then((b) => b.sources || []),
+    roster: api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}`),
+    coverage: api("/v1/coverage", { roster_id: ROSTER_ID }),
+    deltas: loadDeltas(),
+  };
+  const keys = Object.keys(jobs);
+  const results = await Promise.allSettled(Object.values(jobs));
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") state[keys[i]] = r.value;
+    else state.errors[keys[i]] = r.reason;
+  });
+  if (results.some((r) => r.status === "rejected" && r.reason?.status === 401)) {
+    showGate(results.find((r) => r.reason?.status === 401).reason);
+    return;
+  }
+  indexDeltas();
+  render();
+}
+async function loadDeltas() {
+  const rows = [];
+  let cursor = null;
+  for (let page = 0; page < 50; page++) {
+    const b = await api("/v1/deltas", { roster_id: ROSTER_ID, limit: 5000, cursor });
+    rows.push(...(b.deltas || []));
+    if (!b.has_more || !b.next_cursor) break;
+    cursor = b.next_cursor;
+  }
+  return rows;
+}
+// Names come from npi_status receipts (NPPES first and last name); the roster route carries none.
+function indexDeltas() {
+  state.names.clear();
+  state.latest.clear();
+  for (const r of state.deltas || []) {
+    if (!state.latest.has(r.npi)) state.latest.set(r.npi, new Map());
+    const k = `${r.source_name}|${r.claim_type}|${r.jurisdiction || ""}`;
+    const m = state.latest.get(r.npi);
+    const prev = m.get(k);
+    if (!prev || r.retrieved_at > prev.retrieved_at || (r.retrieved_at === prev.retrieved_at && r.created_at > prev.created_at)) m.set(k, r);
+    if (r.claim_type === "npi_status" && r.claim) {
+      const cur = state.names.get(r.npi);
+      if (!cur || r.retrieved_at >= cur.at) {
+        state.names.set(r.npi, { first: r.claim.first_name, last: r.claim.last_name, credential: r.claim.credential, at: r.retrieved_at });
+      }
+    }
+  }
+}
+// The newest receipt this NPI holds from the simulated source, if any.
+function simReceiptsFor(npi) {
+  if (!state.sim) return [];
+  const m = state.latest.get(npi);
+  if (!m) return [];
+  return [...m.values()].filter((r) => r.source_name === state.sim);
+}
+function shippableCount() {
+  let n = 0;
+  for (const r of state.deltas || []) if (r.shippable) n++;
+  for (const m of state.roster?.members || []) if (m.shippable) n++;
+  for (const c of state.claims.values()) if (!(c instanceof Error)) for (const r of c.claims || []) if (r.shippable) n++;
+  return n;
+}
+function rightsWord() {
+  const rows = [...(state.deltas || []), ...(state.roster?.members || [])].filter((r) => r.rights);
+  if (!rows.length || rows.every((r) => r.rights === "pending")) return "rights pending";
+  return "rights mixed";
+}
+
+// ---------- routing ----------
+function parseRoute() {
+  const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const tab = SURFACES.includes(parts[0]) ? parts[0] : "sources";
+  const npi = tab === "provider" && /^\d{10}$/.test(parts[1] || "") ? parts[1] : null;
+  return { tab, npi };
+}
+window.addEventListener("hashchange", () => { state.route = parseRoute(); render(); window.scrollTo(0, 0); });
+
+function showGate(err) {
+  for (const s of SURFACES) $(`#s-${s}`).hidden = true;
+  $("#s-key").hidden = false;
+  $("#forget").hidden = true;
+  document.querySelectorAll("nav.tabs a").forEach((a) => a.removeAttribute("aria-current"));
+  const box = $("#key-err");
+  if (err) {
+    // A refused key is not kept: the next load asks again instead of failing the same way.
+    dropKey();
+    state.key = null;
+    box.hidden = false;
+    box.innerHTML = `The API refused this key: <strong>${esc(err.status)}</strong> ${esc(err.message)}. Enter a different key.`;
+  } else {
+    box.hidden = true;
+  }
+  $("#key-input").value = "";
+  $("#key-input").focus();
+}
+
+// ---------- render ----------
+function render() {
+  if (!state.key) return showGate();
+  $("#s-key").hidden = true;
+  $("#forget").hidden = false;
+  const { tab } = state.route;
+  for (const s of SURFACES) $(`#s-${s}`).hidden = s !== tab;
+  document.querySelectorAll("nav.tabs a").forEach((a) => {
+    if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    if (a.dataset.tab === "provider") a.href = state.lastNpi ? `#/provider/${state.lastNpi}` : "#/provider";
+  });
+  ({ sources: renderSources, roster: renderRoster, provider: renderProvider, changes: renderChanges, coverage: renderCoverage })[tab]();
+  renderChips();
+}
+
+function renderChips() {
+  $("#review-chip").textContent = `Internal review · ${rightsWord()} · ${shippableCount()} shippable`;
+  const sc = $("#sim-chip");
+  if (state.sim) {
+    sc.hidden = false;
+    sc.innerHTML = `Simulation · ${esc(state.sim)} offline <button type="button" id="end-sim">End simulation</button>`;
+  } else {
+    sc.hidden = true;
+    sc.innerHTML = "";
+  }
+}
+
+// 1. Sources
+function renderSources() {
+  const el = $("#s-sources");
+  if (!state.sources) {
+    el.innerHTML = `<p class="eyebrow">Sources</p><h1>Source freshness</h1>` + (errBox(state.errors.sources, "sources") || `<p class="loading">Loading sources</p>`);
+    return;
+  }
+  const src = state.sources;
+  const missed = src.filter((s) => s.freshness === "never" || s.freshness === "due" || s.freshness === "stale");
+  const read = src.filter((s) => s.last_run_at);
+  const withRows = new Set((state.deltas || []).map((r) => r.source_name));
+  el.innerHTML = `
+    <p class="eyebrow">Sources</p>
+    <h1>How old is each source?</h1>
+    <p class="lede">Each bar is the time since the last completed read, against that source's own schedule. The tick is when the next read is due; the end of the bar is twice that, where a source turns stale.</p>
+    <div class="focal">
+      <div class="fig">${read.length}<small>of ${src.length} sources read</small></div>
+      <div class="side"><span class="mono ${missed.length ? "shock" : ""}">${missed.length}</span> ${missed.length === 1 ? "source is" : "sources are"} missing a read on schedule${missed.length ? ": " + missed.map((s) => esc(s.name)).join(", ") : ""}.</div>
+    </div>
+    <form class="demo" id="sim-form">
+      <div class="demo-head">
+        <h2>Demo: simulate a source outage</h2>
+        <p class="note">Pick a source and treat it as unreachable. Roster and Provider then show that source's rows as stale or unknown, never clear, under a simulation chip. Nothing is written anywhere.</p>
+      </div>
+      <div class="field">
+        <label for="sim-source">Source</label>
+        <select id="sim-source">
+          ${src.map((s) => `<option value="${esc(s.name)}" ${s.name === state.sim ? "selected" : ""}>${esc(s.name)}${withRows.has(s.name) ? "" : " (no receipts on this roster)"}</option>`).join("")}
+        </select>
+      </div>
+      <button class="btn" type="submit">Simulate a source outage</button>
+      <button class="btn ghost" type="button" id="sim-end-inline" ${state.sim ? "" : "disabled"}>End simulation</button>
+      ${state.sim ? `<p class="note" style="grid-column: 1 / -1">${simSummary()}</p>` : ""}
+    </form>
+    <div class="srcs">${src.map(sourceRow).join("")}</div>
+    <p class="note" style="margin-top:16px">Times are UTC. File date is the publisher's date on the file; read is when the last ingestion run completed.</p>`;
+}
+function simSummary() {
+  let rows = 0, npis = 0;
+  for (const [, m] of state.latest) {
+    const hit = [...m.values()].filter((r) => r.source_name === state.sim).length;
+    if (hit) { rows += hit; npis++; }
+  }
+  if (!rows) return `Simulating ${esc(state.sim)} offline. It holds no receipts for this roster, so nothing on Roster or Provider changes.`;
+  return `Simulating ${esc(state.sim)} offline: ${plural(rows, "receipt")} across ${plural(npis, "physician")} now read as stale or unknown on Roster and Provider.`;
+}
+function sourceRow(s) {
+  const cad = s.cadence_hours == null ? null : Number(s.cadence_hours);
+  const age = s.age_hours == null ? null : Number(s.age_hours);
+  let bar;
+  if (!s.last_run_at) {
+    bar = `<div class="track never">never read: no completed run on record</div>`;
+  } else if (!cad) {
+    bar = `<div class="track" role="img" aria-label="Read ${fmtAge(age)} ago; no schedule"><div class="fill unscheduled" style="width:100%"></div></div>
+      <div class="scale"><span>read ${fmtAge(age)} ago, no schedule</span></div>`;
+  } else {
+    const pct = Math.max(1.5, Math.min(100, (age / (2 * cad)) * 100));
+    bar = `<div class="track" role="img" aria-label="Read ${fmtAge(age)} ago; due every ${fmtAge(cad)}; ${esc(s.freshness)}">
+        <div class="fill ${esc(s.freshness)}" style="width:${pct.toFixed(1)}%"></div><div class="tick" style="left:50%"></div></div>
+      <div class="scale"><span>${fmtAge(age)} old</span><span class="mid" style="left:50%">due at ${fmtAge(cad)}</span><span class="end">stale at ${fmtAge(2 * cad)}</span></div>`;
+  }
+  const fresh = s.freshness === "fresh" ? `<span class="chip ok">fresh</span>`
+    : s.freshness === "never" ? `<span class="chip unk">never read</span>`
+    : s.freshness === "due" ? `<span class="chip adv">due</span>`
+    : s.freshness === "stale" ? `<span class="chip adv">stale</span>`
+    : `<span class="chip">${esc(words(s.freshness))}</span>`;
+  const sim = state.sim === s.name ? ` <span class="chip sim">offline · simulated</span>` : "";
+  return `<div class="src">
+    <div>
+      <h3>${esc(s.name)}${sim}</h3>
+      <div class="meta">${esc((s.claim_types || []).map((c) => CLAIM_LABEL[c] || words(c)).join(", "))}${s.jurisdiction ? ` · ${esc(s.jurisdiction)}` : ""} · ${cad ? `every ${fmtAge(cad)}` : "no schedule"}${s.records_processed != null ? ` · <span class="mono">${Number(s.records_processed).toLocaleString("en-US")}</span> records` : ""} · ${s.accepted_for_sale ? "accepted" : "rights pending"}</div>
+    </div>
+    <div>${bar}</div>
+    <dl class="figs">
+      <div><dt>File date</dt><dd>${s.file_date ? fmtDay(s.file_date) : "none"}</dd></div>
+      <div><dt>Read</dt><dd>${s.last_run_at ? fmtShort(s.last_run_at) : "never"}</dd></div>
+      <div><dt>Next due</dt><dd>${s.next_due_at ? fmtShort(s.next_due_at) : "none"}</dd></div>
+      <div><dt>Freshness</dt><dd>${fresh}</dd></div>
+    </dl>
+  </div>`;
+}
+
+// 2. Roster
+function renderRoster() {
+  const el = $("#s-roster");
+  if (!state.roster) {
+    el.innerHTML = `<p class="eyebrow">Roster</p><h1>The roster</h1>` + (errBox(state.errors.roster, "the roster") || `<p class="loading">Loading the roster</p>`);
+    return;
+  }
+  const members = state.roster.members || [];
+  const byState = {};
+  for (const m of members) byState[m.state || "none"] = (byState[m.state || "none"] || 0) + 1;
+  const adverse = members.filter((m) => ADVERSE.has(m.license_status));
+  const states = Object.keys(byState).sort();
+  if (!el.dataset.built) {
+    el.dataset.built = "1";
+    el.innerHTML = `
+      <p class="eyebrow">Roster · ${esc(state.roster.roster_id)}</p>
+      <h1>${esc(state.roster.name || "Roster")}</h1>
+      <p class="lede">Each physician's license in the roster state as the latest board file reads it, with how the NPI was matched and when anything was last read for them.</p>
+      <div class="focal" id="roster-focal"></div>
+      ${errBox(state.errors.deltas, "names (from /v1/deltas)")}
+      <div class="controls">
+        <div class="field"><label for="r-q">Search by name or NPI</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Jhaver or 1033300850"></div>
+        <div class="field"><label for="r-state">State</label><select id="r-state"><option value="">All states</option>${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}</select></div>
+      </div>
+      <p class="count-line" id="r-count" aria-live="polite"></p>
+      <div class="rows" id="r-rows"></div>`;
+    $("#r-q").value = state.rosterQuery;
+    $("#r-state").value = state.rosterState;
+  }
+  $("#roster-focal").innerHTML = `
+    <div class="fig">${members.length}<small>physicians</small></div>
+    <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
+    <div class="side"><span class="mono ${adverse.length ? "shock" : ""}">${adverse.length}</span> ${adverse.length === 1 ? "license is" : "licenses are"} under board action (${esc([...new Set(adverse.map((m) => words(m.license_status)))].join(", ") || "none")}).</div>
+    ${state.sim ? `<div class="side"><span class="chip sim">simulation</span> ${simSummary()}</div>` : ""}`;
+  renderRosterRows();
+}
+function renderRosterRows() {
+  const members = state.roster.members || [];
+  const q = state.rosterQuery.trim().toLowerCase();
+  const qDigits = q.replace(/\D/g, "");
+  const rows = members.filter((m) => {
+    if (state.rosterState && m.state !== state.rosterState) return false;
+    if (!q) return true;
+    if (qDigits && /^\d+$/.test(q.replace(/\s/g, "")) && m.npi.includes(qDigits)) return true;
+    const n = state.names.get(m.npi);
+    const hay = n ? `${n.first || ""} ${n.last || ""} ${n.last || ""} ${n.first || ""}`.toLowerCase() : "";
+    return q.split(/\s+/).every((t) => hay.includes(t));
+  }).sort((a, b) => (state.names.get(a.npi)?.last || "~").localeCompare(state.names.get(b.npi)?.last || "~") || a.npi.localeCompare(b.npi));
+  $("#r-count").textContent = `Showing ${rows.length} of ${members.length}`;
+  $("#r-rows").innerHTML = `<div class="rhead" aria-hidden="true"><span>Name</span><span>NPI</span><span>State</span><span>License status</span><span>Match basis</span><span>Last read</span></div>` +
+    rows.map((m) => {
+      const sims = simReceiptsFor(m.npi);
+      const licSim = sims.find((r) => r.claim_type === "state_license" && r.jurisdiction === m.state);
+      const otherSims = sims.filter((r) => r !== licSim);
+      const lic = licSim ? simChip(m.license_status) + ` <span class="faint" style="font-size:12px">was ${esc(words(m.license_status))}</span>` : chip(m.license_status);
+      const extra = otherSims.map((r) => `<span class="chip sim">${esc(CLAIM_LABEL[r.claim_type] || words(r.claim_type))}: ${simStatus(r.normalized_status)}</span>`).join("");
+      return `<a class="rrow" href="#/provider/${esc(m.npi)}">
+        <span class="c-name">${esc(personName(m.npi) || "Name not on file")}</span>
+        <span class="c-npi mono">${esc(m.npi)}</span>
+        <span class="c-st mono">${esc(m.state || "none")}</span>
+        <span class="c-lic">${lic}${extra}</span>
+        <span class="c-basis">${esc(words(m.match_basis) || "no match")}</span>
+        <span class="c-read mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span>
+      </a>`;
+    }).join("");
+}
+
+// 3. Provider
+function renderProvider() {
+  const el = $("#s-provider");
+  const npi = state.route.npi;
+  const jump = `<form class="npi-jump" id="npi-jump"><label class="sr" for="npi-in">NPI</label>
+      <input id="npi-in" type="text" inputmode="numeric" pattern="[0-9]{10}" placeholder="10-digit NPI" value="${esc(npi || "")}" autocomplete="off">
+      <button class="btn ghost" type="submit">Open</button></form>`;
+  if (!npi) {
+    el.innerHTML = `<p class="eyebrow">Provider</p><h1>Pick a physician</h1><p class="lede">Open one from the Roster, or enter an NPI on the roster.</p>${jump}`;
+    return;
+  }
+  state.lastNpi = npi;
+  const data = state.claims.get(npi);
+  if (!data) {
+    el.innerHTML = `<p class="eyebrow">Provider</p><h1 class="mono">${esc(npi)}</h1><p class="loading">Loading receipts</p>`;
+    api(`/v1/providers/${npi}/claims`)
+      .then((b) => state.claims.set(npi, b))
+      .catch((e) => state.claims.set(npi, e))
+      .finally(() => { if (state.route.npi === npi) render(); });
+    return;
+  }
+  if (data instanceof Error) {
+    el.innerHTML = `<p class="eyebrow">Provider</p><h1 class="mono">${esc(npi)}</h1>${errBox(data, "this provider's receipts")}${jump}`;
+    return;
+  }
+  const claims = data.claims || [];
+  const member = (state.roster?.members || []).find((m) => m.npi === npi);
+  const npiRow = claims.find((c) => c.claim_type === "npi_status");
+  if (npiRow?.claim) state.names.set(npi, { first: npiRow.claim.first_name, last: npiRow.claim.last_name, credential: npiRow.claim.credential, at: npiRow.retrieved_at });
+  const licenses = claims.filter((c) => c.claim_type === "state_license").map((c) => `${c.jurisdiction || ""} ${c.license_number || ""}`.trim());
+  const adverse = claims.find((c) => ADVERSE.has(c.normalized_status));
+  const byType = new Map(PROVIDER_CLAIMS.map((t) => [t, []]));
+  for (const c of claims) {
+    if (!byType.has(c.claim_type)) byType.set(c.claim_type, []);
+    byType.get(c.claim_type).push(c);
+  }
+  el.innerHTML = `
+    <p class="eyebrow"><a href="#/roster">Roster</a> · Provider</p>
+    <div class="prov-head">
+      <h1>${esc(personName(npi) || "Name not on file")}</h1>
+      <div class="ids"><span>NPI ${esc(npi)}</span><span>Roster state ${esc(member?.state || "not on roster")}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
+      ${adverse ? `<p class="side" style="margin:8px 0 0"><span class="shock">Board action on file:</span> ${esc(claimName(adverse.claim_type, adverse.jurisdiction))} reads ${esc(words(adverse.normalized_status))}.</p>` : ""}
+    </div>
+    ${jump}
+    <div class="cards">${[...byType.entries()].map(([type, rows], i) => claimCard(type, rows, i === 0)).join("")}</div>
+    <p class="note" style="margin-top:24px">Times are UTC. Every row is rights pending and not shippable until its source is accepted for sale.</p>`;
+}
+function claimCard(type, rows, focus) {
+  const head = `<div class="card-top"><h2>${esc(CLAIM_LABEL[type] || words(type))}</h2>${rows.length ? `<span class="chip">${esc(rows[0].rights === "pending" ? "rights pending" : "rights " + rows[0].rights)} · ${rows.some((r) => r.shippable) ? "shippable" : "not shippable"}</span>` : ""}</div>`;
+  if (!rows.length) {
+    return `<article class="card${focus ? " focus" : ""}">${head}
+      <div class="status-line"><span class="norm">no receipt</span></div>
+      <p class="status-why">No current receipt from any source for this claim. Not checked is not clear.</p></article>`;
+  }
+  return `<article class="card${focus ? " focus" : ""}">${head}${rows.map(receiptBlock).join("")}</article>`;
+}
+function receiptBlock(r) {
+  const simmed = state.sim && r.source_name === state.sim;
+  const norm = r.normalized_status;
+  let normHtml, why = "";
+  if (simmed) {
+    normHtml = `<span class="norm">${simStatus(norm)}</span>`;
+    why = `Last known: ${esc(words(norm))}, read ${fmtTime(r.retrieved_at)}.`;
+  } else if (norm === "not_found") {
+    normHtml = `<span class="norm">not found</span>`;
+    why = `No matching record in this source on the read date. Not found is not the same as clear.`;
+  } else if (norm === "unknown") {
+    normHtml = `<span class="norm">unknown</span>`;
+    why = `The source could not settle this claim for this NPI${r.match_basis ? ` (matched by ${esc(words(r.match_basis))})` : ""}.`;
+  } else if (ADVERSE.has(norm)) {
+    normHtml = `<span class="norm"><span class="hl">${esc(words(norm))}</span></span>`;
+  } else {
+    normHtml = `<span class="norm">${esc(words(norm) || "none")}</span>`;
+  }
+  const facts = Object.entries(r.claim || {}).filter(([, v]) => v !== null && typeof v !== "object");
+  const actions = Array.isArray(r.claim?.disciplinary_actions) ? r.claim.disciplinary_actions : [];
+  const conf = r.match_confidence == null ? "none" : Number(r.match_confidence).toFixed(2);
+  return `<div class="receipt" id="rcpt-${esc(r.receipt_id)}">
+    ${simmed ? `<p class="simnote"><strong>Simulation.</strong> ${esc(r.source_name)} is treated as offline, so this row reads ${simStatus(norm)}, never clear.</p>` : ""}
+    <div class="status-line">
+      <span class="raw" title="Raw status as the source printed it">${esc(r.raw_status ?? "none")}</span>
+      <span class="arrow" aria-label="normalized to">→</span>
+      ${normHtml}
+      ${r.jurisdiction || r.license_number ? `<span class="mono muted" style="font-size:13px">${esc([r.jurisdiction, r.license_number].filter(Boolean).join(" "))}</span>` : ""}
+    </div>
+    ${why ? `<p class="status-why">${why}</p>` : ""}
+    ${timeline(r)}
+    <dl class="kv">
+      <dt>Source</dt><dd>${esc(r.source_name)}</dd>
+      <dt>Artifact sha256</dt><dd class="hash">${esc(r.artifact_sha256 || "none recorded")}</dd>
+      <dt>Match</dt><dd>${esc(words(r.match_basis) || "none")} · confidence <span class="mono">${conf}</span></dd>
+      <dt>Stage</dt><dd>${esc(r.stage)} · origin ${esc(r.origin)}</dd>
+      <dt>Limitations</dt><dd>${esc(r.limitations || "None recorded")}</dd>
+      <dt>Receipt</dt><dd class="mono" style="font-size:12px">${esc(r.receipt_id)} · supersedes ${supLink(r.supersedes_id)}</dd>
+    </dl>
+    ${facts.length || actions.length ? `<details class="claimf"><summary>Claim fields (${facts.length + (actions.length ? 1 : 0)})</summary><pre>${esc(facts.map(([k, v]) => `${words(k)}: ${v}`).join("\n"))}${actions.length ? esc(`\ndisciplinary actions: ${actions.length}\n` + JSON.stringify(actions, null, 2)) : ""}</pre></details>` : ""}
+    ${historyDrawer(r)}
+  </div>`;
+}
+function supLink(id) {
+  return id ? `<button type="button" class="linkbtn" data-goto="${esc(id)}">${esc(shortId(id))}</button>` : "none";
+}
+function historyDrawer(r) {
+  const hist = r.history || [];
+  const list = hist.length
+    ? [...hist].reverse().map((h) => `<div class="hrow" id="rcpt-${esc(h.receipt_id)}">
+        <div><span class="mono">${fmtTime(h.retrieved_at)}</span> · ${esc(h.raw_status ?? "none")} → ${chip(h.normalized_status)}</div>
+        <div class="muted">${esc(h.source_name)} · stage ${esc(h.stage)} · ${esc(words(h.match_basis))} ${h.match_confidence != null ? Number(h.match_confidence).toFixed(2) : ""}</div>
+        <div class="mono faint" style="font-size:12px">${esc(h.receipt_id)} · supersedes ${supLink(h.supersedes_id)}</div>
+      </div>`).join("")
+    : `<p class="note">No earlier rows for this claim. This receipt is the first one on record.</p>`;
+  return `<details class="hist"><summary>History · ${plural(hist.length, "earlier row")}</summary>${list}</details>`;
+}
+function timeline(r) {
+  const now = Date.now();
+  const pts = [
+    { k: "published", name: "Source published", t: Date.parse(r.source_published_at), pos: "up" },
+    { k: "retrieved", name: "Retrieved", t: Date.parse(r.retrieved_at), pos: "down" },
+    { k: "due", name: "Next check due", t: Date.parse(r.next_check_due_at), pos: "up" },
+  ].filter((p) => !isNaN(p.t));
+  if (!pts.length) return "";
+  const ts = pts.map((p) => p.t).concat(now);
+  let lo = Math.min(...ts), hi = Math.max(...ts);
+  const padT = (hi - lo) * 0.04 || 3.6e6;
+  lo -= padT; hi += padT;
+  const x = (t) => ((t - lo) / (hi - lo)) * 100;
+  const align = (p) => (p < 18 ? "" : p > 82 ? " r" : " c");
+  const tR = Date.parse(r.retrieved_at), tD = Date.parse(r.next_check_due_at);
+  let bands = "";
+  if (!isNaN(tR) && !isNaN(tD)) {
+    bands += `<div class="valid" style="left:${x(tR)}%;width:${Math.max(0, x(Math.min(tD, Math.max(now, tR))) - x(tR))}%"></div>`;
+    if (now > tD) bands += `<div class="late" style="left:${x(tD)}%;width:${x(now) - x(tD)}%"></div>`;
+  }
+  const nowX = x(now);
+  return `<div class="tl" aria-hidden="true">
+      <div class="axis"></div>${bands}
+      ${pts.map((p) => `<div class="dot ${p.k}" style="left:${x(p.t)}%"></div>
+        <div class="lab ${p.pos}${align(x(p.t))}" style="left:${x(p.t)}%"><b>${p.name}</b>${fmtShort(new Date(p.t).toISOString())}</div>`).join("")}
+      <div class="now" style="left:${nowX}%"></div>
+      <div class="lab low${align(nowX)}" style="left:${nowX}%">now${now > tD ? " · past due" : ""}</div>
+    </div>
+    <dl class="clocks">
+      <div><dt>Source published</dt><dd>${fmtTime(r.source_published_at)}</dd></div>
+      <div><dt>Retrieved</dt><dd>${fmtTime(r.retrieved_at)}</dd></div>
+      <div><dt>Next check due</dt><dd>${fmtTime(r.next_check_due_at)}</dd></div>
+    </dl>`;
+}
+
+// 4. Changes
+function renderChanges() {
+  const el = $("#s-changes");
+  if (!state.deltas) {
+    el.innerHTML = `<p class="eyebrow">Changes</p><h1>What moved</h1>` + (errBox(state.errors.deltas, "deltas") || `<p class="loading">Loading deltas</p>`);
+    return;
+  }
+  const all = state.deltas;
+  const kinds = {};
+  for (const r of all) kinds[r.change_kind] = (kinds[r.change_kind] || 0) + 1;
+  const moved = kinds.status_change || 0;
+  const days = [...new Set(all.map((r) => r.created_at.slice(0, 10)))].sort().reverse();
+  const claimTypes = [...new Set(all.map((r) => r.claim_type))].sort();
+  const kindSummary = Object.entries(kinds).sort().map(([k, n]) => `${n} ${words(k)}`).join(", ");
+  const verdict = moved === 0
+    ? `No status moved between these runs.`
+    : `<span class="shock">${moved}</span> ${moved === 1 ? "status moved" : "statuses moved"} between these runs.`;
+  const rows = all.filter((r) => (!state.changesKind || r.change_kind === state.changesKind) && (!state.changesClaim || r.claim_type === state.changesClaim));
+  const groups = new Map();
+  for (const r of rows) {
+    const d = r.created_at.slice(0, 10);
+    if (!groups.has(d)) groups.set(d, []);
+    groups.get(d).push(r);
+  }
+  el.innerHTML = `
+    <p class="eyebrow">Changes · /v1/deltas</p>
+    <h1>What moved</h1>
+    <p class="verdict">${verdict}</p>
+    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs.</p>
+    <div class="controls">
+      <div class="field"><label for="c-kind">Change kind</label><select id="c-kind"><option value="">All kinds</option>${Object.keys(kinds).sort().map((k) => `<option value="${esc(k)}" ${k === state.changesKind ? "selected" : ""}>${esc(words(k))} (${kinds[k]})</option>`).join("")}</select></div>
+      <div class="field"><label for="c-claim">Claim</label><select id="c-claim"><option value="">All claims</option>${claimTypes.map((c) => `<option value="${esc(c)}" ${c === state.changesClaim ? "selected" : ""}>${esc(CLAIM_LABEL[c] || words(c))}</option>`).join("")}</select></div>
+    </div>
+    <p class="count-line">Grouped by the day each receipt was written (UTC). Showing ${rows.length} of ${all.length}.</p>
+    ${[...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([d, rs]) => {
+      const k = {};
+      for (const r of rs) k[r.change_kind] = (k[r.change_kind] || 0) + 1;
+      return `<div class="day">
+        <div class="day-head"><h2>${fmtDay(d + "T00:00:00Z")}</h2><span class="note mono">${Object.entries(k).sort().map(([a, n]) => `${n} ${esc(words(a))}`).join(" · ")}</span></div>
+        ${rs.map(deltaRow).join("")}
+      </div>`;
+    }).join("") || `<p class="note">No rows match these filters.</p>`}`;
+}
+function deltaRow(r) {
+  return `<a class="drow" href="#/provider/${esc(r.npi)}">
+    <span><span class="who">${esc(personName(r.npi) || "Name not on file")}</span> <span class="mono faint" style="font-size:12px">${esc(r.npi)}</span></span>
+    <span class="what">${esc(claimName(r.claim_type, r.jurisdiction))} · ${esc(r.source_name)}</span>
+    <span class="move">${r.prior_normalized_status ? esc(words(r.prior_normalized_status)) : "none"} → ${esc(words(r.normalized_status))}</span>
+    <span><span class="chip kind-${esc(r.change_kind)}">${esc(words(r.change_kind))}</span></span>
+  </a>`;
+}
+
+// 5. Coverage
+function renderCoverage() {
+  const el = $("#s-coverage");
+  if (!state.coverage) {
+    el.innerHTML = `<p class="eyebrow">Coverage</p><h1>Coverage</h1>` + (errBox(state.errors.coverage, "coverage") || `<p class="loading">Loading coverage</p>`);
+    return;
+  }
+  const b = state.coverage.buckets || {};
+  const size = state.coverage.roster_size;
+  const total = BUCKETS.reduce((n, [k]) => n + (b[k] || []).length, 0);
+  el.innerHTML = `
+    <p class="eyebrow">Coverage · ${esc(state.coverage.roster_id)}</p>
+    <h1>What this roster can be checked against</h1>
+    <p class="lede">${plural(total, "claim")} sorted into four buckets for a roster of <span class="mono">${esc(size)}</span>. Counts are claims; a claim is covered when at least one roster physician holds a current receipt for it.</p>
+    <div class="focal"><div class="fig">${(b.covered_today || []).length}<small>of ${total} claims covered today</small></div></div>
+    <div class="buckets">${BUCKETS.map(([k, label, blurb], i) => {
+      const rows = b[k] || [];
+      return `<section class="bucket${i === 0 ? " first" : ""}">
+        <h2>${esc(label)}</h2>
+        <div class="n ${k === "never" && rows.length ? "shock" : ""}">${rows.length}</div>
+        <p class="note">${esc(blurb)}</p>
+        <ul>${rows.map((r) => `<li><span class="k">${esc(claimName(r.claim_type, r.jurisdiction))}</span>
+          ${r.covered != null ? `<span class="why"><span class="mono">${r.covered}</span> of <span class="mono">${esc(size)}</span> physicians</span>${r.covered > 0 ? `<div class="meter"><i style="width:${size ? (r.covered / size) * 100 : 0}%"></i></div>` : ""}` : ""}
+          ${r.reason ? `<span class="why">${esc(r.reason)}</span>` : ""}</li>`).join("") || `<li class="note">None</li>`}</ul>
+      </section>`;
+    }).join("")}</div>`;
+}
+
+// ---------- events ----------
+$("#key-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = $("#key-input").value.trim();
+  if (!k) return;
+  state.key = k;
+  saveKey(k);
+  $("#key-input").value = "";
+  resetData();
+  render();
+  loadAll();
+});
+$("#forget").addEventListener("click", () => {
+  dropKey();
+  state.key = null;
+  resetData();
+  showGate();
+});
+function resetData() {
+  Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null });
+  state.claims.clear();
+  state.names.clear();
+  state.latest.clear();
+  delete $("#s-roster").dataset.built;
+}
+document.addEventListener("submit", (e) => {
+  if (e.target.id === "sim-form") {
+    e.preventDefault();
+    state.sim = $("#sim-source").value || null;
+    render();
+  } else if (e.target.id === "npi-jump") {
+    e.preventDefault();
+    const v = $("#npi-in").value.replace(/\D/g, "");
+    if (/^\d{10}$/.test(v)) location.hash = `#/provider/${v}`;
+  }
+});
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (t.id === "end-sim" || t.id === "sim-end-inline") { state.sim = null; render(); return; }
+  const goto = t.closest?.("[data-goto]");
+  if (goto) {
+    const target = document.getElementById(`rcpt-${goto.dataset.goto}`);
+    if (!target) { goto.textContent = `${shortId(goto.dataset.goto)} (not in this view)`; return; }
+    const det = target.closest("details");
+    if (det) det.open = true;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.add("flash");
+    setTimeout(() => target.classList.remove("flash"), 1600);
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "r-q") { state.rosterQuery = e.target.value; renderRosterRows(); }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "r-state") { state.rosterState = e.target.value; renderRosterRows(); }
+  if (e.target.id === "c-kind") { state.changesKind = e.target.value; renderChanges(); }
+  if (e.target.id === "c-claim") { state.changesClaim = e.target.value; renderChanges(); }
+});
+
+// ---------- boot ----------
+state.route = parseRoute();
+state.key = loadKey();
+render();
+if (state.key) loadAll();
+</script>
+</body>
+</html>
