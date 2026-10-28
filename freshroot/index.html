@@ -463,12 +463,25 @@ function checkStatus(c) {
   return c.normalized_status;
 }
 const exclusionFound = (c) => !!c && c.normalized_status != null && c.normalized_status !== "not_found" && c.normalized_status !== "unknown";
-// States with a board file we read (license_states from the API). Elsewhere there is no license receipt to show, and
-// the page says so instead of guessing.
+// States with a board file we read (license_states from the API). A member's roster state is its board: one of its
+// NPPES license states that we cover, never its practice address. Without one there is no license receipt to show,
+// and the page says so instead of guessing.
 const licenseCovered = (st) => !!st && (state.roster?.license_states || []).includes(st);
-const notCoveredLine = (st) => st
-  ? `State license: not covered yet for ${STATE_NAMES[st] || st}.`
-  : "State license: not covered yet; NPPES lists no practice state for this physician.";
+const coveredList = () => (state.roster?.license_states || []).join(", ");
+// The states shown for a physician: NPPES practice states when known, otherwise its NPPES license states.
+const shownStates = (p) => (p?.practice_states?.length ? p.practice_states : p?.license_states || []);
+const stateWhere = (p) => p?.practice_states?.length ? `practice ${p.practice_states.join(", ")}`
+  : p?.license_states?.length ? `licensed ${p.license_states.join(", ")}` : "no state on file";
+function noBoardLine(p) {
+  const shown = shownStates(p);
+  if (!shown.length) return "State license: NPPES lists no license state or practice state for this physician, so no board was checked.";
+  if (!shown.some(licenseCovered)) return `State license: not covered yet for ${shown.map((s) => STATE_NAMES[s] || s).join(", ")}.`;
+  return `State license: NPPES records no license in ${coveredList()} for this physician, so no board was checked.`;
+}
+const noBoardShort = (p) => {
+  const shown = shownStates(p);
+  return shown.length && !shown.some(licenseCovered) ? "license not covered yet" : `no ${coveredList()} license on file`;
+};
 // The mark: any license status other than active, or any exclusion found. A state we do not cover has no license
 // status at all, so it is not marked for that.
 function isMarked(m) {
@@ -476,11 +489,11 @@ function isMarked(m) {
   const licenseBad = (k.state_license || licenseCovered(m.state)) && checkStatus(k.state_license) !== "active";
   return !!licenseBad || exclusionFound(k.oig_exclusion) || exclusionFound(k.sam_exclusion);
 }
-function checkChip(type, label, c, memberState) {
+function checkChip(type, label, c, member) {
   const lbl = `<span class="lbl">${label}</span>`;
   const st = checkStatus(c);
-  if (st == null && type === "state_license" && !licenseCovered(memberState)) {
-    return `<span class="chip none" title="${esc(notCoveredLine(memberState))}">${lbl}not covered</span>`;
+  if (st == null && type === "state_license" && !licenseCovered(member.state)) {
+    return `<span class="chip none" title="${esc(noBoardLine(state.people.get(member.npi)))}">${lbl}no board</span>`;
   }
   if (st == null) return `<span class="chip none" title="${esc(label)}: no current receipt">${lbl}no receipt</span>`;
   const where = [c.jurisdiction, c.license_number].filter(Boolean).join(" ");
@@ -755,7 +768,7 @@ function renderRoster() {
       <div class="focal" id="roster-focal"></div>
       <section class="lookup" aria-labelledby="lk-h">
         <h2 id="lk-h">Look up a physician</h2>
-        <p class="note">Type a name (Last, First or First Last) or a 10-digit NPI. Pick one to add it to this roster and write its receipts, then its Provider page opens. A license is read only in a state whose board file we hold, and only by an NPI or license-number link or by name with state and physician taxonomy; never by name alone.</p>
+        <p class="note">Type a name (Last, First or First Last) or a 10-digit NPI. Pick one to add it to this roster and write its receipts, then its Provider page opens. A license is read only in a state where NPPES records the physician's license and whose board file we hold (${esc(coveredList())}), and only by an NPI or license-number link or by name with state and physician taxonomy; never by name alone.</p>
         <form class="lk-form" id="lk-form" autocomplete="off">
           <div class="field"><label for="lk-q">Name or NPI</label><input id="lk-q" type="search" spellcheck="false" placeholder="e.g. Garcia, Maria or 1063675940"></div>
           <div class="field"><label for="lk-st">State (optional)</label><input id="lk-st" type="text" maxlength="2" spellcheck="false" placeholder="TX"></div>
@@ -791,7 +804,7 @@ function renderRosterRows() {
   const qDigits = q.replace(/\D/g, "");
   const byName = (a, b) => lastName(a.npi).localeCompare(lastName(b.npi)) || a.npi.localeCompare(b.npi);
   const rows = members.filter((m) => {
-    if (state.rosterState && m.state !== state.rosterState) return false;
+    if (state.rosterState && (m.state || "none") !== state.rosterState) return false;
     if (!q) return true;
     if (qDigits && /^\d+$/.test(q.replace(/\s/g, "")) && m.npi.includes(qDigits)) return true;
     const p = state.people.get(m.npi);
@@ -807,7 +820,7 @@ function renderRosterRows() {
       const lic = m.checks?.state_license;
       const sub = [
         lic || licenseCovered(m.state) ? `${m.state || "No state"} license${lic?.license_number ? " " + lic.license_number : ""}`
-          : `${m.state || "No practice state"} · license not covered yet`,
+          : `${shownStates(p).join(", ") || "No state on file"} · ${noBoardShort(p)}`,
         p?.primary_taxonomy ? `taxonomy ${p.primary_taxonomy.description || p.primary_taxonomy.code}` : null,
       ].filter(Boolean).join(" · ");
       const due = m.next_check_due_at;
@@ -816,7 +829,7 @@ function renderRosterRows() {
         ${marked ? `<span class="sr">Marked.</span>` : ""}
         <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b><span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
-        <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m.state)).join("")}</span>
+        <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m)).join("")}</span>
         <span class="c-times">
           <span class="c-read"><span class="t-lbl">Last read </span><span class="mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span></span>
           <span class="c-next"><span class="t-lbl">Next check </span><span class="mono">${due ? fmtShort(due) : "none"}</span>${late ? " · past due" : ""}</span>
@@ -871,11 +884,10 @@ function renderLookup() {
   box.innerHTML = L.error ? errBox(L.error, L.errWhat)
     : (L.result?.candidates || []).map((c) => {
       const nm = [c.first_name, c.middle_name, c.last_name].filter(Boolean).map(titleCase).join(" ") || "Name not on file";
-      const lic = !c.state ? "no practice state on file"
-        : c.license_covered ? `${c.state} license read on add` : `${c.state} license not covered yet`;
+      const lic = c.license_board ? `${c.license_board} license read on add` : noBoardShort(c);
       return `<button type="button" class="cand" data-add="${esc(c.npi)}" ${L.adding ? "disabled" : ""}>
         <span class="c-name"><b>${esc(nm)}${c.credential ? `, ${esc(c.credential)}` : ""}</b>
-          <span class="c-sub">${esc([c.state || "state not on file", c.primary_taxonomy ? `taxonomy ${c.primary_taxonomy.description || c.primary_taxonomy.code}` : null, `NPI ${words(c.npi_status || "status not on file")}`].filter(Boolean).join(" · "))}</span></span>
+          <span class="c-sub">${esc([stateWhere(c), c.primary_taxonomy ? `taxonomy ${c.primary_taxonomy.description || c.primary_taxonomy.code}` : null, `NPI ${words(c.npi_status || "status not on file")}`].filter(Boolean).join(" · "))}</span></span>
         <span class="c-npi mono">${esc(c.npi)}</span>
         <span class="c-act">${c.on_roster ? `<span class="chip ok">on roster · open</span>` : `<span class="chip">${esc(lic)}</span><span class="add">Add</span>`}</span>
       </button>`;
@@ -937,7 +949,8 @@ function renderProvider() {
   const claims = data.claims || [];
   const member = (state.roster?.members || []).find((m) => m.npi === npi);
   if (data.provider) state.people.set(npi, data.provider);
-  const tax = state.people.get(npi)?.primary_taxonomy;
+  const person = state.people.get(npi);
+  const tax = person?.primary_taxonomy;
   const licenses = claims.filter((c) => c.claim_type === "state_license").map((c) => `${c.jurisdiction || ""} ${c.license_number || ""}`.trim());
   const pick = (t) => claims.find((c) => c.claim_type === t);
   // Outside the states we cover there is no license card: the three federal cards and one plain line.
@@ -957,12 +970,12 @@ function renderProvider() {
     <p class="eyebrow"><a href="#/roster">Roster</a> · Provider</p>
     <div class="prov-head">
       <h1>${esc(personName(npi) || "Name not on file")}</h1>
-      <div class="ids"><span>NPI ${esc(npi)}</span><span>Roster state ${esc(member?.state || "not on roster")}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}${tax ? `<span>Primary taxonomy ${esc(tax.description || tax.code)}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
+      <div class="ids"><span>NPI ${esc(npi)}</span><span>${member ? `License board ${esc(member.state || "none")}` : "Not on roster"}</span><span>${esc(stateWhere(person))}</span>${licenses.length ? `<span>License ${esc(licenses.join(", "))}</span>` : ""}${tax ? `<span>Primary taxonomy ${esc(tax.description || tax.code)}</span>` : ""}<span>${plural(claims.length, "current receipt")}</span></div>
     </div>
     ${jump}
     ${added ? addedNote(added) : ""}
     <p class="summary">${marked ? `<span class="mark" aria-hidden="true"></span><span class="sr">Marked. </span>` : ""}${esc(providerSummary(claims, member, showLicense))}</p>
-    ${showLicense ? "" : `<p class="plainline">${esc(notCoveredLine(member?.state))}</p>`}
+    ${showLicense ? "" : `<p class="plainline">${esc(noBoardLine(person))}</p>`}
     <div class="cards">${[...byType.entries()].map(([type, rows], i) => claimCard(type, rows, i === 0)).join("")}</div>
     <p class="note" style="margin-top:24px">Times are UTC. Every row is rights pending and not shippable until its source is accepted for sale.</p>`;
 }

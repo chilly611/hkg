@@ -153,33 +153,48 @@ type ProviderFacts = {
   last_name: string | null;
   credential: string | null;
   primary_taxonomy: { code: string; description: string | null } | null;
+  practice_states: string[];
+  license_states: string[];
 };
 
 // Name, credential suffix and primary taxonomy from providers (NPPES), joined on NPI; taxonomy through
 // provider_taxonomies.provider_id. NPPES credentials come as typed ("M.D.,"), so only edge spaces and commas go.
-const FACTS_SELECT = "npi,first_name,middle_name,last_name,credential,provider_taxonomies(taxonomy_code,taxonomy_description,is_primary)";
+// license_states are the NPPES "Provider License Number State Code" values, kept per taxonomy in
+// provider_taxonomies.license_state (provider_credentials is empty), and practice_states the NPPES practice-address
+// states. Both are loaded for only part of the registry (license states for about 19K NPIs, practice addresses for
+// about 572K of 9.4M), so an empty list means the extract names none, never that we picked one.
+const FACTS_SELECT = "npi,first_name,middle_name,last_name,credential," +
+  "provider_taxonomies(taxonomy_code,taxonomy_description,is_primary,license_state),provider_addresses(state,address_type)";
+const PRACTICE_ONLY = { "provider_addresses.address_type": "eq.practice" };
+
+const stateList = (vals: (string | null | undefined)[]) =>
+  [...new Set(vals.filter(Boolean).map((s) => String(s).trim().toUpperCase()))].filter((s) => /^[A-Z]{2}$/.test(s)).sort();
 
 function toFacts(p: Row): ProviderFacts {
-  const tax = (p.provider_taxonomies ?? []).find((t: { is_primary: boolean }) => t.is_primary);
+  const taxes = p.provider_taxonomies ?? [];
+  const tax = taxes.find((t: { is_primary: boolean }) => t.is_primary);
   return {
     first_name: p.first_name,
     middle_name: p.middle_name,
     last_name: p.last_name,
     credential: p.credential?.replace(/^[\s,]+|[\s,]+$/g, "") || null,
     primary_taxonomy: tax ? { code: tax.taxonomy_code, description: tax.taxonomy_description } : null,
+    practice_states: stateList((p.provider_addresses ?? []).map((a: Row) => a.state)),
+    license_states: stateList(taxes.map((t: Row) => t.license_state)),
   };
 }
 
 async function providerFacts(npis: string[]): Promise<Map<string, ProviderFacts>> {
-  const rows = await inChunks(npis, (inList) => rest("GET", "providers", { select: FACTS_SELECT, npi: inList }));
+  const rows = await inChunks(npis, (inList) => rest("GET", "providers", { select: FACTS_SELECT, ...PRACTICE_ONLY, npi: inList }));
   return new Map(rows.map((p) => [p.npi, toFacts(p)]));
 }
 
-// The NPPES practice-address state, or null. Addresses are loaded for about 572K of the 9.4M providers so far, so
-// null is common; it means the registry extract names no state, never that we picked one.
-function practiceState(p: Row): string | null {
-  const a = (p.provider_addresses ?? []).find((x: { address_type: string }) => x.address_type === "practice");
-  return a?.state ? String(a.state).toUpperCase() : null;
+// The board a new roster member is checked against: one of its NPPES license states that has a board file, the
+// practice state first when it is one of them. Null when it holds no license on file in a covered state; the
+// practice address never picks a board.
+function licenseBoard(f: ProviderFacts, licenses: Map<string, string>): string | null {
+  const boards = f.license_states.filter((s) => licenses.has(s));
+  return boards.find((s) => f.practice_states.includes(s)) ?? boards[0] ?? null;
 }
 
 const quoteList = (ids: string[]) => `in.(${ids.map((r) => `"${r.replace(/"/g, "")}"`).join(",")})`;
@@ -339,12 +354,11 @@ async function lookup(url: URL, tenant: Tenant) {
   // No ORDER BY: the name index is varchar_pattern_ops, so ordering by the column's collation would fetch and sort
   // every prefix match. The LIMIT stops the index scan early; the page of up to 20 is sorted here.
   const params: Record<string, string> = {
-    select: `${FACTS_SELECT},status,provider_addresses${stateParam ? "!inner" : ""}(state,address_type)`,
+    select: `${FACTS_SELECT},status`,
     entity_type: "eq.individual",
-    "provider_addresses.address_type": "eq.practice",
+    ...PRACTICE_ONLY,
     limit: String(LOOKUP_LIMIT + 1),
   };
-  if (stateParam) params["provider_addresses.state"] = `eq.${stateParam}`;
   const digits = q.replace(/[\s-]/g, "");
   if (/^\d+$/.test(digits)) {
     if (digits.length !== 10) throw new HttpError(400, "an NPI is 10 digits");
@@ -356,19 +370,30 @@ async function lookup(url: URL, tenant: Tenant) {
     else params.or = `(and(first_name.like.${a}*,last_name.like.${b}*),and(last_name.like.${a}*,first_name.like.${b}*))`;
   }
 
+  // A state narrows to providers with that NPPES license state or that practice state: two queries, merged. The
+  // aliased inner embeds filter which providers match and leave the full taxonomy and address lists intact.
+  const queries = stateParam
+    ? [
+      { ...params, select: `${params.select},lic:provider_taxonomies!inner(license_state)`, "lic.license_state": `eq.${stateParam}` },
+      { ...params, select: `${params.select},pa:provider_addresses!inner(state)`, "pa.state": `eq.${stateParam}`, "pa.address_type": "eq.practice" },
+    ]
+    : [params];
   const t0 = performance.now();
-  const [rows, licenses] = await Promise.all([rest("GET", "providers", params), licenseRuns()]);
+  const [found, licenses] = await Promise.all([Promise.all(queries.map((p) => rest("GET", "providers", p))), licenseRuns()]);
   const tookMs = Math.round(performance.now() - t0);
-  const page = (rows as Row[]).slice(0, LOOKUP_LIMIT);
+  const rows = [...new Map((found.flat() as Row[]).map((p) => [p.npi, p])).values()];
+  const page = rows.slice(0, LOOKUP_LIMIT);
   const onRoster = new Set(page.length && rosterIds.length
     ? (await rest("GET", "roster_members", { select: "npi", npi: `in.(${page.map((p) => p.npi).join(",")})`, roster_id: quoteList(rosterIds) }))
       .map((r: Row) => r.npi)
     : []);
   const candidates = page.map((p) => {
-    const st = practiceState(p);
+    const { lic: _l, pa: _p, ...provider } = p;
+    const facts = toFacts(provider);
+    const board = licenseBoard(facts, licenses);
     return {
-      npi: p.npi, ...toFacts(p), state: st, npi_status: p.status,
-      on_roster: onRoster.has(p.npi), license_covered: !!st && licenses.has(st),
+      npi: p.npi, ...facts, state: board ?? shownStates(facts)[0] ?? null, npi_status: p.status,
+      on_roster: onRoster.has(p.npi), license_board: board, license_covered: !!board,
     };
   }).sort((x, y) => `${x.last_name}|${x.first_name}|${x.npi}`.localeCompare(`${y.last_name}|${y.first_name}|${y.npi}`));
   return {
@@ -379,11 +404,22 @@ async function lookup(url: URL, tenant: Tenant) {
 
 // ---------- roster-add ----------
 
-// What the license check says for one member, in plain words. A state we hold no board file for is "not covered
-// yet", never a guess; an NPI the board file could not be linked to carries the writer's own limitation text.
-function licenseOutcome(state: string | null, licenses: Map<string, string>, check: Row | null) {
-  if (!state) return { covered: false, matched: false, reason: "NPPES lists no practice state for this NPI, so no state license was checked." };
-  if (!licenses.has(state)) return { covered: false, matched: false, reason: `State license: not covered yet for ${state}.` };
+// The states shown for a provider: the practice states when NPPES lists any, otherwise its license states.
+const shownStates = (f: ProviderFacts) => (f.practice_states.length ? f.practice_states : f.license_states);
+
+// The one plain line for a provider with no license on file in a covered state. A state we hold no board file for
+// is "not covered yet", never a guess; a covered practice state without a license on file there is said as such.
+function noBoardLine(f: ProviderFacts, licenses: Map<string, string>): string {
+  const shown = shownStates(f);
+  if (!shown.length) return "State license: NPPES lists no license state or practice state for this NPI, so no board was checked.";
+  if (shown.every((s) => !licenses.has(s))) return `State license: not covered yet for ${shown.join(", ")}.`;
+  return `State license: NPPES records no license in ${[...licenses.keys()].sort().join(", ")} for this NPI, so no board was checked.`;
+}
+
+// What the license check says for one member, in plain words. The board is the member's roster state when we hold
+// a board file for it; an NPI the board file could not be linked to carries the writer's own limitation text.
+function licenseOutcome(state: string | null, facts: ProviderFacts, licenses: Map<string, string>, check: Row | null) {
+  if (!state || !licenses.has(state)) return { covered: false, matched: false, reason: noBoardLine(facts, licenses) };
   if (!check) return { covered: true, matched: false, reason: "No license receipt was written; adding again retries it." };
   if (check.match_basis === "none") return { covered: true, matched: false, reason: check.limitations };
   return { covered: true, matched: true, match_basis: check.match_basis, stage: check.stage, reason: check.limitations ?? null };
@@ -399,7 +435,7 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
   if (!npis.every((n) => /^\d{10}$/.test(n))) throw new HttpError(400, "every npi must be 10 digits");
 
   const [found, licenses, countBefore] = await Promise.all([
-    rest("GET", "providers", { select: `${FACTS_SELECT},entity_type,provider_addresses(state,address_type)`, npi: `in.(${npis.join(",")})` }),
+    rest("GET", "providers", { select: `${FACTS_SELECT},entity_type`, ...PRACTICE_ONLY, npi: `in.(${npis.join(",")})` }),
     licenseRuns(),
     rosterCount(rosterId),
   ]);
@@ -409,10 +445,12 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
   }));
   const addable = npis.filter((n) => byNpi.get(n)?.entity_type === "individual");
 
-  // The roster state is the NPPES practice state. A member already on the roster keeps its row as it is.
+  // The roster state is the board the member is checked against (licenseBoard), or null when it holds no license on
+  // file in a covered state. A member already on the roster keeps its row as it is.
+  const facts = new Map(addable.map((n) => [n, toFacts(byNpi.get(n)!)]));
   const inserted = addable.length
     ? await rest("POST", "roster_members", undefined,
-      addable.map((n) => ({ roster_id: rosterId, npi: n, state: practiceState(byNpi.get(n)!) })),
+      addable.map((n) => ({ roster_id: rosterId, npi: n, state: licenseBoard(facts.get(n)!, licenses) })),
       "resolution=ignore-duplicates,return=representation")
     : [];
   const added = new Set((inserted as Row[]).map((r) => r.npi));
@@ -440,10 +478,10 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
         npi: m.npi,
         added: added.has(m.npi),
         state: m.state,
-        provider: toFacts(byNpi.get(m.npi)!),
+        provider: facts.get(m.npi)!,
         receipts_written: shown.filter((r) => r.npi === m.npi).map(({ id, accepted_for_sale: _a, ...r }) => ({ receipt_id: id, ...r })),
         checks: mine,
-        license: licenseOutcome(m.state, licenses, mine.state_license as Row | null),
+        license: licenseOutcome(m.state, facts.get(m.npi)!, licenses, mine.state_license as Row | null),
       };
     }),
     not_added: notAdded,
