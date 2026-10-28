@@ -47,6 +47,8 @@
   .f::before { content: ""; width: .6rem; height: .6rem; border-radius: 50%; background: var(--grey); }
   .f-fresh::before { background: var(--green); } .f-due::before { background: var(--gold); }
   .f-stale::before { background: var(--red); } .f-never::before, .f-unscheduled::before { background: var(--grey); }
+  .f-poll-late::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--mute); }  /* our miss, not the publisher's */
+  .f + small { display: block; font-family: var(--mono); font-size: .72rem; color: var(--mute); margin-top: .15rem; white-space: nowrap; }
   .rights { font-family: var(--mono); font-size: .74rem; color: var(--mute); }
   .rights.ok { color: var(--green); }
   .cat { padding-top: 2.2rem; }
@@ -72,8 +74,9 @@
   <div class="empty" id="empty" hidden></div>
   <div class="note">
     <p>Fresh means the source was read within its publishing cadence. Due means one cadence has passed. Stale means two. Never means no completed run yet. A monthly publisher is read monthly; polling it daily does not make it daily.</p>
+    <p>Poll late means the garden has not checked the publisher for a new file in over 90 minutes. The poller runs twice an hour on a schedule that can be delayed; until it checks again we cannot say whether the publisher has missed a release, so a late poll is never shown as due or stale.</p>
     <p>Rights shows whether the source’s terms permit redistribution and whether it has passed the acceptance test. Rows from a source that is not accepted never ship to a buyer.</p>
-    <p>Source: <code>v_source_status</code>, computed at read time from <code>ingestion_runs</code>. Written by runs, never by hand.</p>
+    <p>Source: <code>v_source_status</code>, computed at read time from <code>ingestion_runs</code> and the poller’s last check of each source. Written by runs and the poller, never by hand.</p>
   </div>
 </main>
 <script>
@@ -93,6 +96,7 @@
 
   const fmtDate = (s) => s ? new Date(s).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
   const fmtAge = (h) => h == null ? "—" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`;
+  const hoursSince = (s) => s ? (Date.now() - new Date(s).getTime()) / 3600e3 : null;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   async function load() {
@@ -103,8 +107,10 @@
       });
       if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
       const rows = await r.json();
+      const late = rows.filter(x => x.freshness === "poll late").length;
       render(rows);
-      asof.innerHTML = `As of <b>${new Date().toLocaleString()}</b> · ${rows.length} sources · ${rows.filter(x => x.freshness === "fresh").length} fresh · ${rows.filter(x => x.freshness === "stale" || x.freshness === "never").length} stale or never`;
+      asof.innerHTML = `As of <b>${new Date().toLocaleString()}</b> · ${rows.length} sources · ${rows.filter(x => x.freshness === "fresh").length} fresh · ${rows.filter(x => x.freshness === "stale" || x.freshness === "never").length} stale or never`
+        + (late ? ` · ${late} poll late` : "");
     } catch (e) {
       asof.textContent = "The status view could not be read.";
       const empty = document.getElementById("empty");
@@ -136,7 +142,7 @@
           <td class="mono">${fmtDate(s.last_run_at)}</td>
           <td class="mono">${fmtDate(s.next_due_at)}</td>
           <td class="num">${fmtAge(s.age_hours)}</td>
-          <td><span class="f f-${esc(s.freshness)}">${esc(s.freshness)}</span></td>
+          <td><span class="f f-${esc(String(s.freshness).replace(/\s+/g, "-"))}">${esc(s.freshness)}</span>${s.freshness === "poll late" ? `<small>checked ${fmtAge(hoursSince(s.last_polled_at))} ago</small>` : ""}</td>
           <td><span class="rights${rightsOk ? " ok" : ""}">${esc(rights)}</span></td>
         </tr>`);
     }
