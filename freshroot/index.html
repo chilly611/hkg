@@ -407,7 +407,7 @@ function personName(npi) {
 }
 const lastName = (npi) => state.people.get(npi)?.last_name || "~";
 function titleCase(s) {
-  return String(s).toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+  return String(s).toLowerCase().replace(/(^|[\s'.-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
 }
 
 // ---------- status chips ----------
