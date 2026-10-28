@@ -6,10 +6,10 @@ receipts for roster NPIs.
 Downloads the latest version's Enrollment file (one row per enrollment currently approved to bill or
 to order and refer; about 3M rows, 330 MB), records the artifact and the run, runs the anomaly guard in
 cms_data.py, then writes one receipt per roster NPI:
-  in the file      raw_status "enrolled <type> <state>", claim.status = enrolled, normalized_status
-                   active (an approved enrollment on file), with the enrollment type and state of each
-                   of the NPI's enrollments in claim.enrollments; the receipt's own enrollment_type and
-                   state are the first enrollment by enrollment id
+  in the file      normalized_status enrolled (an approved enrollment on file); raw_status the first
+                   enrollment's cells as the file writes them ("PROVIDER_TYPE_CD: ...;
+                   PROVIDER_TYPE_DESC: ...; STATE_CD: ..."); the claim's enrollment_type and state are
+                   that first enrollment by enrollment id, and claim.enrollments lists every one
   not in the file  not_found (no approved enrollment under this NPI in this extract)
 
 The Enrollment file lists one NPI per enrollment. NPIs that appear only in the Additional NPIs sub-file
@@ -34,9 +34,10 @@ from core_run import Rest, download, log, run_source
 SOURCE = "CMS PECOS enrollment"
 SERIES = "2457ea29-fc82-48b0-86ec-3b0755de7515"   # Medicare Fee-For-Service Public Provider Enrollment
 CLAIM_TYPE = "pecos_enrollment"
-PARSER = "ingest_cms_pecos/1"
+PARSER = "ingest_cms_pecos/2"
 COLUMNS = ("NPI", "MULTIPLE_NPI_FLAG", "PECOS_ASCT_CNTL_ID", "ENRLMT_ID", "PROVIDER_TYPE_CD",
            "PROVIDER_TYPE_DESC", "STATE_CD")
+RAW = ("PROVIDER_TYPE_CD", "PROVIDER_TYPE_DESC", "STATE_CD")
 # First two characters of PROVIDER_TYPE_CD (PPEF Data Guidance, section 3.2).
 ENROLLMENT_TYPES = {
     "00": "PART A PROVIDER", "12": "PART B SUPPLIER", "14": "PRACTITIONER",
@@ -67,6 +68,7 @@ def parse_file(path, wanted):
             if npi in wanted:
                 by_npi.setdefault(npi, []).append({
                     "row": row_count + 1,   # +1 for the header line
+                    "raw": cms_data.raw_cells(r, RAW),
                     "enrollment_id": (r["ENRLMT_ID"] or "").strip(),
                     "enrollment_type": ENROLLMENT_TYPES[code[:2]],
                     "provider_type_cd": code,
@@ -83,9 +85,6 @@ def parse_file(path, wanted):
 def claim_for(enrollments, artifact_id):
     enrollments = sorted(enrollments, key=lambda e: e["enrollment_id"])
     first = enrollments[0]
-    raw = f"enrolled {first['enrollment_type']} {first['state'] or ''}".strip()
-    if len(enrollments) > 1:
-        raw += f" (+{len(enrollments) - 1} more enrollments)"
     claim = {
         "status": "enrolled",
         "enrollment_type": first["enrollment_type"],
@@ -96,7 +95,7 @@ def claim_for(enrollments, artifact_id):
                                            "provider_type_desc", "state", "pac_id")} for e in enrollments],
     }
     lineage = [{"artifact_id": artifact_id, "row": e["row"], "enrollment_id": e["enrollment_id"]} for e in enrollments]
-    return raw, "active", claim, None, lineage
+    return first["raw"], "enrolled", claim, None, lineage
 
 
 def main(argv=None):

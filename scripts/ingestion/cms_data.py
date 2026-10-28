@@ -11,7 +11,8 @@ The data-viewer and file endpoints answer with Last-Modified = now, so they cann
 
 The loaders hold no table of their own. A run downloads the full CSV (the artifact, hashed like
 every other source), checks it, and writes one credential_receipts row per roster NPI from that
-file: the claim when the NPI is in the file, not_found when it is not. Rosters come from
+file: the source's status when the NPI is in the file (opted_out, enrolled), not_found when it is not.
+raw_status quotes the file's own cells with their column names (raw_cells). Rosters come from
 roster_members (migrations/2026-10-27_freshroot_api.sql); a run with no --roster covers every roster.
 
 Anomaly guard, on every run (each check stops the run before any receipt is written):
@@ -157,6 +158,11 @@ def check_flips(run, claim_type, found_now, allow_large_diff):
     if len(before) >= FLIP_MIN and share > FLIP_LIMIT and not allow_large_diff:
         raise RuntimeError(f"anomalous diff: {share:.0%} of roster NPIs changed between found and not_found; "
                            f"rerun with --allow-large-diff after review")
+
+
+def raw_cells(row, columns):
+    """raw_status: the file's cells, unaltered, under the file's own column names."""
+    return "; ".join(f"{c}: {row[c]}" for c in columns)
 
 
 def write_receipts(run, release, claim_type, roster, claims, retrieved_at, parser_version, limitations):

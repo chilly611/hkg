@@ -5,16 +5,14 @@ CMS Medicare Opt Out Affidavits (data.cms.gov) -> medicare_optout receipts for r
 Downloads the latest version's CSV (the list of practitioners currently opted out of Medicare),
 records the artifact and the run, runs the anomaly guard in cms_data.py, then writes one receipt per
 roster NPI:
-  in the file      raw_status "opted_out <effective> to <end>", claim.status = opted_out, with the
-                   effective and end dates of the affidavit; source_effective_at = effective date
+  in the file      normalized_status opted_out; raw_status the affidavit's date cells as the file
+                   writes them ("Optout Effective Date: ...; Optout End Date: ..."); the effective and
+                   end dates in the claim; source_effective_at = effective date
   not in the file  not_found (not on this month's list; never "participating")
 
-normalized_status uses the receipt vocabulary, read for the claim "Medicare opt-out":
-  active    the opt-out is in effect today (effective <= today <= end)
-  expired   the end date has passed (the list is published monthly, so it can lag)
-  inactive  the effective date is still ahead
-A provider can hold more than one affidavit; the receipt reports the one in effect today, else the
-latest by effective date, and lists every affidavit in claim.affidavits.
+The file lists practitioners CMS currently holds as opted out, so every listed NPI is opted_out; the
+dates say when. A provider can hold more than one affidavit; the receipt reports the one in effect
+today, else the latest by effective date, and lists every affidavit in claim.affidavits.
 
 source_published_at: the version's 'modified' date in the data.cms.gov catalog.
 
@@ -36,9 +34,10 @@ from core_run import Rest, download, log, run_source
 SOURCE = "CMS Medicare opt-out affidavits"
 SERIES = "9887a515-7552-4693-bf58-735c77af46d7"   # Opt Out Affidavits
 CLAIM_TYPE = "medicare_optout"
-PARSER = "ingest_cms_optout/1"
+PARSER = "ingest_cms_optout/2"
 COLUMNS = ("NPI", "Optout Effective Date", "Optout End Date", "Specialty", "State Code",
            "Eligible to Order and Refer", "Last Updated", "First Name", "Last Name")
+RAW = ("Optout Effective Date", "Optout End Date")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 LIMITATIONS = ("CMS lists practitioners currently opted out of Medicare, published monthly; an opt-out that "
                "began or ended after the list was cut is not reflected. not_found means not on this list.")
@@ -61,6 +60,7 @@ def parse_file(path):
                 continue
             by_npi.setdefault(npi, []).append({
                 "row": row_count + 1,   # +1 for the header line
+                "raw": cms_data.raw_cells(r, RAW),
                 "effective_date": eff,
                 "end_date": end,
                 "specialty": (r["Specialty"] or "").strip() or None,
@@ -71,19 +71,9 @@ def parse_file(path):
     return by_npi, row_count, failed
 
 
-def status_on(aff, today):
-    if aff["effective_date"] > today:
-        return "inactive"
-    if aff["end_date"] < today:
-        return "expired"
-    return "active"
-
-
 def claim_for(affidavits, today, artifact_id):
-    in_effect = [a for a in affidavits if status_on(a, today) == "active"]
+    in_effect = [a for a in affidavits if a["effective_date"] <= today <= a["end_date"]]
     pick = max(in_effect or affidavits, key=lambda a: (a["effective_date"], a["end_date"]))
-    norm = status_on(pick, today)
-    raw = f"opted_out {pick['effective_date']} to {pick['end_date']}"
     claim = {
         "status": "opted_out",
         "effective_date": pick["effective_date"],
@@ -95,7 +85,7 @@ def claim_for(affidavits, today, artifact_id):
         "affidavits": [{k: a[k] for k in ("effective_date", "end_date", "specialty", "state")} for a in affidavits],
     }
     lineage = [{"artifact_id": artifact_id, "row": a["row"]} for a in affidavits]
-    return raw, norm, claim, pick["effective_date"], lineage
+    return pick["raw"], "opted_out", claim, pick["effective_date"], lineage
 
 
 def main(argv=None):
