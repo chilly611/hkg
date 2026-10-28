@@ -1,8 +1,9 @@
 # Release poller: scripts/poll_sources.py detects new publisher releases and hands each one to its
 # loader. Twice an hour, off the hour: GitHub runs schedules best-effort and delays or drops runs that
 # start at :00, so :17 and :47. A late or dropped run shows on the status page as "poll late" once a
-# source has gone 90 minutes unchecked (scripts/sql/2026-10-28_poll_late.sql), never as a publisher miss.
-# Needs two repository secrets: SUPABASE_URL and SUPABASE_SECRET_KEY (the sb_secret_ key). The scripts read it as SUPABASE_SERVICE_ROLE_KEY, so the step maps it to that name.
+# source has gone 90 minutes unchecked (migrations/2026-10-28_poll_late.sql), never as a publisher miss.
+# Needs two repository secrets: SUPABASE_URL and SUPABASE_SECRET_KEY (the sb_secret_ key). The scripts
+# read it as SUPABASE_SERVICE_ROLE_KEY, so the step maps it to that name.
 name: poll-sources
 
 on:

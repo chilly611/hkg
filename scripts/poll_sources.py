@@ -53,7 +53,7 @@ source keeps its last clocks, so v_source_status ages it to due and stale on its
 Every source the poller checks, reachable or not, gets data_sources.last_polled_at = the time of the
 check (a dry run stamps nothing). v_source_status reads "poll late" when that stamp is more than 90
 minutes old, so a delayed or dropped GitHub run is never shown as a publisher miss
-(scripts/sql/2026-10-28_poll_late.sql). A failed stamp is logged and never fails the poll.
+(migrations/2026-10-28_poll_late.sql). A failed stamp is logged and never fails the poll.
 
 Exit code 1 if the poller itself fails (an uncaught error, a detector that read a reachable page and
 could not parse it, a loader run that ended failed, a release that failed MAX_FAILED times) or every
