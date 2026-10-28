@@ -138,17 +138,19 @@ def fetch_providers(npis):
 
 
 def fetch_receipts(npis):
-    """Latest non-superseded receipt per (npi, claim_type, jurisdiction, license_number) from v_current_receipts."""
+    """Latest non-superseded receipt per (npi, claim_type, jurisdiction, license_number) from v_current_receipts.
+    Paged: 300 NPIs hold well over PostgREST's 1,000-row cap. id breaks ties so the pages never overlap."""
     out = []
     for batch in chunks(npis, 300):
-        rows = rest_get("v_current_receipts", {
-            "select": "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,claim,"
-                      "source_effective_at,source_published_at,retrieved_at,next_check_due_at,origin,stage,"
-                      "match_basis,match_confidence,limitations,supersedes_id,is_past_due,source_id,artifact_id",
-            "npi": f"in.({','.join(batch)})",
-            "order": "npi.asc,claim_type.asc",
-        })
-        out.extend(rows)
+        try:
+            out += rest().select_all(
+                "v_current_receipts",
+                "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,claim,"
+                "source_effective_at,source_published_at,retrieved_at,next_check_due_at,origin,stage,"
+                "match_basis,match_confidence,limitations,supersedes_id,is_past_due,source_id,artifact_id",
+                order="npi.asc,claim_type.asc,id.asc", npi=f"in.({','.join(batch)})")
+        except RuntimeError as e:
+            die(str(e))
     return out
 
 
