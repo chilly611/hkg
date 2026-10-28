@@ -1,10 +1,16 @@
 // freshroot · the FreshRoot API. One Supabase Edge Function.
 //
-//   GET  /v1/sources                         v_source_status
+//   GET  /v1/sources                         v_source_status, each row with lookup_url (the source row's official
+//                                            public lookup, when it carries one) and, for a catalog source, the
+//                                            catalog's release_date and file_period
 //   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the four
 //                                            current checks (state license, NPI, OIG, SAM)
-//   GET  /v1/providers/{npi}/claims          provider facts and current receipts, each with its history
-//   GET  /v1/deltas?roster_id=&cursor=&limit= receipts created after the cursor, with change_kind
+//   GET  /v1/providers/{npi}/claims          provider facts and current receipts, each with its history; a license
+//                                            receipt that matched more than one license lists them all
+//   GET  /v1/receipts/{id}/source            the evidence behind one receipt: the source rows it was built from as
+//                                            stored (when retained), the artifact hash, capture time and writer
+//   GET  /v1/deltas?roster_id=&cursor=&limit= receipts created after the cursor, with change_kind (new,
+//                                            status_change, field_change, refresh)
 //   GET  /v1/coverage?roster_id=             roster_coverage(): covered today, in 30 days, under license, never
 //   GET  /v1/lookup?q=&state=&roster_id=     up to 20 individual providers by NPI or name, each marked on_roster.
 //                                            Reads only; it writes nothing.
@@ -488,6 +494,157 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
   };
 }
 
+// ---------- sources ----------
+
+// A data.cms.gov catalog source names two dates in its run notes: the catalog's "modified" date (the release) and
+// the period in the version title ("Opt Out Affidavits : 2026-09-01"). Both, or neither.
+const CATALOG_NOTE = /from 'modified' of '[^']*? : (\d{4}-\d{2}(?:-\d{2})?)'/;
+
+async function sources() {
+  const [status, rows] = await Promise.all([
+    rest("GET", "v_source_status", { select: "*" }),
+    // select=* so lookup_url is read once the column exists, and null before it does.
+    rest("GET", "data_sources", { select: "*", claim_types: "not.is.null" }),
+  ]);
+  const byName = new Map((rows as Row[]).map((s) => [s.name, s]));
+  const catalog = await Promise.all((rows as Row[])
+    .filter((s) => String(s.detection_url ?? "").includes("data.cms.gov/data.json"))
+    .map(async (s) => {
+      const runs = await rest("GET", "ingestion_runs", {
+        select: "source_published_at,run_notes", source_id: `eq.${s.id}`, status: "eq.completed",
+        order: "completed_at.desc", limit: "1",
+      });
+      const period = runs[0]?.run_notes?.match(CATALOG_NOTE)?.[1];
+      return [s.name, period && runs[0].source_published_at ? { release_date: runs[0].source_published_at, file_period: period } : null] as const;
+    }));
+  const dates = new Map(catalog);
+  return {
+    sources: (status as Row[]).map((s) => ({
+      ...s,
+      lookup_url: byName.get(s.name)?.lookup_url ?? null,
+      release_date: dates.get(s.name)?.release_date ?? null,
+      file_period: dates.get(s.name)?.file_period ?? null,
+    })),
+  };
+}
+
+// ---------- evidence ----------
+
+// The NPI must sit on one of the tenant's rosters; the same 403 whether or not it exists.
+async function requireOnRoster(tenant: Tenant, npi: string | null, refusal: string) {
+  if (!npi || !tenant.roster_ids.length) throw new HttpError(403, refusal);
+  const onRoster = await rest("GET", "roster_members", {
+    select: "roster_id", npi: `eq.${npi}`, roster_id: quoteList(tenant.roster_ids), limit: "1",
+  });
+  if (!onRoster.length) throw new HttpError(403, refusal);
+}
+
+// Lineage tables whose rows are kept in the database, so a receipt can show the row it was read from. Other lineage
+// entries (the CMS loaders' row numbers in the artifact file) point into a file we keep only as a hash.
+const RETAINED_TABLES = new Set(["providers", "state_license_lookups", "sam_exclusions", "oig_exclusions"]);
+
+async function receiptSource(url: URL, tenant: Tenant, id: string) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) throw new HttpError(400, "receipt id must be a uuid");
+  const [r] = await rest("GET", "credential_receipts", {
+    select: "id,npi,claim_type,jurisdiction,source_id,artifact_id,run_id,retrieved_at,source_published_at,lineage,parser_version",
+    id: `eq.${id}`,
+  });
+  await requireOnRoster(tenant, r?.npi ?? null, "receipt not available to this key");
+  const [[src], art, run] = await Promise.all([
+    rest("GET", "data_sources", { select: "name,accepted_for_sale", id: `eq.${r.source_id}` }),
+    r.artifact_id
+      ? rest("GET", "source_artifacts", { select: "sha256,file_name,retrieved_at,source_published_at,row_count", id: `eq.${r.artifact_id}` })
+      : [],
+    r.run_id ? rest("GET", "ingestion_runs", { select: "completed_at,run_type", id: `eq.${r.run_id}` }) : [],
+  ]);
+  if (!src.accepted_for_sale && url.searchParams.get("include_unaccepted") !== "true") {
+    throw new HttpError(403, "source not accepted for sale; ask with include_unaccepted=true");
+  }
+  const lineage: Row[] = Array.isArray(r.lineage) ? r.lineage : [];
+  const kept = lineage.filter((e) => RETAINED_TABLES.has(e.table) && /^[0-9a-f-]{36}$/.test(String(e.id)));
+  const rows = (await Promise.all(kept.map(async (e) => {
+    const [row] = await rest("GET", e.table, { select: "*", id: `eq.${e.id}` });
+    return row ? { table: e.table, id: e.id, row } : null;
+  }))).filter(Boolean);
+  return {
+    receipt_id: r.id,
+    npi: r.npi,
+    claim_type: r.claim_type,
+    jurisdiction: r.jurisdiction,
+    source_name: src.name,
+    retained: rows.length > 0,
+    rows,
+    // Lineage that names a place in the file rather than a stored row (a CMS row number), shown as given.
+    file_pointers: lineage.filter((e) => !RETAINED_TABLES.has(e.table)),
+    artifact: art[0] ?? null,
+    captured_at: art[0]?.retrieved_at ?? r.retrieved_at,
+    run_completed_at: run[0]?.completed_at ?? null,
+    writer_version: r.parser_version,
+  };
+}
+
+// A license receipt picks one board row when several link to the NPI (receipts_for_state_licenses/1). These are
+// all of them, in the writer's order, the first being the one the receipt carries.
+const LICENSE_SELECTION_RULE = "highest match confidence, then active status, then latest issue date, then row id " +
+  "(receipts_for_state_licenses/1)";
+const LICENSE_ROW_FIELDS = "id,license_number,license_type,raw_status,normalized_status,issue_date,expiration_date," +
+  "match_basis,match_confidence,source_record_key";
+
+async function addMatchedLicenses(claims: Row[]) {
+  const multi = claims.filter((c) => c.claim_type === "state_license" && Number(c.claim?.licenses_matched) > 1);
+  if (!multi.length) return;
+  const lineage = new Map((await inChunks(multi.map((c) => c.receipt_id), (inList) =>
+    rest("GET", "credential_receipts", { select: "id,lineage", id: inList }))).map((r) => [r.id, r.lineage ?? []]));
+  const ids = [...new Set([...lineage.values()].flat().filter((e: Row) => e.table === "state_license_lookups").map((e: Row) => e.id))];
+  const rows = new Map((await inChunks(ids as string[], (inList) =>
+    rest("GET", "state_license_lookups", { select: LICENSE_ROW_FIELDS, id: inList }))).map((l) => [l.id, l]));
+  const rank = (a: Row, b: Row) =>
+    Number(b.match_confidence) - Number(a.match_confidence) ||
+    Number(b.normalized_status === "active") - Number(a.normalized_status === "active") ||
+    (b.issue_date ?? "").localeCompare(a.issue_date ?? "") ||
+    String(a.id).localeCompare(String(b.id));
+  for (const c of multi) {
+    const mine = (lineage.get(c.receipt_id) as Row[]).map((e) => rows.get(e.id)).filter(Boolean) as Row[];
+    c.matched_licenses = mine.sort(rank).map(({ id: _id, ...l }, i) => ({ ...l, selected: i === 0 }));
+    c.selection_rule = LICENSE_SELECTION_RULE;
+    // TODO(link origin): the license writer does not record which store linked the license to the NPI (NPPES
+    // license field, provider_credentials, or a prior exact link). Record it on state_license_lookups, then return
+    // it here instead of null.
+    c.link_origin = null;
+  }
+}
+
+// ---------- deltas ----------
+
+// field_change: the normalized status is unchanged but a canonical claim field differs from the superseded row.
+// Compared: license_number (the receipt column), and issue_date, expiration_date and restrictions in claim;
+// restrictions only when either row carries the key. Everything else unchanged stays refresh.
+const FIELD_CHANGE_FIELDS: [string, (r: Row) => unknown, (r: Row) => boolean][] = [
+  ["license_number", (r) => r.license_number, () => true],
+  ["issue_date", (r) => r.claim?.issue_date, () => true],
+  ["expiration_date", (r) => r.claim?.expiration_date, () => true],
+  ["restrictions", (r) => r.claim?.restrictions, (r) => !!r.claim && "restrictions" in r.claim],
+];
+const norm = (v: unknown) => (v === undefined || v === null || v === "" ? null : JSON.stringify(v));
+
+async function markFieldChanges(rows: Row[]) {
+  const refresh = rows.filter((r) => r.change_kind === "refresh" && r.supersedes_id);
+  if (!refresh.length) return;
+  const prior = new Map((await inChunks([...new Set(refresh.map((r) => r.supersedes_id as string))], (inList) =>
+    rest("GET", "credential_receipts", { select: "id,license_number,claim", id: inList }))).map((p) => [p.id, p]));
+  for (const r of refresh) {
+    const p = prior.get(r.supersedes_id);
+    if (!p) continue;
+    const changes = FIELD_CHANGE_FIELDS
+      .filter(([, get, present]) => (present(r) || present(p)) && norm(get(r)) !== norm(get(p)))
+      .map(([field, get]) => ({ field, old: get(p) ?? null, new: get(r) ?? null }));
+    if (!changes.length) continue;
+    r.change_kind = "field_change";
+    r.field_changes = changes;
+    r.prior_receipt_id = r.supersedes_id;
+  }
+}
+
 function parseLimit(raw: string | null): number {
   if (raw === null || raw === "") return DEFAULT_LIMIT;
   const n = Number(raw);
@@ -509,9 +666,9 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
 
   if (path === "/v1/lookup") return lookup(url, tenant);
 
-  if (path === "/v1/sources") {
-    return { sources: await rest("GET", "v_source_status", { select: "*" }) };
-  }
+  if (path === "/v1/sources") return sources();
+
+  if ((m = path.match(/^\/v1\/receipts\/([^/]+)\/source$/))) return receiptSource(url, tenant, decodeURIComponent(m[1]));
 
   if ((m = path.match(/^\/v1\/rosters\/([^/]+)$/))) {
     const rosterId = requireRoster(tenant, decodeURIComponent(m[1]));
@@ -534,18 +691,12 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
   if ((m = path.match(/^\/v1\/providers\/([^/]+)\/claims$/))) {
     const npi = m[1];
     if (!/^\d{10}$/.test(npi)) throw new HttpError(400, "npi must be 10 digits");
-    if (!tenant.roster_ids.length) throw new HttpError(403, "npi not on a roster available to this key");
-    const onRoster = await rest("GET", "roster_members", {
-      select: "roster_id",
-      npi: `eq.${npi}`,
-      roster_id: quoteList(tenant.roster_ids),
-      limit: "1",
-    });
-    if (!onRoster.length) throw new HttpError(403, "npi not on a roster available to this key");
+    await requireOnRoster(tenant, npi, "npi not on a roster available to this key");
     const [claims, facts] = await Promise.all([
       rpc("freshroot_claims", { p_npi: npi, p_include_unaccepted: includeUnaccepted }),
       providerFacts([npi]),
     ]);
+    await addMatchedLicenses(claims.claims ?? []);
     return { ...claims, provider: facts.get(npi) ?? null };
   }
 
@@ -562,6 +713,7 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
       p_include_unaccepted: includeUnaccepted,
     });
     const page = rows.slice(0, limit);
+    await markFieldChanges(page);
     const last = page[page.length - 1];
     return {
       roster_id: rosterId,

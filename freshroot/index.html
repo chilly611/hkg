@@ -97,6 +97,7 @@ h3 { font-weight: 500; font-size: 15px; margin: 0; }
 }
 .chip.kind-status_change { background: var(--canary); color: var(--ink); border-color: transparent; }
 .chip.kind-new { color: var(--tq-text); border-color: var(--tq); }
+.chip.kind-field_change { border-color: var(--ink); color: var(--ink); }
 
 /* Fixed review chip */
 .fixed-chips { position: fixed; left: var(--gutter); bottom: 16px; z-index: 30; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100vw - 2 * var(--gutter)); }
@@ -151,7 +152,9 @@ input:hover, select:hover { border-color: var(--ink-3); }
 .scale .mid { transform: translateX(-50%); }
 .scale .end { right: 0; }
 .figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
-@media (min-width: 520px) { .figs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 520px) { .figs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.bar-lbl { font-size: 11.5px; color: var(--ink-3); margin: 0 0 6px; }
+.summary-line { font-size: 13px; color: var(--ink-2); margin: 0 0 16px; }
 .figs dt { font-size: 11.5px; color: var(--ink-3); }
 .figs dd { margin: 0; font-family: var(--mono); font-size: 13px; }
 
@@ -197,6 +200,18 @@ input:hover, select:hover { border-color: var(--ink-3); }
   .rrow.marked::before { top: 50%; margin-top: -4px; }
 }
 .count-line { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+.this-roster { border-top: 2px solid var(--ink); padding-top: 24px; }
+.this-roster h2 { margin: 0 0 16px; }
+.queues { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0 0 20px; }
+@media (min-width: 720px) { .queues { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.queue { text-align: left; border: 1px solid var(--line); background: var(--white); border-radius: 12px; padding: 10px 14px; cursor: pointer; font-size: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.queue .mono { font-size: 20px; }
+.queue .q-blurb { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
+.queue:hover { border-color: var(--ink-3); }
+.queue.on { border-color: var(--ink); background: var(--line-2); }
+.chip.qchip { border-style: dashed; font-size: 11.5px; padding: 0 7px; margin-left: 4px; vertical-align: 1px; }
+.empty { padding: 24px 0; border-bottom: 1px solid var(--line); }
+.empty p { margin: 0 0 12px; }
 
 /* Look up a physician */
 .lookup { border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 0 0 40px; }
@@ -279,6 +294,22 @@ details.claimf { margin-top: 12px; font-size: 13px; }
 details.claimf summary { cursor: pointer; color: var(--ink-2); }
 details.claimf pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; background: var(--line-2); padding: 12px; border-radius: 10px; }
 .plainline { font-size: 15px; margin: -16px 0 32px; max-width: 64ch; }
+.gloss { margin: -16px 0 24px; }
+.newer-line { font-size: 13px; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.chip.newer { border-color: var(--ink); color: var(--ink); }
+.matched { margin-top: 16px; font-size: 13px; }
+.matched h3 { font-size: 13px; margin: 0 0 4px; }
+.mrow { display: grid; gap: 2px 12px; padding: 8px 0; border-bottom: 1px solid var(--line-2); grid-template-columns: minmax(0, 1fr) auto; }
+@media (min-width: 520px) { .mrow { grid-template-columns: 80px minmax(0, 1fr) auto; } }
+.mrow > :nth-child(4) { grid-column: 1 / -1; }
+.mrow.sel { background: var(--line-2); }
+.evrow { margin-top: 16px; border-top: 1px solid var(--line-2); padding-top: 12px; font-size: 13px; }
+.evlinks { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; }
+.evlink { font-weight: 500; }
+details.evidence { margin-top: 8px; }
+details.evidence summary { cursor: pointer; color: var(--tq-text); text-decoration: underline; text-underline-offset: 3px; }
+details.evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; background: var(--line-2); padding: 12px; border-radius: 10px; max-height: 360px; overflow: auto; }
+.ev-none { font-family: var(--mono); font-size: 13px; margin: 8px 0; }
 .note.added { margin: 0 0 16px; }
 .npi-jump { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; max-width: 420px; margin: 0 0 24px; }
 
@@ -373,8 +404,8 @@ const CLAIM_LABEL = {
 };
 const BUCKETS = [
   ["covered_today", "Covered today", "A current receipt exists for at least one roster physician."],
-  ["in_30_days", "In 30 days", "Source seeded or planned; no current receipt for this roster yet."],
-  ["under_license", "Under license", "Needs a contract or confirmed terms before it can be loaded."],
+  ["in_30_days", "Planned", "Source seeded or planned; no current receipt for this roster yet."],
+  ["under_license", "Requires agreement", "Needs a contract or confirmed terms before it can be loaded."],
   ["never", "Never", "The garden will not resell it."],
 ];
 
@@ -386,8 +417,9 @@ const state = {
   claims: new Map(),       // npi -> claims response, or an Error
   people: new Map(),       // npi -> provider facts from the API (name, credential, primary taxonomy)
   latest: new Map(),       // npi -> Map(source_name|claim_type|jurisdiction -> newest receipt)
+  evidence: new Map(),     // receipt id -> /v1/receipts/{id}/source response
   sim: null,               // source name under a simulated outage, or null
-  rosterQuery: "", rosterState: "", rosterSort: "marked", changesKind: "", changesClaim: "",
+  rosterQuery: "", rosterState: "", rosterSort: "marked", rosterQueue: "", changesKind: "", changesClaim: "",
   lastNpi: null,
   lookup: { q: "", st: "", seq: 0, busy: false, result: null, error: null, errWhat: "", adding: null, timer: 0 },
   justAdded: null,         // the roster-add response for the NPI just added, shown once on its Provider page
@@ -422,6 +454,10 @@ function fmtAge(hours) {
   return `${(h / 24).toFixed(1)} d`;
 }
 const ageHoursFrom = (iso) => (Date.now() - Date.parse(iso)) / 3.6e6;
+// Cadence in words; the exact hours go in a tooltip.
+const CADENCE_WORDS = { 24: "daily", 168: "weekly", 720: "monthly", 2190: "quarterly", 8760: "yearly" };
+const cadenceWord = (h) => (h ? CADENCE_WORDS[h] || `every ${fmtAge(h)}` : "no schedule");
+const cadenceHtml = (h) => (h ? `<span title="every ${esc(h)} hours">${esc(cadenceWord(h))}</span>` : "no schedule");
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const claimName = (type, jur) => (CLAIM_LABEL[type] || words(type)) + (jur ? ` · ${jur}` : "");
 const shortId = (id) => (id ? String(id).slice(0, 8) : "none");
@@ -482,13 +518,32 @@ const noBoardShort = (p) => {
   const shown = shownStates(p);
   return shown.length && !shown.some(licenseCovered) ? "license not covered yet" : `no ${coveredList()} license on file`;
 };
-// The mark: any license status other than active, or any exclusion found. A state we do not cover has no license
-// status at all, so it is not marked for that.
-function isMarked(m) {
+// Three attention queues, each a separate fact about a physician's four checks:
+//   adverse     a license read as something other than active (not unknown, not unmatched), an exclusion found, or
+//               an NPI deactivated or inactive. Only this one carries the orange-red mark. Unknown is never adverse.
+//   unresolved  a check that reads unknown, a license no board row could be linked to, or an identity still pending
+//               human review (stage candidate)
+//   stale       any check past its next check (or offline in the simulation), or a check with no receipt. A license
+//               in a state whose board file we do not hold is not covered, so it is not counted missing.
+const NOT_ADVERSE = new Set(["active", "unknown", "not_found"]);
+const QUEUES = [
+  ["adverse", "Adverse", "license not active, exclusion found, or NPI deactivated or inactive"],
+  ["unresolved", "Unresolved", "unknown, unmatched, or identity pending review"],
+  ["stale", "Stale or missing", "a check past its next check, or no receipt"],
+];
+function queuesOf(m) {
   const k = m.checks || {};
-  const licenseBad = (k.state_license || licenseCovered(m.state)) && checkStatus(k.state_license) !== "active";
-  return !!licenseBad || exclusionFound(k.oig_exclusion) || exclusionFound(k.sam_exclusion);
+  const lic = k.state_license, npi = k.npi_status;
+  const adverse = (!!lic && !NOT_ADVERSE.has(lic.normalized_status)) || exclusionFound(k.oig_exclusion) ||
+    exclusionFound(k.sam_exclusion) || (!!npi && ["deactivated", "inactive"].includes(npi.normalized_status));
+  const present = CHECKS.map(([t]) => k[t]).filter(Boolean);
+  const unresolved = present.some((c) => checkStatus(c) === "unknown" || c.stage === "candidate") ||
+    (!!lic && (lic.normalized_status === "not_found" || lic.match_basis === "none"));
+  const stale = present.some((c) => checkStatus(c) === "stale") ||
+    CHECKS.some(([t]) => !k[t] && (t !== "state_license" || licenseCovered(m.state)));
+  return { adverse, unresolved, stale };
 }
+const isMarked = (m) => queuesOf(m).adverse;
 function checkChip(type, label, c, member) {
   const lbl = `<span class="lbl">${label}</span>`;
   const st = checkStatus(c);
@@ -675,10 +730,14 @@ function renderSources() {
   const missed = src.filter((s) => s.freshness === "due" || s.freshness === "stale");
   const read = src.filter((s) => s.last_run_at);
   const withRows = new Set((state.deltas || []).map((r) => r.source_name));
+  const cleared = src.filter((s) => s.accepted_for_sale).length;
+  // The poller writes a run only when it finds a release, so the latest detection on record is the last poll we can show.
+  const lastPoll = src.map((s) => s.detected_at).filter(Boolean).sort().pop();
   el.innerHTML = `
     <p class="eyebrow">Sources</p>
     <h1>How old is each source?</h1>
-    <p class="lede">Each bar is the time since the last completed read, against that source's own schedule. The tick is when the next read is due; the end of the bar is twice that, where a source turns stale.</p>
+    <p class="summary-line mono">sources read ${read.length} of ${src.length} · receipts ${state.deltas ? state.deltas.length.toLocaleString("en-US") : "loading"} · rights cleared ${cleared} of ${src.length} · <span title="Latest detection on record. The poller writes a run only when it finds a new release.">last poll ${lastPoll ? `${pad2(new Date(lastPoll).getUTCHours())}:${pad2(new Date(lastPoll).getUTCMinutes())} UTC` : "none on record"}</span></p>
+    <p class="lede">Two clocks per source. Read on schedule: the bar is the time since our last completed read against that source's own schedule; the tick is when the next read is due and the end of the bar is twice that, where a source turns stale. Publisher file age: today minus the date on the publisher's file, which can be old even when we read it on time.</p>
     <div class="focal">
       <div class="fig">${read.length}<small>of ${src.length} sources read</small></div>
       <div class="side"><span class="mono ${missed.length ? "shock" : ""}">${missed.length}</span> ${missed.length === 1 ? "source" : "sources"} missed a read on schedule${missed.length ? ": " + missed.map((s) => esc(s.name)).join(", ") : ""}.</div>
@@ -700,7 +759,7 @@ function renderSources() {
       ${state.sim ? `<p class="note" style="grid-column: 1 / -1">${simSummary()}</p>` : ""}
     </form>
     <div class="srcs">${src.map(sourceRow).join("")}</div>
-    <p class="note" style="margin-top:16px">Times are UTC. File date is the publisher's date on the file; read is when the last ingestion run completed.</p>`;
+    <p class="note" style="margin-top:16px">Times are UTC. File date is the publisher's date on the file; file age is today minus that date; read is when the last ingestion run completed. Rows in last file is the row count of the file last read: for the NPI Registry that is the weekly update file, not the whole registry.</p>`;
 }
 function simSummary() {
   let rows = 0, npis = 0;
@@ -714,6 +773,7 @@ function simSummary() {
 function sourceRow(s) {
   const cad = s.cadence_hours == null ? null : Number(s.cadence_hours);
   const age = s.age_hours == null ? null : Number(s.age_hours);
+  const fileAge = s.file_date ? ageHoursFrom(s.file_date) : null;
   let bar;
   if (!s.last_run_at) {
     bar = `<div class="track never">not yet loaded: no completed run on record</div>`;
@@ -722,7 +782,7 @@ function sourceRow(s) {
       <div class="scale"><span>read ${fmtAge(age)} ago, no schedule</span></div>`;
   } else {
     const pct = Math.max(1.5, Math.min(100, (age / (2 * cad)) * 100));
-    bar = `<div class="track" role="img" aria-label="Read ${fmtAge(age)} ago; due every ${fmtAge(cad)}; ${esc(s.freshness)}">
+    bar = `<div class="track" role="img" aria-label="Read on schedule: read ${fmtAge(age)} ago; due every ${fmtAge(cad)}; ${esc(s.freshness)}">
         <div class="fill ${esc(s.freshness)}" style="width:${pct.toFixed(1)}%"></div><div class="tick" style="left:50%"></div></div>
       <div class="scale"><span>${fmtAge(age)} old</span><span class="mid" style="left:50%">due at ${fmtAge(cad)}</span><span class="end">stale at ${fmtAge(2 * cad)}</span></div>`;
   }
@@ -735,14 +795,16 @@ function sourceRow(s) {
   return `<div class="src">
     <div>
       <h3>${esc(s.name)}${sim}</h3>
-      <div class="meta">${esc((s.claim_types || []).map((c) => CLAIM_LABEL[c] || words(c)).join(", "))}${s.jurisdiction ? ` · ${esc(s.jurisdiction)}` : ""} · ${cad ? `every ${fmtAge(cad)}` : "no schedule"}${s.records_processed != null ? ` · <span class="mono">${Number(s.records_processed).toLocaleString("en-US")}</span> records` : ""} · ${s.accepted_for_sale ? "accepted" : "rights pending"}</div>
+      <div class="meta">${esc((s.claim_types || []).map((c) => CLAIM_LABEL[c] || words(c)).join(", "))}${s.jurisdiction ? ` · ${esc(s.jurisdiction)}` : ""} · ${cadenceHtml(cad)}${s.records_processed != null ? ` · <span class="mono">${Number(s.records_processed).toLocaleString("en-US")}</span> rows in last file` : ""} · ${s.accepted_for_sale ? "accepted" : "rights pending"}</div>
+      ${s.release_date && s.file_period ? `<div class="meta">Catalog release ${fmtDay(s.release_date)} · file period <span class="mono">${esc(s.file_period)}</span></div>` : ""}
     </div>
-    <div>${bar}</div>
+    <div><div class="bar-lbl">Read on schedule</div>${bar}</div>
     <dl class="figs">
       <div><dt>File date</dt><dd>${s.file_date ? fmtDay(s.file_date) : "none"}</dd></div>
+      <div><dt>Publisher file age</dt><dd>${fileAge == null ? "none" : fmtAge(fileAge)}</dd></div>
       <div><dt>Read</dt><dd>${s.last_run_at ? fmtShort(s.last_run_at) : "never"}</dd></div>
       <div><dt>Next due</dt><dd>${s.next_due_at ? fmtShort(s.next_due_at) : "none"}</dd></div>
-      <div><dt>Freshness</dt><dd>${fresh}</dd></div>
+      <div><dt>Schedule</dt><dd>${fresh}</dd></div>
     </dl>
   </div>`;
 }
@@ -777,13 +839,17 @@ function renderRoster() {
         <p class="count-line" id="lk-status" aria-live="polite"></p>
         <div id="lk-results"></div>
       </section>
-      <div class="controls three">
-        <div class="field"><label for="r-q">Search by name or NPI</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Thomas or 1063675940"></div>
-        <div class="field"><label for="r-state">State</label><select id="r-state"><option value="">All states</option>${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}</select></div>
-        <div class="field"><label for="r-sort">Sort</label><select id="r-sort"><option value="marked">Marked first</option><option value="name">Name</option></select></div>
-      </div>
-      <p class="count-line" id="r-count" aria-live="polite"></p>
-      <div class="rows" id="r-rows"></div>`;
+      <section class="this-roster" aria-labelledby="r-h">
+        <h2 id="r-h">This roster</h2>
+        <div class="queues" id="r-queues" role="group" aria-label="Attention queues"></div>
+        <div class="controls three">
+          <div class="field"><label for="r-q">Search this roster (${members.length} physicians)</label><input id="r-q" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. Thomas or 1063675940"></div>
+          <div class="field"><label for="r-state">State</label><select id="r-state"><option value="">All states</option>${states.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}</select></div>
+          <div class="field"><label for="r-sort">Sort</label><select id="r-sort"><option value="marked">Adverse first</option><option value="name">Name</option></select></div>
+        </div>
+        <p class="count-line" id="r-count" aria-live="polite"></p>
+        <div class="rows" id="r-rows"></div>
+      </section>`;
     $("#r-q").value = state.rosterQuery;
     $("#r-state").value = state.rosterState;
     $("#r-sort").value = state.rosterSort;
@@ -794,7 +860,7 @@ function renderRoster() {
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
-    <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> marked: a license that is not active, or an exclusion found.</div>
+    <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> adverse: a license read as not active, an exclusion found, or an NPI deactivated or inactive. Unknown is never adverse.</div>
     ${state.sim ? `<div class="side"><span class="chip sim">simulation</span> ${simSummary()}</div>` : ""}`;
   renderRosterRows();
 }
@@ -803,19 +869,32 @@ function renderRosterRows() {
   const q = state.rosterQuery.trim().toLowerCase();
   const qDigits = q.replace(/\D/g, "");
   const byName = (a, b) => lastName(a.npi).localeCompare(lastName(b.npi)) || a.npi.localeCompare(b.npi);
+  const q4 = new Map(members.map((m) => [m.npi, queuesOf(m)]));
+  $("#r-queues").innerHTML = QUEUES.map(([k, label, blurb]) => {
+    const n = members.filter((m) => q4.get(m.npi)[k]).length;
+    const on = state.rosterQueue === k;
+    return `<button type="button" class="queue q-${k}${on ? " on" : ""}" data-queue="${k}" aria-pressed="${on}" title="${esc(blurb)}">
+      ${k === "adverse" ? `<span class="mark" aria-hidden="true"></span>` : ""}<span class="mono">${n}</span> ${esc(label)}<span class="q-blurb">${esc(blurb)}</span></button>`;
+  }).join("");
   const rows = members.filter((m) => {
+    if (state.rosterQueue && !q4.get(m.npi)[state.rosterQueue]) return false;
     if (state.rosterState && (m.state || "none") !== state.rosterState) return false;
     if (!q) return true;
     if (qDigits && /^\d+$/.test(q.replace(/\s/g, "")) && m.npi.includes(qDigits)) return true;
     const p = state.people.get(m.npi);
     const hay = p ? `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`.toLowerCase() : "";
     return q.split(/\s+/).every((t) => hay.includes(t));
-  }).map((m) => ({ m, marked: isMarked(m) }))
+  }).map((m) => ({ m, marked: q4.get(m.npi).adverse, q: q4.get(m.npi) }))
     .sort((a, b) => (state.rosterSort === "marked" ? b.marked - a.marked : 0) || byName(a.m, b.m));
   const nMarked = rows.filter((r) => r.marked).length;
-  $("#r-count").textContent = `Showing ${rows.length} of ${members.length}${state.rosterSort === "marked" && nMarked ? `, ${nMarked} marked at the top` : ""}`;
-  $("#r-rows").innerHTML = `<div class="rhead" aria-hidden="true"><span>Physician</span><span>NPI</span><span>License</span><span>NPI status</span><span>OIG</span><span>SAM</span><span>Last read</span><span>Next check</span></div>` +
-    rows.map(({ m, marked }) => {
+  const filtered = !!(state.rosterQuery.trim() || state.rosterState || state.rosterQueue);
+  $("#r-count").innerHTML = `Showing ${rows.length} of ${members.length}${state.rosterSort === "marked" && nMarked ? `, ${nMarked} adverse at the top` : ""}${filtered ? ` <button type="button" class="linkbtn" data-clear-filters>Clear filters</button>` : ""}`;
+  if (!rows.length) {
+    $("#r-rows").innerHTML = `<div class="empty"><p>No match in this roster. This is not a national search.</p><button type="button" class="btn ghost" data-clear-filters>Clear filters</button></div>`;
+    return;
+  }
+  $("#r-rows").innerHTML = `<div class="rhead" aria-hidden="true"><span>Physician</span><span>NPI</span><span>License</span><span>NPI status</span><span>OIG</span><span>SAM</span><span>Latest receipt read</span><span>Oldest next check</span></div>` +
+    rows.map(({ m, marked, q }) => {
       const p = state.people.get(m.npi);
       const lic = m.checks?.state_license;
       const sub = [
@@ -827,12 +906,12 @@ function renderRosterRows() {
       const late = due && Date.parse(due) < Date.now();
       return `<a class="rrow${marked ? " marked" : ""}" href="#/provider/${esc(m.npi)}">
         ${marked ? `<span class="sr">Marked.</span>` : ""}
-        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b><span class="c-sub">${esc(sub)}</span></span>
+        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b>${q.unresolved ? ` <span class="chip qchip">unresolved</span>` : ""}${q.stale ? ` <span class="chip qchip">stale or missing</span>` : ""}<span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
         <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m)).join("")}</span>
         <span class="c-times">
-          <span class="c-read"><span class="t-lbl">Last read </span><span class="mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span></span>
-          <span class="c-next"><span class="t-lbl">Next check </span><span class="mono">${due ? fmtShort(due) : "none"}</span>${late ? " · past due" : ""}</span>
+          <span class="c-read"><span class="t-lbl">Latest receipt read </span><span class="mono">${m.last_retrieved_at ? fmtShort(m.last_retrieved_at) : "never"}</span></span>
+          <span class="c-next"><span class="t-lbl">Oldest next check </span><span class="mono">${due ? fmtShort(due) : "none"}</span>${late ? " · past due" : ""}</span>
         </span>
       </a>`;
     }).join("");
@@ -957,7 +1036,7 @@ function renderProvider() {
   const showLicense = licenses.length > 0 || licenseCovered(member?.state);
   const marked = isMarked({ state: member?.state, checks: {
     state_license: claims.find((c) => c.claim_type === "state_license" && c.jurisdiction === member?.state) || pick("state_license"),
-    oig_exclusion: pick("oig_exclusion"), sam_exclusion: pick("sam_exclusion"),
+    npi_status: pick("npi_status"), oig_exclusion: pick("oig_exclusion"), sam_exclusion: pick("sam_exclusion"),
   } });
   const added = state.justAdded?.npi === npi ? state.justAdded : null;
   state.justAdded = null;
@@ -976,6 +1055,7 @@ function renderProvider() {
     ${added ? addedNote(added) : ""}
     <p class="summary">${marked ? `<span class="mark" aria-hidden="true"></span><span class="sr">Marked. </span>` : ""}${esc(providerSummary(claims, member, showLicense))}</p>
     ${showLicense ? "" : `<p class="plainline">${esc(noBoardLine(person))}</p>`}
+    <p class="note gloss">Origin real, stage verified means the row came from the real source pipeline, not a fixture; it is not an accuracy score.</p>
     <div class="cards">${[...byType.entries()].map(([type, rows], i) => claimCard(type, rows, i === 0)).join("")}</div>
     <p class="note" style="margin-top:24px">Times are UTC. Every row is rights pending and not shippable until its source is accepted for sale.</p>`;
 }
@@ -1089,8 +1169,10 @@ function receiptBlock(r) {
   const facts = Object.entries(r.claim || {}).filter(([, v]) => v !== null && typeof v !== "object");
   const actions = Array.isArray(r.claim?.disciplinary_actions) ? r.claim.disciplinary_actions : [];
   const conf = r.match_confidence == null ? "none" : Number(r.match_confidence).toFixed(2);
+  const newer = newerFile(r);
   return `<div class="receipt" id="rcpt-${esc(r.receipt_id)}">
     ${simmed ? `<p class="simnote"><strong>Simulation.</strong> ${esc(r.source_name)} is treated as offline, so this row reads ${simStatus(norm)}, never clear.</p>` : ""}
+    ${newer ? `<p class="newer-line"><span class="chip newer">newer file on hand, refresh pending</span> <span class="muted">${esc(r.source_name)} now holds a file dated ${fmtDay(newer)}; this receipt was read from the file dated ${fmtDay(r.source_published_at)}.</span></p>` : ""}
     <div class="status-line">
       <span class="raw" title="Raw status as the source printed it">${esc(r.raw_status ?? "none")}</span>
       <span class="arrow" aria-label="normalized to">→</span>
@@ -1102,14 +1184,84 @@ function receiptBlock(r) {
     <dl class="kv">
       <dt>Source</dt><dd>${esc(r.source_name)}</dd>
       <dt>Artifact sha256</dt><dd class="hash">${esc(r.artifact_sha256 || "none recorded")}</dd>
-      <dt>Match</dt><dd>${esc(words(r.match_basis) || "none")} · confidence <span class="mono">${conf}</span></dd>
+      ${norm === "not_found" ? `<dt>Lookup basis</dt><dd>${esc(lookupScope(r.match_basis))}</dd>`
+        : `<dt>Match</dt><dd>${esc(words(r.match_basis) || "none")} · confidence <span class="mono">${conf}</span></dd>`}
       <dt>Stage</dt><dd>${esc(r.stage)} · origin ${esc(r.origin)}</dd>
       <dt>Limitations</dt><dd>${esc(r.limitations || "None recorded")}</dd>
       <dt>Receipt</dt><dd class="mono" style="font-size:12px">${esc(r.receipt_id)} · supersedes ${supLink(r.supersedes_id)}</dd>
     </dl>
+    ${matchedLicenses(r)}
+    ${evidenceRow(r)}
     ${facts.length || actions.length ? `<details class="claimf"><summary>Claim fields (${facts.length + (actions.length ? 1 : 0)})</summary><pre>${esc(facts.map(([k, v]) => `${words(k)}: ${v}`).join("\n"))}${actions.length ? esc(`\ndisciplinary actions: ${actions.length}\n` + JSON.stringify(actions, null, 2)) : ""}</pre></details>` : ""}
     ${historyDrawer(r)}
   </div>`;
+}
+// What a not_found receipt searched, by its lookup basis, so absence reads as the result of one kind of search.
+const LOOKUP_SCOPE = {
+  npi_exact: ["NPI exact", "NPI only", "name, date of birth"],
+  license_number_exact: ["license number exact", "license number only", "name, date of birth"],
+  name_state_taxonomy: ["name, state and taxonomy", "last name, first name, state, physician taxonomy", "NPI, date of birth"],
+  name_only: ["name only", "last name and first name only", "NPI, date of birth"],
+};
+function lookupScope(basis) {
+  const sc = LOOKUP_SCOPE[basis];
+  if (!sc) return basis && basis !== "none"
+    ? `lookup basis: ${words(basis)}. What was searched is not recorded for this basis.`
+    : "lookup basis: none. No source row could be linked to this NPI.";
+  return `lookup basis: ${sc[0]}. Searched: ${sc[1]}. Not searched: ${sc[2]}.`;
+}
+// The file date the source holds now, when it is later than the file this receipt was read from; else null.
+function newerFile(r) {
+  const src = (state.sources || []).find((s) => s.name === r.source_name);
+  if (!src?.file_date || !r.source_published_at) return null;
+  return Date.parse(src.file_date) > Date.parse(r.source_published_at) ? src.file_date : null;
+}
+// Every license a license receipt matched, in the writer's order; the first is the one the receipt carries.
+function matchedLicenses(r) {
+  const n = Number(r.claim?.licenses_matched);
+  if (r.claim_type !== "state_license" || !(n > 1)) return "";
+  const list = r.matched_licenses || [];
+  return `<div class="matched">
+    <h3>Licenses matched: ${n}</h3>
+    ${list.length ? list.map((l) => `<div class="mrow${l.selected ? " sel" : ""}">
+        <span class="mono">${esc(l.license_number || "no number")}</span>
+        <span>${esc(l.license_type || "type not on file")}</span>
+        <span>${esc(l.raw_status ?? "none")} → ${chip(l.normalized_status)}</span>
+        <span class="muted">expires ${esc(l.expiration_date || "none")} · ${esc(words(l.match_basis))} ${l.match_confidence != null ? Number(l.match_confidence).toFixed(2) : ""}</span>
+        <span>${l.selected ? `<b>selected</b>` : ""}</span>
+      </div>`).join("") : `<p class="note">The matched licenses were not returned for this receipt.</p>`}
+    <p class="note">Selection rule: ${esc(r.selection_rule || "not returned")}. Link origin: ${esc(r.link_origin || "link origin not recorded")}.</p>
+  </div>`;
+}
+// Evidence for one receipt: the source's own public lookup (from lookup_url on the source row), the retained source
+// row, and the receipt id to copy.
+function evidenceRow(r) {
+  const src = (state.sources || []).find((s) => s.name === r.source_name);
+  const tmpl = src?.lookup_url && /^https:\/\//.test(src.lookup_url) ? src.lookup_url : null;
+  const npi = r.npi || state.route.npi;
+  const deep = !!tmpl && tmpl.includes("{npi}");
+  const paste = r.claim_type === "state_license" && r.license_number ? `${r.jurisdiction || ""} license ${r.license_number}`.trim()
+    : `NPI ${npi}${/exclusion/.test(r.claim_type) && personName(npi) ? ` · ${personName(npi)}` : ""}`;
+  const lookup = tmpl
+    ? `<a class="evlink" href="${esc(tmpl.replace("{npi}", encodeURIComponent(npi)))}" target="_blank" rel="noopener noreferrer">Open official lookup</a>
+       ${deep ? `<span class="faint">opens this NPI's page</span>` : `<span class="faint">paste <span class="mono" style="user-select:all">${esc(paste)}</span></span>`}`
+    : `<span class="faint">Official lookup: no address on the ${esc(r.source_name)} source row yet</span>`;
+  return `<div class="evrow">
+    <div class="evlinks">${lookup}<button type="button" class="linkbtn" data-copy="${esc(r.receipt_id)}">Copy receipt ID</button></div>
+    <details class="evidence" data-receipt="${esc(r.receipt_id)}"><summary>View retained source row</summary><div class="ev-body"><p class="loading">Loading the source row</p></div></details>
+  </div>`;
+}
+function evidenceBody(v) {
+  const a = v.artifact;
+  const rows = v.retained
+    ? v.rows.map((x) => `<p class="note">${esc(x.table)} row <span class="mono">${esc(x.id)}</span>, as stored</p><pre>${esc(JSON.stringify(x.row, null, 2))}</pre>`).join("")
+    : `<p class="ev-none">row not retained; hash only</p>${(v.file_pointers || []).length ? `<p class="note">The receipt points into the file: <span class="mono">${esc(v.file_pointers.map((f) => JSON.stringify(f)).join("; "))}</span></p>` : ""}`;
+  return `${rows}<dl class="kv">
+      <dt>Artifact sha256</dt><dd class="hash">${esc(a?.sha256 || "none recorded")}</dd>
+      <dt>File</dt><dd>${esc(a?.file_name || "none recorded")}${a?.row_count != null ? ` · <span class="mono">${Number(a.row_count).toLocaleString("en-US")}</span> rows` : ""}</dd>
+      <dt>Captured</dt><dd>${fmtTime(v.captured_at)}</dd>
+      <dt>Loader version</dt><dd class="mono">${esc(v.writer_version || "none recorded")}</dd>
+    </dl>`;
 }
 function supLink(id) {
   return id ? `<button type="button" class="linkbtn" data-goto="${esc(id)}">${esc(shortId(id))}</button>` : "none";
@@ -1171,12 +1323,14 @@ function renderChanges() {
   const kinds = {};
   for (const r of all) kinds[r.change_kind] = (kinds[r.change_kind] || 0) + 1;
   const moved = kinds.status_change || 0;
+  const fields = kinds.field_change || 0;
   const days = [...new Set(all.map((r) => r.created_at.slice(0, 10)))].sort().reverse();
   const claimTypes = [...new Set(all.map((r) => r.claim_type))].sort();
   const kindSummary = Object.entries(kinds).sort().map(([k, n]) => `${n} ${words(k)}`).join(", ");
   const verdict = moved === 0
     ? `No status moved between these runs.`
     : `<span class="shock">${moved}</span> ${moved === 1 ? "status moved" : "statuses moved"} between these runs.`;
+  const fieldLine = fields ? ` ${plural(fields, "field change")}: same status, a different license number, issue date, expiration date or restrictions.` : "";
   const rows = all.filter((r) => (!state.changesKind || r.change_kind === state.changesKind) && (!state.changesClaim || r.claim_type === state.changesClaim));
   const groups = new Map();
   for (const r of rows) {
@@ -1187,8 +1341,8 @@ function renderChanges() {
   el.innerHTML = `
     <p class="eyebrow">Changes · /v1/deltas</p>
     <h1>What moved</h1>
-    <p class="verdict">${verdict}</p>
-    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs.</p>
+    <p class="verdict">${verdict}${esc(fieldLine)}</p>
+    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs; a field change when the status is the same but the license number, issue date, expiration date or restrictions (where the row carries them) differ; a refresh when none of those differ.</p>
     <div class="controls">
       <div class="field"><label for="c-kind">Change kind</label><select id="c-kind"><option value="">All kinds</option>${Object.keys(kinds).sort().map((k) => `<option value="${esc(k)}" ${k === state.changesKind ? "selected" : ""}>${esc(words(k))} (${kinds[k]})</option>`).join("")}</select></div>
       <div class="field"><label for="c-claim">Claim</label><select id="c-claim"><option value="">All claims</option>${claimTypes.map((c) => `<option value="${esc(c)}" ${c === state.changesClaim ? "selected" : ""}>${esc(CLAIM_LABEL[c] || words(c))}</option>`).join("")}</select></div>
@@ -1204,13 +1358,19 @@ function renderChanges() {
     }).join("") || `<p class="note">No rows match these filters.</p>`}`;
 }
 function deltaRow(r) {
+  const fc = r.change_kind === "field_change" && (r.field_changes || []).length;
   return `<a class="drow" href="#/provider/${esc(r.npi)}">
     <span><span class="who">${esc(personName(r.npi) || "Name not on file")}</span> <span class="mono faint" style="font-size:12px">${esc(r.npi)}</span></span>
     <span class="what">${esc(claimName(r.claim_type, r.jurisdiction))} · ${esc(r.source_name)}</span>
-    <span class="move">${r.prior_normalized_status ? esc(words(r.prior_normalized_status)) : "none"} → ${esc(words(r.normalized_status))}</span>
+    <span class="move">${fc
+      ? r.field_changes.map((f) => `${esc(words(f.field))} ${esc(fieldVal(f.old))} → ${esc(fieldVal(f.new))}`).join("<br>") +
+        `<br><span class="faint" style="font-size:12px" title="${esc(r.prior_receipt_id)} → ${esc(r.receipt_id)}">receipt ${esc(shortId(r.prior_receipt_id))} → ${esc(shortId(r.receipt_id))}</span>`
+      : `${r.prior_normalized_status ? esc(words(r.prior_normalized_status)) : "none"} → ${esc(words(r.normalized_status))}`}</span>
     <span><span class="chip kind-${esc(r.change_kind)}">${esc(words(r.change_kind))}</span></span>
   </a>`;
 }
+
+const fieldVal = (v) => (v == null ? "none" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
 // 5. Coverage
 function renderCoverage() {
@@ -1221,11 +1381,17 @@ function renderCoverage() {
   }
   const b = state.coverage.buckets || {};
   const size = state.coverage.roster_size;
+  // A state claim's denominator is the roster physicians whose license board is that state; a federal claim's is the roster.
+  const inState = {};
+  for (const m of state.roster?.members || []) if (m.state) inState[m.state] = (inState[m.state] || 0) + 1;
+  const denom = (r) => (r.jurisdiction
+    ? [inState[r.jurisdiction] ?? 0, `${STATE_NAMES[r.jurisdiction] || r.jurisdiction} roster physicians`]
+    : [size, "roster physicians"]);
   const total = BUCKETS.reduce((n, [k]) => n + (b[k] || []).length, 0);
   el.innerHTML = `
     <p class="eyebrow">Coverage · ${esc(state.coverage.roster_id)}</p>
     <h1>What this roster can be checked against</h1>
-    <p class="lede">${plural(total, "claim")} sorted into four buckets for a roster of <span class="mono">${esc(size)}</span>. Counts are claims; a claim is covered when at least one roster physician holds a current receipt for it.</p>
+    <p class="lede">${plural(total, "claim")} sorted into four buckets for a roster of <span class="mono">${esc(size)}</span>. Counts are claims; a claim is covered when at least one roster physician holds a current receipt for it. A state claim counts against the roster physicians whose license board is that state; a federal claim against the whole roster.</p>
     <div class="focal"><div class="fig">${(b.covered_today || []).length}<small>of ${total} claims covered today</small></div></div>
     <div class="buckets">${BUCKETS.map(([k, label, blurb], i) => {
       const rows = b[k] || [];
@@ -1234,7 +1400,7 @@ function renderCoverage() {
         <div class="n ${k === "never" && rows.length ? "shock" : ""}">${rows.length}</div>
         <p class="note">${esc(blurb)}</p>
         <ul>${rows.map((r) => `<li><span class="k">${esc(claimName(r.claim_type, r.jurisdiction))}</span>
-          ${r.covered != null ? `<span class="why"><span class="mono">${r.covered}</span> of <span class="mono">${esc(size)}</span> physicians</span>${r.covered > 0 ? `<div class="meter"><i style="width:${size ? (r.covered / size) * 100 : 0}%"></i></div>` : ""}` : ""}
+          ${r.covered != null ? (([d, who]) => `<span class="why"><span class="mono">${r.covered}</span> of <span class="mono">${esc(d)}</span> ${esc(who)}</span>${r.covered > 0 ? `<div class="meter"><i style="width:${d ? Math.min(100, (r.covered / d) * 100) : 0}%"></i></div>` : ""}`)(denom(r)) : ""}
           ${r.reason ? `<span class="why">${esc(r.reason)}</span>` : ""}</li>`).join("") || `<li class="note">None</li>`}</ul>
       </section>`;
     }).join("")}</div>`;
@@ -1262,6 +1428,7 @@ function resetData() {
   Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null, justAdded: null });
   Object.assign(state.lookup, { q: "", st: "", busy: false, result: null, error: null, adding: null });
   state.claims.clear();
+  state.evidence.clear();
   state.people.clear();
   state.latest.clear();
   delete $("#s-roster").dataset.built;
@@ -1284,6 +1451,20 @@ document.addEventListener("submit", (e) => {
 document.addEventListener("click", (e) => {
   const t = e.target;
   if (t.id === "end-sim" || t.id === "sim-end-inline") { state.sim = null; render(); return; }
+  const queue = t.closest?.("[data-queue]");
+  if (queue) { state.rosterQueue = state.rosterQueue === queue.dataset.queue ? "" : queue.dataset.queue; renderRosterRows(); return; }
+  if (t.closest?.("[data-clear-filters]")) {
+    Object.assign(state, { rosterQuery: "", rosterState: "", rosterQueue: "" });
+    $("#r-q").value = ""; $("#r-state").value = "";
+    renderRosterRows();
+    return;
+  }
+  const copy = t.closest?.("[data-copy]");
+  if (copy) {
+    const done = (ok) => { copy.textContent = ok ? "Copied" : "Copy failed: select the ID by hand"; setTimeout(() => { copy.textContent = "Copy receipt ID"; }, 1600); };
+    (navigator.clipboard ? navigator.clipboard.writeText(copy.dataset.copy) : Promise.reject()).then(() => done(true), () => done(false));
+    return;
+  }
   const cand = t.closest?.("[data-add]");
   if (cand && !cand.disabled) { addCandidate(cand.dataset.add); return; }
   const goto = t.closest?.("[data-goto]");
@@ -1297,6 +1478,18 @@ document.addEventListener("click", (e) => {
     setTimeout(() => target.classList.remove("flash"), 1600);
   }
 });
+// "View retained source row": read on first open, kept for the session.
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (!d.matches?.("details.evidence") || !d.open || d.dataset.loaded) return;
+  d.dataset.loaded = "1";
+  const id = d.dataset.receipt, box = d.querySelector(".ev-body");
+  const show = (v) => { box.innerHTML = v instanceof Error ? errBox(v, "the source row") : evidenceBody(v); };
+  if (state.evidence.has(id)) return show(state.evidence.get(id));
+  api(`/v1/receipts/${encodeURIComponent(id)}/source`)
+    .then((v) => { state.evidence.set(id, v); show(v); })
+    .catch((err) => { delete d.dataset.loaded; show(err); });
+}, true);
 document.addEventListener("input", (e) => {
   if (e.target.id === "r-q") { state.rosterQuery = e.target.value; renderRosterRows(); }
   if (e.target.id === "lk-q" || e.target.id === "lk-st") {
