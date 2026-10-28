@@ -31,3 +31,6 @@ Claude_export_*
 # Allow Garden Wars game assets
 !garden-wars/img/*.png
 !garden-wars/img/*.jpg
+
+# Supabase CLI state
+supabase/.temp/
