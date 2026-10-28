@@ -26,3 +26,12 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python3 scripts/poll_sources.py
+      # Roster receipts past due, or behind a newly loaded file, are rewritten (scripts/refresh_roster_receipts.py).
+      # Its own step: it runs whether or not a load failed, and its failure never fails the poll.
+      - name: Refresh roster receipts
+        if: success() || failure()
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python3 scripts/refresh_roster_receipts.py

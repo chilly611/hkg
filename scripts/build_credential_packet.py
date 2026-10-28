@@ -208,24 +208,33 @@ def not_yet_written(npis, claim_type, run_id, origin):
     return [n for n in npis if n not in done]
 
 
-def rpc_receipts(fn, npis, extra, size=RPC_BATCH):
+def rpc_batches(db, fn, npis, extra, size=RPC_BATCH):
     """Calls a receipt function in batches. A statement timeout (57014) cancels and rolls back the whole call,
-    so that batch is split in half and tried again; any other error stops the build."""
+    so that batch is split in half and tried again; any other error is raised (RuntimeError). Also used by
+    scripts/refresh_roster_receipts.py."""
     out = []
     pending = list(chunks(npis, size))
     while pending:
         batch = pending.pop(0)
         try:
             # No client retries: a retried network timeout could write receipts the server already committed.
-            out += rest().request("POST", f"rpc/{fn}", body={"p_npis": batch, **extra}, timeout=600, retries=0)[1]
+            out += db.request("POST", f"rpc/{fn}", body={"p_npis": batch, **extra}, timeout=600, retries=0)[1]
         except RuntimeError as e:
             if '"57014"' in str(e) and len(batch) > 1:
                 half = len(batch) // 2
                 print(f"  {fn}: statement timeout on {len(batch)} NPIs; retrying as {half} + {len(batch) - half}")
                 pending[:0] = [batch[:half], batch[half:]]
                 continue
-            die(str(e))
+            raise
     return out
+
+
+def rpc_receipts(fn, npis, extra, size=RPC_BATCH):
+    """rpc_batches; any error stops the build."""
+    try:
+        return rpc_batches(rest(), fn, npis, extra, size)
+    except RuntimeError as e:
+        die(str(e))
 
 
 def write_receipts(npis, states, origin):
