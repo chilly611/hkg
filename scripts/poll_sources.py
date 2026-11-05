@@ -5,7 +5,8 @@ data_sources row with a detection_url, look for a new release and, when one is f
 ingestion_runs row and hand it to the matching loader.
 
 Detection, per source:
-  NPI Registry  newest weekly V2 file name on detection_url; publisher date = end of its date range
+  NPI Registry  newest weekly V2 file name on detection_url; publisher date = end of its date range.
+                A listed file that does not answer yet (HTTP error) is a miss, never a release
   OIG LEIE      "Last Update" stamp on detection_url; else Last-Modified of UPDATED.csv
   SAM.gov       newest Exclusions Public V2 extract in the file-extract service listing (the
                 detection_url page is a script-rendered app with no date in it); publisher date =
@@ -146,6 +147,10 @@ def detect_nppes(source):
             raise Unavailable("publisher page says it is down for maintenance; no files listed")
         raise RuntimeError(f"no weekly V2 file listed on {url}; page layout may have changed")
     name, file_url = ingest_nppes.latest_weekly()
+    try:
+        head(file_url)   # CMS has listed a weekly file before posting it (404, 2026-11-03 to 11-05)
+    except urllib.error.HTTPError as e:
+        raise Unavailable(f"page lists {name} but the file answers HTTP {e.code}") from e
     published, how, _ = ingest_nppes.published_from_name(name)
     return Detection(published, f"{how} ({name})", url, "incremental", ["--url", file_url],
                      headers.get("ETag"), headers.get("Last-Modified"))
