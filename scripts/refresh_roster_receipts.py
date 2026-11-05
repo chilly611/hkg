@@ -3,7 +3,8 @@
 Roster refresh: keeps every roster's receipts current with nobody running the packet builder.
 Runs hourly as its own step after scripts/poll_sources.py (.github/workflows/poll_sources.yml).
 
-Every roster is monitored (rosters, roster_members: migrations/2026-10-27_freshroot_api.sql). Rosters are the only
+Every roster is monitored but a test roster (rosters.test, supabase/functions/freshroot/sql/2026-11-04_jobs.sql),
+whose receipts stay as they are (rosters, roster_members: migrations/2026-10-27_freshroot_api.sql). Rosters are the only
 thing that gets receipts: the NPIs come from roster_members, and only NPIs that already hold a receipt from a source
 are refreshed for it. For each source behind a current roster receipt (v_current_receipts):
   new file   the source's latest completed run read a file (artifact) other than the receipt's: every such
@@ -276,10 +277,14 @@ def main(argv=None):
     started = now_iso()
     try:
         db = Rest()
+        # A test roster (rosters.test) keeps the receipts it has and gets no new ones from the refresh.
+        test = {r["id"] for r in db.select("rosters", {"select": "id", "test": "is.true"})}
         members = db.select_all("roster_members", "roster_id,npi", order="roster_id,npi")
         rosters = {}
         for m in members:
-            rosters.setdefault(m["roster_id"], set()).add(m["npi"])
+            if m["roster_id"] not in test:
+                rosters.setdefault(m["roster_id"], set()).add(m["npi"])
+        members = [m for m in members if m["roster_id"] not in test]
         npis = {m["npi"] for m in members}
         sources = {s["id"]: s for s in db.select("data_sources", {
             "select": "id,name,category,format,jurisdiction,claim_types,detection_url,cadence_hours"})}

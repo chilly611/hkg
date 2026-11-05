@@ -13,7 +13,8 @@ The loaders hold no table of their own. A run downloads the full CSV (the artifa
 every other source), checks it, and writes one credential_receipts row per roster NPI from that
 file: the source's status when the NPI is in the file (opted_out, enrolled), not_found when it is not.
 raw_status quotes the file's own cells with their column names (raw_cells). Rosters come from
-roster_members (migrations/2026-10-27_freshroot_api.sql); a run with no --roster covers every roster.
+roster_members (migrations/2026-10-27_freshroot_api.sql); a run with no --roster covers every roster except a
+test roster (rosters.test), which only a run naming it with --roster reads.
 
 Anomaly guard, on every run (each check stops the run before any receipt is written):
   1. header   the file carries every column the parser reads
@@ -122,7 +123,10 @@ def roster_npis(db, roster_ids):
             raise RuntimeError(f"no such roster: {', '.join(missing)}")
         members = db.select_all("roster_members", "roster_id,npi", order="roster_id,npi", roster_id=in_list(roster_ids))
     else:
-        members = db.select_all("roster_members", "roster_id,npi", order="roster_id,npi")
+        # Every roster but a test roster (rosters.test): it keeps the receipts it has and gets no new ones unattended.
+        test = {r["id"] for r in db.select("rosters", {"select": "id", "test": "is.true"})}
+        members = [m for m in db.select_all("roster_members", "roster_id,npi", order="roster_id,npi")
+                   if m["roster_id"] not in test]
     npis = sorted({m["npi"] for m in members})
     out = {n: None for n in npis}
     for batch in chunks(npis, 300):

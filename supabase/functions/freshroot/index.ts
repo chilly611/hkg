@@ -15,15 +15,30 @@
 //   GET  /v1/lookup?q=&state=&roster_id=     up to 20 individual providers by NPI or name, each marked on_roster.
 //                                            Reads only; it writes nothing.
 //   POST /v1/rosters/{roster_id}/npis        {"npis": [...up to 20]}: adds them to the roster, then writes their
-//                                            receipts with the packet builder's SQL writer. The only write route,
-//                                            so receipts are written only for roster NPIs.
+//                                            receipts with the packet builder's SQL writer. With /jobs below, the
+//                                            only write routes, so receipts are written only for roster NPIs.
+//   POST /v1/rosters/{roster_id}/jobs        up to 5,000 NPIs, as JSON ({"npis": [...]} or a bare array) or as CSV
+//                                            (text/csv, a header row with an npi column). An optional state (a
+//                                            "state" CSV column, or {"npi", "state"} items) names the license to
+//                                            check, as in the packet builder's roster file; without one the board
+//                                            comes from the NPPES license states, as on /npis. Creates a freshroot_jobs
+//                                            row and answers 202 with the job id at once. The worker is this
+//                                            function, in a background task (EdgeRuntime.waitUntil): batches of 100
+//                                            NPIs, each added to the roster and receipted by the same writer as
+//                                            /npis, with the bulk anomaly guard read after every batch.
+//   GET  /v1/jobs/{job_id}                   the job: queued, running, done or failed; added, receipted, unmatched.
+//                                            A job whose worker stopped (time limit, restart) has a lapsed lease;
+//                                            this GET claims it again and the work carries on from the last batch.
+//   GET  /v1/rosters/{roster_id}/export      a zip: receipts.csv, receipts.json, unmatched.csv, coverage.md and
+//                                            report.md (one page, every number with the dates it rests on).
 //
 // Auth: X-FreshRoot-Key, SHA-256 hashed and looked up in api_tenants. No key or an unknown key: 401.
 // A tenant reads only the rosters in its roster_ids, and only NPIs on those rosters: anything else is 403.
 // Receipts from a source with accepted_for_sale = false are left out unless ?include_unaccepted=true, and every
 // row carries shippable and rights ("pending" while the source is not accepted for sale).
 // The service role key comes from the function's Supabase secrets; it is never sent to a caller.
-// SQL: migrations/2026-10-27_freshroot_api.sql; the name search index is migrations/2026-10-28_freshroot_lookup_index.sql.
+// SQL: migrations/2026-10-27_freshroot_api.sql; the name search index is migrations/2026-10-28_freshroot_lookup_index.sql;
+// jobs and rosters.test are sql/2026-11-04_jobs.sql beside this file.
 // Deployed with verify_jwt = false: the tenant key is the auth.
 
 const SUPABASE_URL = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
@@ -54,6 +69,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
     h["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
     h["Access-Control-Allow-Headers"] = "X-FreshRoot-Key, Content-Type";
     h["Access-Control-Max-Age"] = "600";
+    h["Access-Control-Expose-Headers"] = "Content-Disposition";
   }
   return h;
 }
@@ -68,7 +84,8 @@ function json(body: unknown, status: number, cors: Record<string, string>): Resp
 // PostgREST with the service role key, the same way scripts/ingestion/core_run.py talks to it:
 // the key goes in apikey; a legacy JWT key also goes in Authorization.
 // prefer is sent as the Prefer header (an insert's conflict handling, or count=exact).
-async function pgrst(method: "GET" | "POST", path: string, params?: Record<string, string>, body?: unknown, prefer?: string) {
+type Method = "GET" | "POST" | "PATCH";
+async function pgrst(method: Method, path: string, params?: Record<string, string>, body?: unknown, prefer?: string) {
   const qs = params ? "?" + new URLSearchParams(params).toString() : "";
   const headers: Record<string, string> = { "apikey": SERVICE_KEY, "Content-Type": "application/json" };
   if (SERVICE_KEY.startsWith("eyJ")) headers["Authorization"] = `Bearer ${SERVICE_KEY}`;
@@ -88,10 +105,21 @@ async function pgrst(method: "GET" | "POST", path: string, params?: Record<strin
   return { text, headers: resp.headers };
 }
 
-async function rest(method: "GET" | "POST", path: string, params?: Record<string, string>, body?: unknown, prefer?: string) {
+async function rest(method: Method, path: string, params?: Record<string, string>, body?: unknown, prefer?: string) {
   const { text } = await pgrst(method, path, params, body, prefer);
   return text ? JSON.parse(text) : null;
 }
+
+// Every row of a GET, a page of 1,000 at a time (PostgREST's cap). order must make the pages disjoint.
+async function restAll(path: string, params: Record<string, string>, order: string): Promise<Row[]> {
+  const out: Row[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const page = await rest("GET", path, { ...params, order, limit: String(PAGE), offset: String(offset) });
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
+const PAGE = 1000;
 
 // Members on a roster, from Content-Range (count=exact is fine here; it times out on providers).
 async function rosterCount(rosterId: string): Promise<number> {
@@ -143,14 +171,25 @@ function decodeCursor(cursor: string): { createdAt: string; id: string } {
 }
 
 // PostgREST takes these lists in the query string and caps a response at 1000 rows; chunks of 100 keep each URL
-// short and each response well under the cap (a roster NPI has a handful of current receipts).
+// short and each response well under the cap (a roster NPI has a handful of current receipts). At most 8 chunks are
+// in flight at once, so a 5,000-NPI roster is 50 requests, not 50 at the same moment.
 const IN_CHUNK = 100;
+const IN_PARALLEL = 8;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
 async function inChunks(values: string[], fetchChunk: (inList: string) => Promise<Row[]>): Promise<Row[]> {
   const chunks: string[][] = [];
   for (let i = 0; i < values.length; i += IN_CHUNK) chunks.push(values.slice(i, i + IN_CHUNK));
-  return (await Promise.all(chunks.map((c) => fetchChunk(`in.(${c.join(",")})`)))).flat();
+  const out: Row[][] = new Array(chunks.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < chunks.length) {
+      const i = next++;
+      out[i] = await fetchChunk(`in.(${chunks[i].join(",")})`);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(IN_PARALLEL, chunks.length) }, lane));
+  return out.flat();
 }
 
 type ProviderFacts = {
@@ -431,6 +470,36 @@ function licenseOutcome(state: string | null, facts: ProviderFacts, licenses: Ma
   return { covered: true, matched: true, match_basis: check.match_basis, stage: check.stage, reason: check.limitations ?? null };
 }
 
+const NOT_IN_NPPES = "not in the NPPES registry extract";
+const NOT_INDIVIDUAL = "not an individual provider";
+
+// Puts NPIs on a roster: the one path /npis and /jobs share. Only individual providers in the NPPES extract are added.
+// The roster state is the board the member is checked against (licenseBoard), or null when it holds no license on
+// file in a covered state. A member already on the roster keeps its row as it is. Returns the members (new and
+// already there) the receipt writer should read, and the NPIs it would not add, each with the reason. asked: the
+// state a bulk input row named for an NPI; it is the roster state as given, covered by a board file or not.
+async function addMembers(rosterId: string, npis: string[], licenses: Map<string, string>, asked = new Map<string, string>()) {
+  const found = await inChunks(npis, (inList) =>
+    rest("GET", "providers", { select: `${FACTS_SELECT},entity_type`, ...PRACTICE_ONLY, npi: inList }));
+  const byNpi = new Map(found.map((p) => [p.npi, p]));
+  const notAdded = npis.filter((n) => byNpi.get(n)?.entity_type !== "individual").map((n) => ({
+    npi: n, reason: byNpi.has(n) ? NOT_INDIVIDUAL : NOT_IN_NPPES,
+  }));
+  const addable = npis.filter((n) => byNpi.get(n)?.entity_type === "individual");
+  const facts = new Map(addable.map((n) => [n, toFacts(byNpi.get(n)!)]));
+  const inserted = addable.length
+    ? await rest("POST", "roster_members", undefined,
+      addable.map((n) => ({ roster_id: rosterId, npi: n, state: asked.get(n) ?? licenseBoard(facts.get(n)!, licenses) })),
+      "resolution=ignore-duplicates,return=representation")
+    : [];
+  const added = new Set((inserted as Row[]).map((r) => r.npi));
+  const members = (addable.length
+    ? await inChunks(addable, (inList) =>
+      rest("GET", "roster_members", { select: "npi,state", roster_id: `eq.${rosterId}`, npi: inList }))
+    : []) as { npi: string; state: string | null }[];
+  return { facts, notAdded, added, members };
+}
+
 async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: string) {
   const includeUnaccepted = url.searchParams.get("include_unaccepted") === "true";
   let body: { npis?: unknown };
@@ -440,30 +509,8 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
   if (npis.length > ADD_LIMIT) throw new HttpError(400, `at most ${ADD_LIMIT} NPIs per call`);
   if (!npis.every((n) => /^\d{10}$/.test(n))) throw new HttpError(400, "every npi must be 10 digits");
 
-  const [found, licenses, countBefore] = await Promise.all([
-    rest("GET", "providers", { select: `${FACTS_SELECT},entity_type`, ...PRACTICE_ONLY, npi: `in.(${npis.join(",")})` }),
-    licenseRuns(),
-    rosterCount(rosterId),
-  ]);
-  const byNpi = new Map((found as Row[]).map((p) => [p.npi, p]));
-  const notAdded = npis.filter((n) => byNpi.get(n)?.entity_type !== "individual").map((n) => ({
-    npi: n, reason: byNpi.has(n) ? "not an individual provider" : "not in the NPPES registry extract",
-  }));
-  const addable = npis.filter((n) => byNpi.get(n)?.entity_type === "individual");
-
-  // The roster state is the board the member is checked against (licenseBoard), or null when it holds no license on
-  // file in a covered state. A member already on the roster keeps its row as it is.
-  const facts = new Map(addable.map((n) => [n, toFacts(byNpi.get(n)!)]));
-  const inserted = addable.length
-    ? await rest("POST", "roster_members", undefined,
-      addable.map((n) => ({ roster_id: rosterId, npi: n, state: licenseBoard(facts.get(n)!, licenses) })),
-      "resolution=ignore-duplicates,return=representation")
-    : [];
-  const added = new Set((inserted as Row[]).map((r) => r.npi));
-  const members: { npi: string; state: string | null }[] = addable.length
-    ? await rest("GET", "roster_members", { select: "npi,state", roster_id: `eq.${rosterId}`, npi: `in.(${addable.join(",")})` })
-    : [];
-
+  const [licenses, countBefore] = await Promise.all([licenseRuns(), rosterCount(rosterId)]);
+  const { facts, notAdded, added, members } = await addMembers(rosterId, npis, licenses);
   const { ids, failed } = await writeReceipts(members, licenses);
   const [writtenRows, checks, countAfter] = await Promise.all([
     inChunks(ids, (inList) => rest("GET", "v_freshroot_receipts", { select: CHECK_FIELDS, id: inList })),
@@ -492,6 +539,620 @@ async function addToRoster(req: Request, url: URL, tenant: Tenant, rosterId: str
     }),
     not_added: notAdded,
   };
+}
+
+// ---------- bulk jobs ----------
+// POST /v1/rosters/{id}/jobs stores the NPIs on a freshroot_jobs row and answers 202. The worker is this function:
+// runJob, in a background task, takes the lease (freshroot_job_claim), then works batches of JOB_BATCH NPIs through
+// addMembers and writeReceipts, the same two steps /npis runs, writing progress to the job row after each batch. It
+// stops taking batches after JOB_BUDGET_MS and lets the lease lapse, well inside the Edge Function wall clock; the
+// next GET /v1/jobs/{id} claims the job again and carries on from `processed`. A worker killed mid-batch leaves the
+// lease to lapse the same way; the writer skips receipts it already wrote, so the batch is safe to run again.
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+
+const JOB_LIMIT = 5000;
+const JOB_BATCH = 100;
+const JOB_LEASE_S = 300;        // renewed before every batch; one batch of 100 runs well under this
+const JOB_BUDGET_MS = 240_000;  // no new batch after this; the Edge Function wall clock is 400 s
+const WRITER_CLAIMS = ["npi_status", "oig_exclusion", "sam_exclusion", "state_license"];
+
+// The bulk anomaly guard. The loaders' guards (header, row count, parse, status vocabulary, match count, flip check)
+// already stand between a bad file and a completed run, and the writer reads only completed runs. This one watches
+// what the writer does with a large new list: after every batch it reads the receipts this job wrote so far and
+// stops the job, before the next batch, when a share runs far past what the garden has seen. Judged once at least
+// GUARD_MIN NPIs hold receipts from the job. Receipts already written stay (append-only); the job reads failed with
+// the reading that stopped it.
+const GUARD_MIN = 100;
+const GUARD_LIMITS: [key: string, label: string, limit: number][] = [
+  // NPPES individuals read deactivated ~1-2%; 3 of 252 on the first-packet roster.
+  ["npi_inactive", "npi_status receipts read inactive (deactivated)", 0.25],
+  // OIG or SAM rows tied to the NPI by the publisher's own NPI: about 0.1% of practising physicians.
+  ["exclusion_found", "OIG or SAM receipts read excluded on an exact NPI", 0.02],
+  // SAM rows with no NPI matched on name: 90 of 2,018 (4.5%) on the first packet.
+  ["sam_name_only", "SAM receipts that are name-only candidates", 0.25],
+  // Board statuses that map to unknown: each loader stops a file above 5%.
+  ["license_unknown", "license receipts read unknown", 0.10],
+  // License receipts with no board row linked to the NPI.
+  ["license_not_found", "license receipts with no board row linked", 0.60],
+];
+
+type Job = Row & { id: string; roster_id: string; npis: string[]; processed: number; status: string };
+
+const JOB_FIELDS = "id,roster_id,status,input_count,npis,states,processed,added,already_on_roster,receipted,receipts_written," +
+  "unmatched,guard,write_failures,error,attempts,lease_until,created_at,started_at,finished_at,updated_at";
+
+const patchJob = (id: string, body: Row) =>
+  rest("PATCH", "freshroot_jobs", { id: `eq.${id}` }, { ...body, updated_at: new Date().toISOString() }, "return=minimal");
+
+type InputRow = { npi: string; state: string };
+
+// A CSV body: a header row naming an npi column and, optionally, a state column (any case), comma-separated,
+// double quotes allowed.
+function csvNpis(text: string): InputRow[] {
+  const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const cells = (line: string) => {
+    const out: string[] = [];
+    let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ",") { out.push(cur); cur = ""; } else cur += ch;
+    }
+    out.push(cur);
+    return out.map((c) => c.trim());
+  };
+  const head = cells(lines[0]).map((h) => h.toLowerCase());
+  const col = head.indexOf("npi"), scol = head.indexOf("state");
+  if (col < 0) throw new HttpError(400, "a CSV body needs a header row with an npi column");
+  return lines.slice(1).map((l) => {
+    const c = cells(l);
+    return { npi: c[col] ?? "", state: scol < 0 ? "" : c[scol] ?? "" };
+  });
+}
+
+async function readJobInput(req: Request): Promise<InputRow[]> {
+  const type = (req.headers.get("content-type") ?? "").toLowerCase();
+  const text = await req.text();
+  if (type.includes("text/csv") || type.includes("text/plain")) return csvNpis(text);
+  let body: unknown;
+  try { body = JSON.parse(text); } catch {
+    throw new HttpError(400, "body must be JSON ({\"npis\": [...]} or [...]) or text/csv with an npi column");
+  }
+  const list = Array.isArray(body) ? body : (body as { npis?: unknown })?.npis;
+  if (!Array.isArray(list)) throw new HttpError(400, "npis must be a list");
+  return list.map((n) => (n && typeof n === "object")
+    ? { npi: String((n as Row).npi ?? ""), state: String((n as Row).state ?? "") }
+    : { npi: String(n ?? ""), state: "" });
+}
+
+async function createJob(req: Request, tenant: Tenant, rosterId: string) {
+  const raw = (await readJobInput(req)).map((r) => ({ npi: r.npi.trim(), state: r.state.trim().toUpperCase() }))
+    .filter((r) => r.npi);
+  if (!raw.length) throw new HttpError(400, "no NPIs in the body");
+  if (raw.length > JOB_LIMIT) throw new HttpError(400, `at most ${JOB_LIMIT} NPIs per job; this body has ${raw.length}`);
+  const [roster] = await rest("GET", "rosters", { select: "id", id: `eq.${rosterId}` });
+  if (!roster) throw new HttpError(404, "roster not found");
+  const npis: string[] = [];
+  const seen = new Set<string>();
+  const states: Record<string, string> = {};
+  const unmatched: { npi: string; reason: string }[] = [];
+  let duplicates = 0;
+  for (const { npi, state } of raw) {
+    if (!/^\d{10}$/.test(npi)) { unmatched.push({ npi: npi.slice(0, 40), reason: "not a 10-digit NPI" }); continue; }
+    if (state && !/^[A-Z]{2}$/.test(state)) { unmatched.push({ npi, reason: `state ${state.slice(0, 20)} is not a 2-letter code` }); continue; }
+    if (seen.has(npi)) {
+      if ((states[npi] ?? "") !== state) unmatched.push({ npi, reason: `listed again with state ${state || "none"}; kept ${states[npi] || "none"}` });
+      else duplicates++;
+      continue;
+    }
+    seen.add(npi);
+    npis.push(npi);
+    if (state) states[npi] = state;
+  }
+  const [job] = await rest("POST", "freshroot_jobs", undefined, {
+    roster_id: rosterId, tenant_id: tenant.id, input_count: raw.length, npis, states, unmatched,
+    ...(npis.length ? {} : { status: "done", finished_at: new Date().toISOString() }),
+  }, "return=representation");
+  if (npis.length) startWorker(job.id);
+  return jobView(job, duplicates);
+}
+
+function startWorker(jobId: string) {
+  const work = runJob(jobId).catch((e) => console.error(`job ${jobId}:`, e));
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
+}
+
+async function getJob(tenant: Tenant, jobId: string) {
+  if (!/^[0-9a-f-]{36}$/.test(jobId)) throw new HttpError(400, "job id must be a uuid");
+  const [job] = await rest("GET", "freshroot_jobs", { select: JOB_FIELDS, id: `eq.${jobId}` });
+  // Same answer whether or not the job exists: a tenant learns nothing about other rosters' jobs.
+  if (!job || !tenant.roster_ids.includes(job.roster_id)) throw new HttpError(403, "job not available to this key");
+  const lapsed = !job.lease_until || Date.parse(job.lease_until) < Date.now();
+  if ((job.status === "queued" || job.status === "running") && lapsed) startWorker(job.id);
+  return jobView(job);
+}
+
+function jobView(job: Row, duplicates?: number) {
+  const total = (job.npis ?? []).length;
+  return {
+    job_id: job.id,
+    roster_id: job.roster_id,
+    status: job.status,
+    worker: "freshroot edge function, background task; a GET resumes a job whose worker stopped",
+    progress: { processed: job.processed, total, percent: total ? Math.round((100 * job.processed) / total) : 100 },
+    counts: {
+      input: job.input_count,
+      ...(duplicates !== undefined ? { duplicates } : {}),
+      added: job.added,
+      already_on_roster: job.already_on_roster,
+      receipted: job.receipted,
+      receipts_written: job.receipts_written,
+      unmatched: (job.unmatched ?? []).length,
+    },
+    unmatched: job.unmatched ?? [],
+    guard: job.guard ?? null,
+    write_failures: job.write_failures ?? [],
+    error: job.error ?? null,
+    created_at: job.created_at,
+    started_at: job.started_at ?? null,
+    finished_at: job.finished_at ?? null,
+    updated_at: job.updated_at,
+  };
+}
+
+type GuardCounts = Record<string, number>;
+const emptyGuard = (): GuardCounts => ({
+  npis: 0, npi_status: 0, npi_inactive: 0, exclusions: 0, exclusion_found: 0, sam: 0, sam_name_only: 0,
+  licenses: 0, license_unknown: 0, license_not_found: 0,
+});
+
+// Adds one batch's receipts (every writer claim this job's NPIs got since the job was created) to the counts.
+function countReceipts(g: GuardCounts, rows: Row[]) {
+  g.npis += new Set(rows.map((r) => r.npi)).size;
+  for (const r of rows) {
+    if (r.claim_type === "npi_status") {
+      g.npi_status++;
+      if (r.normalized_status === "inactive" || r.normalized_status === "deactivated") g.npi_inactive++;
+    } else if (r.claim_type === "oig_exclusion" || r.claim_type === "sam_exclusion") {
+      g.exclusions++;
+      if (r.match_basis === "npi_exact" && !["not_found", "unknown"].includes(r.normalized_status)) g.exclusion_found++;
+      if (r.claim_type === "sam_exclusion") {
+        g.sam++;
+        if (r.match_basis === "name_only") g.sam_name_only++;
+      }
+    } else if (r.claim_type === "state_license") {
+      g.licenses++;
+      if (r.normalized_status === "unknown") g.license_unknown++;
+      if (r.match_basis === "none") g.license_not_found++;
+    }
+  }
+}
+
+function readGuard(g: GuardCounts) {
+  const base: Record<string, number> = {
+    npi_inactive: g.npi_status, exclusion_found: g.exclusions, sam_name_only: g.sam,
+    license_unknown: g.licenses, license_not_found: g.licenses,
+  };
+  const shares = GUARD_LIMITS.map(([key, label, limit]) => ({
+    key, label, limit, count: g[key], of: base[key], share: base[key] ? g[key] / base[key] : 0,
+  }));
+  const judged = g.npis >= GUARD_MIN;
+  const tripped = judged ? shares.filter((s) => s.of > 0 && s.share > s.limit) : [];
+  return { judged, min_npis: GUARD_MIN, counts: g, shares, tripped: tripped.map((s) => s.key), tripped_rows: tripped };
+}
+
+const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
+
+async function runJob(jobId: string) {
+  const t0 = Date.now();
+  const [job] = (await rpc("freshroot_job_claim", { p_job_id: jobId, p_lease_seconds: JOB_LEASE_S })) as Job[];
+  if (!job) return; // another worker holds it, or it is finished
+  const fail = (error: string, extra: Row = {}) =>
+    patchJob(jobId, { ...extra, status: "failed", error, lease_until: null, finished_at: new Date().toISOString() });
+  try {
+    const licenses = await licenseRuns();
+    const asked = new Map(Object.entries((job.states ?? {}) as Record<string, string>));
+    const g: GuardCounts = { ...emptyGuard(), ...(job.guard?.counts ?? {}) };
+    let { processed } = job;
+    let added = job.added, already = job.already_on_roster, receipted = job.receipted, written = job.receipts_written;
+    const unmatched: Row[] = [...(job.unmatched ?? [])];
+    const failures: string[] = [...(job.write_failures ?? [])];
+    while (processed < job.npis.length) {
+      if (Date.now() - t0 > JOB_BUDGET_MS) {
+        await patchJob(jobId, { lease_until: null }); // the next GET /v1/jobs/{id} picks it up
+        return;
+      }
+      await patchJob(jobId, { lease_until: new Date(Date.now() + JOB_LEASE_S * 1000).toISOString() });
+      const batch = job.npis.slice(processed, processed + JOB_BATCH);
+      const res = await addMembers(job.roster_id, batch, licenses, asked);
+      const { failed } = await writeReceipts(res.members, licenses);
+      const mine = res.members.map((m) => m.npi);
+      const rows = mine.length
+        ? await inChunks(mine, (inList) => restAll("credential_receipts", {
+          select: "id,npi,claim_type,normalized_status,match_basis", npi: inList, origin: `eq.${ORIGIN}`,
+          claim_type: `in.(${WRITER_CLAIMS.join(",")})`, created_at: `gte.${job.created_at}`,
+        }, "id"))
+        : [];
+      countReceipts(g, rows);
+      processed += batch.length;
+      added += res.added.size;
+      already += res.members.length - res.added.size;
+      receipted += new Set(rows.map((r) => r.npi)).size;
+      written += rows.length;
+      unmatched.push(...res.notAdded);
+      failures.push(...failed);
+      const guard = readGuard(g);
+      const progress = {
+        processed, added, already_on_roster: already, receipted, receipts_written: written, unmatched,
+        guard, write_failures: failures,
+      };
+      if (failed.length) return await fail(`receipt writer: ${failed.join("; ")}. Posting the same NPIs again ` +
+        "retries only what is missing.", progress);
+      if (guard.tripped_rows.length) {
+        const why = guard.tripped_rows.map((s) => `${pct(s.share)} of ${s.label} (${s.count} of ${s.of}; limit ${pct(s.limit)})`);
+        return await fail(`anomaly guard after ${g.npis} receipted NPIs: ${why.join("; ")}. The job stopped before ` +
+          "its next batch; receipts already written stay (append-only).", progress);
+      }
+      await patchJob(jobId, progress);
+    }
+    await patchJob(jobId, { status: "done", lease_until: null, finished_at: new Date().toISOString() });
+  } catch (e) {
+    console.error(`job ${jobId} failed:`, e);
+    await fail(e instanceof UpstreamError ? `upstream query failed${e.pgCode ? ` (${e.pgCode})` : ""}` : String(e));
+  }
+}
+
+// ---------- export ----------
+// GET /v1/rosters/{id}/export: the packet builder's four files (scripts/build_credential_packet.py: the same columns,
+// the same shippable rule, coverage from the same roster_coverage()) plus report.md, zipped. The rows are the current
+// receipt per claim for every roster NPI (v_current_receipts), read through v_freshroot_receipts. Rows from sources
+// not accepted for sale are left out unless include_unaccepted=true, as on every other route; report.md says how many.
+
+const RECEIPT_COLUMNS = [
+  "npi", "claim_type", "jurisdiction", "license_number", "normalized_status", "raw_status",
+  "source_name", "source_published_at", "source_effective_at", "retrieved_at", "next_check_due_at",
+  "origin", "stage", "match_basis", "match_confidence", "accepted_for_sale", "shippable", "limitations",
+  "receipt_id", "supersedes_id", "artifact_sha256",
+];
+const EXPORT_FIELDS = "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,source_name," +
+  "source_published_at,source_effective_at,retrieved_at,next_check_due_at,origin,stage,match_basis,match_confidence," +
+  "accepted_for_sale,shippable,limitations,supersedes_id,artifact_sha256,created_at";
+const FIXED_LINE = "Internal review · rights pending · 0 shippable";
+const LICENSE_FLAGS = ["expired", "inactive", "revoked", "probation"];
+const LICENSE_COLUMNS = ["active", "expired", "inactive", "revoked", "probation", "suspended"];
+
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : typeof v === "boolean" ? (v ? "True" : "False") : String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const csvText = (header: string[], rows: unknown[][]) =>
+  [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+
+const day = (iso: string | null | undefined) => (iso ? String(iso).slice(0, 10) : null);
+const minute = (iso: string) => new Date(iso).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+
+// "the dates it rests on": per source, the publisher's file date(s) and when the garden read them.
+function restsOn(rows: Row[]): string {
+  if (!rows.length) return "no receipts";
+  const bySource = new Map<string, Row[]>();
+  for (const r of rows) bySource.set(r.source_name, [...(bySource.get(r.source_name) ?? []), r]);
+  return [...bySource].sort(([a], [b]) => a.localeCompare(b)).map(([name, rs]) => {
+    const files = [...new Set(rs.map((r) => day(r.source_published_at) ?? "undated"))].sort();
+    const reads = rs.map((r) => r.retrieved_at as string).sort();
+    const file = files.length === 1 ? `file ${files[0]}` : `files ${files[0]} to ${files[files.length - 1]}`;
+    const read = reads[0] === reads[reads.length - 1] ? `read ${minute(reads[0])}`
+      : `read ${minute(reads[0])} to ${minute(reads[reads.length - 1])}`;
+    return `${name}: ${file}, ${read}`;
+  }).join("; ");
+}
+
+// The license receipt a roster row shows: the one in the roster state, latest retrieved first (rosterChecks' rule).
+function pickLicense(rows: Row[], state: string | null): Row | null {
+  let best: Row | null = null;
+  for (const r of rows) {
+    if (r.claim_type !== "state_license" || r.jurisdiction !== state) continue;
+    if (!best || r.retrieved_at > best.retrieved_at || (r.retrieved_at === best.retrieved_at && r.created_at > best.created_at)) best = r;
+  }
+  return best;
+}
+
+async function exportRoster(url: URL, rosterId: string, cors: Record<string, string>): Promise<Response> {
+  const includeUnaccepted = url.searchParams.get("include_unaccepted") === "true";
+  const [roster] = await rest("GET", "rosters", { select: "*", id: `eq.${rosterId}` });
+  if (!roster) throw new HttpError(404, "roster not found");
+  const [members, jobs, licenses, coverageRows] = await Promise.all([
+    restAll("roster_members", { select: "npi,state", roster_id: `eq.${rosterId}` }, "npi"),
+    restAll("freshroot_jobs", { select: "id,unmatched,created_at", roster_id: `eq.${rosterId}` }, "created_at,id"),
+    licenseRuns(),
+    rpc("freshroot_coverage", { p_roster_id: rosterId }),
+  ]);
+  const npis = members.map((m) => m.npi as string);
+  const [facts, currentIds] = await Promise.all([
+    providerFacts(npis),
+    inChunks(npis, (inList) => restAll("v_current_receipts", { select: "id", npi: inList }, "id")),
+  ]);
+  const all = await inChunks(currentIds.map((r) => r.id), (inList) =>
+    rest("GET", "v_freshroot_receipts", { select: EXPORT_FIELDS, id: inList }));
+  all.sort((a, b) => a.npi.localeCompare(b.npi) || a.claim_type.localeCompare(b.claim_type) || a.id.localeCompare(b.id));
+  const rows = all.filter((r) => includeUnaccepted || r.accepted_for_sale);
+  const leftOut = all.length - rows.length;
+  const byNpi = new Map<string, Row[]>();
+  for (const r of rows) byNpi.set(r.npi, [...(byNpi.get(r.npi) ?? []), r]);
+  const builtAt = new Date().toISOString();
+
+  // unmatched: NPIs a job would not add, roster NPIs not in the NPPES extract, and roster NPIs whose license check
+  // found no board row (or had no board to ask).
+  const onRoster = new Set(npis);
+  const unmatched: { npi: string; what: string; reason: string; job_id: string }[] = [];
+  const jobMisses = new Map<string, Row>();
+  for (const j of jobs) for (const u of j.unmatched ?? []) jobMisses.set(u.npi, { ...u, job_id: j.id });
+  for (const [npi, u] of jobMisses) if (!onRoster.has(npi)) unmatched.push({ npi, what: "not added", reason: u.reason, job_id: u.job_id });
+  for (const m of members) {
+    const f = facts.get(m.npi);
+    if (!f) { unmatched.push({ npi: m.npi, what: "not in NPPES", reason: "not in NPPES snapshot held by the garden", job_id: "" }); continue; }
+    const lic = pickLicense(byNpi.get(m.npi) ?? [], m.state);
+    if (!m.state) unmatched.push({ npi: m.npi, what: "state license", reason: noBoardLine(f, licenses), job_id: "" });
+    else if (!licenses.has(m.state)) {
+      unmatched.push({ npi: m.npi, what: "state license", reason: `State license: not covered yet for ${m.state}.`, job_id: "" });
+    }
+    else if (!lic && includeUnaccepted) unmatched.push({ npi: m.npi, what: "state license", reason: `no ${m.state} license receipt written yet`, job_id: "" });
+    else if (lic?.match_basis === "none") unmatched.push({ npi: m.npi, what: "state license", reason: lic.limitations || `no ${m.state} board row linked to this NPI`, job_id: "" });
+  }
+
+  // coverage, as the packet builder writes it
+  const coverage: Record<string, number> = {};
+  const notYet: Record<string, string> = {};
+  for (const c of coverageRows as Row[]) {
+    if (c.covered !== null) coverage[c.claim_key] = c.covered; else notYet[c.claim_key] = c.reason;
+  }
+  const shippable = rows.filter((r) => r.shippable);
+  const review = rows.filter((r) => r.stage === "candidate");
+  const stale = rows.filter((r) => r.stage === "stale");
+  const unsellable = rows.filter((r) => !r.accepted_for_sale);
+  const synthetic = rows.filter((r) => r.origin !== "real");
+  const internal = shippable.length < rows.length || !rows.length;
+  const statusCounts = new Map<string, number>();
+  for (const r of rows) {
+    const k = [r.claim_type, r.jurisdiction ?? "", r.normalized_status].join("|");
+    statusCounts.set(k, (statusCounts.get(k) ?? 0) + 1);
+  }
+  const n = npis.length;
+  const matched = npis.filter((x) => facts.has(x)).length;
+  const coverageMd = [
+    internal ? "# Internal review, rights pending" : "# Coverage report",
+    "",
+    `Built ${builtAt}. Shippable rows: ${shippable.length} of ${rows.length}.` + (internal ? " Nothing in this packet leaves the garden." : ""),
+    "",
+    `Roster: ${n} NPIs. In the garden: ${matched}. Not found in the NPPES snapshot: ${n - matched}.`,
+    `Receipts: ${rows.length}. Needing human review (candidate): ${review.length}. Past due (stale): ${stale.length}.`,
+    `Rows from sources not yet accepted for sale: ${unsellable.length} (these do not ship). Synthetic rows: ${synthetic.length}.`,
+    ...(leftOut ? [`Left out: ${leftOut} rows from sources not accepted for sale (ask with include_unaccepted=true).`] : []),
+    "",
+    "## Covered today (NPIs with a current receipt)",
+    "",
+    "| Claim | Covered | of roster |",
+    "| --- | ---: | ---: |",
+    ...Object.entries(coverage).map(([k, c]) => `| ${k} | ${c} | ${n ? Math.round((100 * c) / n) : 0}% |`),
+    "",
+    "## Status counts",
+    "",
+    "| Claim | Jurisdiction | Status | Rows |",
+    "| --- | --- | --- | ---: |",
+    ...[...statusCounts].sort(([a], [b]) => a.localeCompare(b)).map(([k, c]) => {
+      const [ct, jur, st] = k.split("|");
+      return `| ${ct} | ${jur || "—"} | ${st} | ${c} |`;
+    }),
+    "",
+    "## Not yet covered",
+    "",
+    ...Object.entries(notYet).map(([k, why]) => `- ${k}: ${why}`),
+    "",
+    "## How to read a row",
+    "",
+    "Three clocks: source_published_at is the date on the publisher's file; source_effective_at is when the fact took effect;",
+    "retrieved_at is when the garden read it. next_check_due_at is retrieved_at plus the source cadence.",
+    "normalized_status = not_found means not present in that source's snapshot on that date. It never means clear.",
+    "match_basis and match_confidence say how the row was joined to the NPI. name_only rows are candidates for review, not findings.",
+    "A row with accepted_for_sale = false comes from a source whose rights or acceptance test are not yet documented and does not ship.",
+    "shippable is true only for a real, verified, current row from a source accepted for sale.",
+  ].join("\n") + "\n";
+
+  const reportMd = buildReport({
+    roster, members, facts, byNpi, rows, licenses, unmatched, builtAt, leftOut, includeUnaccepted, shippable: shippable.length,
+  });
+
+  const receiptsCsv = csvText(RECEIPT_COLUMNS, rows.map((r) => RECEIPT_COLUMNS.map((c) => (c === "receipt_id" ? r.id : r[c]))));
+  const unmatchedCsv = csvText(["npi", "what", "reason", "job_id"], unmatched.map((u) => [u.npi, u.what, u.reason, u.job_id]));
+  const doc = {
+    built_at: builtAt,
+    roster: {
+      id: roster.id, name: roster.name, test: !!roster.test, count: n, matched, unmatched_count: unmatched.length,
+    },
+    include_unaccepted: includeUnaccepted,
+    left_out_not_accepted: leftOut,
+    coverage,
+    status_counts: Object.fromEntries([...statusCounts].map(([k, c]) => [k.split("|").filter(Boolean).join(":"), c])),
+    shippable: shippable.length,
+    internal_review_rights_pending: internal,
+    needs_review: review.length,
+    stale: stale.length,
+    not_accepted_for_sale: unsellable.length,
+    synthetic_rows: synthetic.length,
+    not_yet_covered: notYet,
+    unmatched,
+    receipts: rows.map(({ id, created_at: _c, ...r }) => ({ receipt_id: id, ...r })),
+  };
+  const enc = new TextEncoder();
+  const zip = await zipFiles([
+    { name: "report.md", data: enc.encode(reportMd) },
+    { name: "receipts.csv", data: enc.encode(receiptsCsv) },
+    { name: "receipts.json", data: enc.encode(JSON.stringify(doc, null, 2)) },
+    { name: "unmatched.csv", data: enc.encode(unmatchedCsv) },
+    { name: "coverage.md", data: enc.encode(coverageMd) },
+  ], new Date(builtAt));
+  const fname = `freshroot-${rosterId.replace(/[^A-Za-z0-9._-]/g, "_")}-${builtAt.slice(0, 10)}.zip`;
+  return new Response(zip, {
+    status: 200,
+    headers: {
+      ...cors, "Content-Type": "application/zip", "Cache-Control": "no-store",
+      "Content-Disposition": `attachment; filename="${fname}"`,
+    },
+  });
+}
+
+// report.md: one page. Every count is followed by the files and reads it rests on.
+function buildReport(x: {
+  roster: Row; members: Row[]; facts: Map<string, ProviderFacts>; byNpi: Map<string, Row[]>; rows: Row[];
+  licenses: Map<string, string>; unmatched: { what: string; reason: string }[]; builtAt: string; leftOut: number;
+  includeUnaccepted: boolean; shippable: number;
+}): string {
+  const { roster, members, byNpi, rows, licenses, unmatched, builtAt } = x;
+  const anyAccepted = rows.some((r) => r.accepted_for_sale);
+  const pendingSources = [...new Set(rows.filter((r) => !r.accepted_for_sale).map((r) => r.source_name))];
+  const top = !anyAccepted ? FIXED_LINE
+    : pendingSources.length ? `Internal review · rights pending on ${pendingSources.length} sources · ${x.shippable} shippable`
+    : `${x.shippable} of ${rows.length} rows shippable`;
+  const L: string[] = [top, ""];
+  L.push(`# ${String(roster.name).includes(roster.id) ? roster.name : `${roster.name} (${roster.id})`}`, "");
+  if (roster.test) {
+    L.push("**Test roster.** Built to test the system, not a customer list. The hourly refresh and the CMS loaders " +
+      "skip it; the receipts it has are kept (append-only).", "");
+  }
+  L.push(`Built ${minute(builtAt)} from the receipts current at that moment. ${members.length} NPIs on the roster, ` +
+    `${rows.length} current receipts` + (x.leftOut ? `; ${x.leftOut} rows from sources not accepted for sale left out` : "") +
+    (x.includeUnaccepted && !anyAccepted ? "; every row comes from a source not yet accepted for sale" : "") + ".", "");
+
+  // Counts by state: the board each member is checked against.
+  const lic = new Map(members.map((m) => [m.npi, pickLicense(byNpi.get(m.npi) ?? [], m.state)]));
+  const states = [...new Set(members.map((m) => m.state ?? "none"))].sort((a, b) => (a === "none" ? 1 : b === "none" ? -1 : a.localeCompare(b)));
+  // "name match" counts the linked licenses joined by name + state + taxonomy (stage candidate): for review, not findings.
+  L.push("## By state", "", `| State | NPIs | ${LICENSE_COLUMNS.join(" | ")} | other | no board row | no receipt | name match | Rests on |`,
+    `| --- | ---: | ${LICENSE_COLUMNS.map(() => "---:").join(" | ")} | ---: | ---: | ---: | ---: | --- |`);
+  for (const st of states) {
+    const ms = members.filter((m) => (m.state ?? "none") === st);
+    const ls = ms.map((m) => lic.get(m.npi)).filter(Boolean) as Row[];
+    const c = (s: string) => ls.filter((r) => r.normalized_status === s && r.match_basis !== "none").length;
+    const linked = ls.filter((r) => r.match_basis !== "none");
+    const other = linked.filter((r) => !LICENSE_COLUMNS.includes(r.normalized_status)).length;
+    const noRow = ls.filter((r) => r.match_basis === "none").length;
+    const label = st === "none" ? "no board" : licenses.has(st) ? st : `${st} (not covered)`;
+    const rests = st === "none" ? "NPPES license states: no license on file in " + [...licenses.keys()].sort().join(", ") : restsOn(ls);
+    const named = linked.filter((r) => r.stage === "candidate").length;
+    L.push(`| ${label} | ${ms.length} | ${LICENSE_COLUMNS.map(c).join(" | ")} | ${other} | ${noRow} | ${ms.length - ls.length} | ${named} | ${rests} |`);
+  }
+  L.push("");
+
+  // Flags on the license a row shows.
+  const flagged = (s: string) => members.map((m) => lic.get(m.npi)).filter((r) => r && r.normalized_status === s && r.match_basis !== "none") as Row[];
+  L.push("## License flags", "");
+  for (const s of LICENSE_FLAGS) {
+    const fr = flagged(s);
+    const cand = fr.filter((r) => r.stage === "candidate").length;
+    L.push(`- **${s[0].toUpperCase() + s.slice(1)}: ${fr.length}**` + (cand ? ` (${cand} on a name match, for review)` : "") +
+      (fr.length ? `. ${restsOn(fr)}.` : "."));
+  }
+  L.push("");
+
+  // Exclusions and NPI status.
+  const cur = (ct: string) => rows.filter((r) => r.claim_type === ct);
+  const found = (r: Row) => r.match_basis === "npi_exact" && !["not_found", "unknown"].includes(r.normalized_status);
+  const oig = cur("oig_exclusion"), sam = cur("sam_exclusion"), npiRows = cur("npi_status");
+  const samNames = sam.filter((r) => r.match_basis === "name_only");
+  L.push("## Exclusions and NPI status", "",
+    `- **OIG exclusions found: ${oig.filter(found).length}** of ${oig.length} NPIs checked. ${restsOn(oig)}.`,
+    `- **SAM exclusions found: ${sam.filter(found).length}** of ${sam.length} NPIs checked; ${samNames.length} more are name-only candidates for review, not findings. ${restsOn(sam)}.`,
+    `- **NPI deactivated: ${npiRows.filter((r) => ["inactive", "deactivated"].includes(r.normalized_status)).length}** of ${npiRows.length} NPIs read. ${restsOn(npiRows)}.`,
+    "");
+
+  // Unmatched, by reason.
+  const why = new Map<string, number>();
+  for (const u of unmatched) {
+    const k = `${u.what}: ${u.reason.replace(/\b\d{10}\b/g, "#").replace(/\s+/g, " ").slice(0, 160)}`;
+    why.set(k, (why.get(k) ?? 0) + 1);
+  }
+  L.push(`## Unmatched: ${unmatched.length}`, "");
+  if (!why.size) L.push("None.");
+  for (const [k, c] of [...why].sort((a, b) => b[1] - a[1]).slice(0, 8)) L.push(`- ${c} · ${k}`);
+  if (why.size > 8) L.push(`- ${[...why].slice(8).reduce((a, [, c]) => a + c, 0)} more across ${why.size - 8} other reasons: see unmatched.csv`);
+  if (why.size) {
+    L.push("", `Matched against the NPPES extract (${restsOn(rows.filter((r) => r.claim_type === "npi_status")) || "no reads"}) ` +
+      "and the board files in By state.");
+  }
+  L.push("");
+
+  // Oldest next check.
+  const dues = rows.filter((r) => r.next_check_due_at).sort((a, b) => a.next_check_due_at.localeCompare(b.next_check_due_at));
+  L.push("## Oldest next check", "");
+  if (!dues.length) L.push("No current receipts.");
+  else {
+    const o = dues[0];
+    const past = dues.filter((r) => Date.parse(r.next_check_due_at) < Date.parse(builtAt));
+    L.push(`- **${minute(o.next_check_due_at)}**: ${o.claim_type}${o.jurisdiction ? ` ${o.jurisdiction}` : ""} for NPI ${o.npi}, ` +
+      `from ${o.source_name} (file ${day(o.source_published_at) ?? "undated"}, read ${minute(o.retrieved_at)}).`,
+      `- **Past due at ${minute(builtAt)}: ${past.length}** of ${rows.length} receipts. ${past.length ? restsOn(past) + "." : ""}`);
+  }
+  L.push("", "Dates are UTC. A file date is the publisher's (source_published_at); a read is when the garden read it " +
+    "(retrieved_at). not_found never means clear. Every row is in receipts.csv with its receipt_id.");
+  return L.join("\n") + "\n";
+}
+
+// ---------- zip ----------
+// A plain zip (deflate, UTF-8 names) with no dependency: CompressionStream("deflate-raw") and a CRC-32 table.
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(b: Uint8Array): number {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < b.length; i++) c = CRC_TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+async function deflateRaw(b: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([b]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function zipFiles(files: { name: string; data: Uint8Array }[], when: Date): Promise<Uint8Array> {
+  const time = (when.getUTCHours() << 11) | (when.getUTCMinutes() << 5) | (when.getUTCSeconds() >> 1);
+  const date = ((when.getUTCFullYear() - 1980) << 9) | ((when.getUTCMonth() + 1) << 5) | when.getUTCDate();
+  const enc = new TextEncoder();
+  const parts: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const body = await deflateRaw(f.data);
+    const crc = crc32(f.data);
+    const local = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 8, 2], [10, time, 2], [12, date, 2], [14, crc, 4],
+      [18, body.length, 4], [22, f.data.length, 4], [26, name.length, 2], [28, 0, 2]]
+      .forEach(([at, v, size]) => (size === 4 ? local.setUint32(at, v, true) : local.setUint16(at, v, true)));
+    const cd = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 8, 2], [12, time, 2], [14, date, 2], [16, crc, 4],
+      [20, body.length, 4], [24, f.data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2],
+      [38, 0, 4], [42, offset, 4]]
+      .forEach(([at, v, size]) => (size === 4 ? cd.setUint32(at, v, true) : cd.setUint16(at, v, true)));
+    parts.push(new Uint8Array(local.buffer), name, body);
+    central.push(new Uint8Array(cd.buffer), name);
+    offset += 30 + name.length + body.length;
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, files.length, 2], [10, files.length, 2], [12, cdSize, 4], [16, offset, 4], [20, 0, 2]]
+    .forEach(([at, v, size]) => (size === 4 ? end.setUint32(at, v, true) : end.setUint16(at, v, true)));
+  const all = [...parts, ...central, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(all.reduce((a, b) => a + b.length, 0));
+  let p = 0;
+  for (const a of all) { out.set(a, p); p += a.length; }
+  return out;
 }
 
 // ---------- sources ----------
@@ -652,7 +1313,8 @@ function parseLimit(raw: string | null): number {
   return Math.min(n, MAX_LIMIT);
 }
 
-async function route(req: Request, tenant: Tenant): Promise<unknown> {
+// A route answers with a body to send as JSON (status 200), or with a Response of its own (the job's 202, the zip).
+async function route(req: Request, tenant: Tenant, cors: Record<string, string>): Promise<unknown> {
   const url = new URL(req.url);
   const path = url.pathname.replace(/^.*?\/freshroot(?=\/|$)/, "").replace(/\/+$/, "");
   const includeUnaccepted = url.searchParams.get("include_unaccepted") === "true";
@@ -662,7 +1324,17 @@ async function route(req: Request, tenant: Tenant): Promise<unknown> {
     if (req.method !== "POST") throw new HttpError(405, "POST only");
     return addToRoster(req, url, tenant, requireRoster(tenant, decodeURIComponent(m[1])));
   }
+  if ((m = path.match(/^\/v1\/rosters\/([^/]+)\/jobs$/))) {
+    if (req.method !== "POST") throw new HttpError(405, "POST only");
+    return json(await createJob(req, tenant, requireRoster(tenant, decodeURIComponent(m[1]))), 202, cors);
+  }
   if (req.method !== "GET") throw new HttpError(405, "GET only");
+
+  if ((m = path.match(/^\/v1\/jobs\/([^/]+)$/))) return getJob(tenant, decodeURIComponent(m[1]));
+
+  if ((m = path.match(/^\/v1\/rosters\/([^/]+)\/export$/))) {
+    return exportRoster(url, requireRoster(tenant, decodeURIComponent(m[1])), cors);
+  }
 
   if (path === "/v1/lookup") return lookup(url, tenant);
 
@@ -748,7 +1420,8 @@ Deno.serve(async (req: Request) => {
     if (req.method !== "GET" && req.method !== "POST") throw new HttpError(405, "GET or POST only");
     if (!SUPABASE_URL || !SERVICE_KEY) throw new HttpError(500, "function secrets not set");
     const tenant = await authenticate(req);
-    return json(await route(req, tenant), 200, cors);
+    const out = await route(req, tenant, cors);
+    return out instanceof Response ? out : json(out, 200, cors);
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status, cors);
     console.error(e);
