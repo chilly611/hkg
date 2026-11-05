@@ -1,0 +1,877 @@
+{
+  "source": "docs/field_map_2026-11-04.md",
+  "generated_by": "docs/build_fields_json.py",
+  "filed": "2026-11-04",
+  "classes": [
+    {
+      "key": "covered today",
+      "meaning": "A live, polled source in the garden holds this field, and the FreshRoot API serves it: as a receipt with its three clocks, or as a provider fact from NPPES."
+    },
+    {
+      "key": "public file",
+      "meaning": "A publisher releases it as a file anyone can get. Not loaded yet. The detail names the file."
+    },
+    {
+      "key": "agreement needed",
+      "meaning": "The primary source sells, licenses or restricts it. The detail names the agreement."
+    },
+    {
+      "key": "self-reported",
+      "meaning": "Only the physician can supply it, on the application or attestation. A primary source may confirm it one record at a time, but no bulk file exists."
+    },
+    {
+      "key": "plan-internal",
+      "meaning": "The credentialing organization makes it: decisions, dates, reviews."
+    }
+  ],
+  "counts": {
+    "covered today": 13,
+    "public file": 8,
+    "agreement needed": 13,
+    "self-reported": 14,
+    "plan-internal": 2
+  },
+  "headline_groups": [
+    {
+      "key": "Expired",
+      "meaning": "a date or status that lapses, so a credential can be out of date while nothing else changed.",
+      "fields": [
+        "F05",
+        "F08",
+        "F09",
+        "F11",
+        "F13",
+        "F15",
+        "F16",
+        "F18",
+        "F19",
+        "F27",
+        "F30",
+        "F31",
+        "F40",
+        "F43",
+        "F44",
+        "F47",
+        "F48",
+        "F49"
+      ]
+    },
+    {
+      "key": "Sanctioned",
+      "meaning": "a finding by a board, a payer or a registry that bars or limits practice or billing.",
+      "fields": [
+        "F09",
+        "F12",
+        "F13",
+        "F15",
+        "F28",
+        "F34",
+        "F35",
+        "F36",
+        "F37",
+        "F38",
+        "F39",
+        "F50"
+      ]
+    },
+    {
+      "key": "Boarded",
+      "meaning": "what says the physician is board certified, in what, and whether it is current.",
+      "fields": [
+        "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F23",
+        "F24"
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "id": "F01",
+      "field": "Legal name",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "CAQH ProView",
+        "NCQA CR 3 (application)"
+      ],
+      "source": "NPPES NPI Registry",
+      "cadence": "Weekly NPPES file",
+      "class": "covered today",
+      "detail": "NPPES provider fact",
+      "drives": []
+    },
+    {
+      "id": "F02",
+      "field": "Other names used",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "NPPES NPI Registry",
+      "cadence": "Weekly NPPES file",
+      "class": "public file",
+      "detail": "NPPES Other Name Reference File (in the NPPES download; not loaded)",
+      "drives": []
+    },
+    {
+      "id": "F03",
+      "field": "Date of birth",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "The physician; no public source",
+      "cadence": "Once",
+      "class": "self-reported",
+      "detail": "Not in NPPES or any board file the garden reads",
+      "drives": []
+    },
+    {
+      "id": "F04",
+      "field": "Social Security number",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "The physician",
+      "cadence": "Once",
+      "class": "self-reported",
+      "detail": "The garden never holds it",
+      "drives": []
+    },
+    {
+      "id": "F05",
+      "field": "NPI and NPI status (deactivation)",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "NCQA CR 5 (ongoing monitoring)",
+        "CAQH ProView"
+      ],
+      "source": "NPPES NPI Registry",
+      "cadence": "Weekly NPPES file",
+      "class": "covered today",
+      "detail": "npi_status receipt from NPPES",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F06",
+      "field": "Practice locations",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §4",
+        "NCQA CR 3 (application)",
+        "CAQH ProView"
+      ],
+      "source": "NPPES NPI Registry (self-reported to NPPES)",
+      "cadence": "Weekly NPPES file",
+      "class": "covered today",
+      "detail": "NPPES provider fact; practice addresses loaded for about 572K of 9.4M NPIs",
+      "drives": []
+    },
+    {
+      "id": "F07",
+      "field": "Primary specialty (taxonomy)",
+      "group": "Identity",
+      "standards": [
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "NPPES NPI Registry",
+      "cadence": "Weekly NPPES file",
+      "class": "covered today",
+      "detail": "NPPES provider fact (primary taxonomy)",
+      "drives": []
+    },
+    {
+      "id": "F08",
+      "field": "State license number",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "State medical board",
+      "cadence": "Board file: TX daily, FL daily, CA monthly",
+      "class": "covered today",
+      "detail": "state_license receipt, TX, FL and CA board files",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F09",
+      "field": "State license status",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 5",
+        "TJC MS.06.01.03"
+      ],
+      "source": "State medical board",
+      "cadence": "Board file: TX daily, FL daily, CA monthly",
+      "class": "covered today",
+      "detail": "state_license receipt, TX, FL and CA board files",
+      "drives": [
+        "Expired",
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F10",
+      "field": "License issue date",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3",
+        "CAQH ProView"
+      ],
+      "source": "State medical board",
+      "cadence": "Board file: TX daily, FL daily, CA monthly",
+      "class": "covered today",
+      "detail": "state_license receipt (claim.issue_date)",
+      "drives": []
+    },
+    {
+      "id": "F11",
+      "field": "License expiration date",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "State medical board",
+      "cadence": "Board file: TX daily, FL daily, CA monthly",
+      "class": "covered today",
+      "detail": "state_license receipt (claim.expiration_date)",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F12",
+      "field": "Board disciplinary actions and orders",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 5 (license sanctions)",
+        "TJC MS.06.01.05"
+      ],
+      "source": "State medical board",
+      "cadence": "Board file: TX daily, FL daily, CA monthly",
+      "class": "public file",
+      "detail": "Board action rows the TX, FL and CA loaders already write to provider_adverse_actions; no state_board_action receipt yet, so the API does not serve them",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F13",
+      "field": "Licenses held in other states",
+      "group": "Licensure",
+      "standards": [
+        "NCQA CR 3 (all states where the physician treats plan members)",
+        "CAQH ProView"
+      ],
+      "source": "Each state medical board",
+      "cadence": "Varies by board",
+      "class": "public file",
+      "detail": "The other boards' licensee files in docs/board_survey_2026-10-28.md: 27 free downloads, 24 for purchase",
+      "drives": [
+        "Expired",
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F14",
+      "field": "DEA registration number and schedules",
+      "group": "DEA and CDS",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "DEA Diversion Control",
+      "cadence": "NTIS subscription",
+      "class": "agreement needed",
+      "detail": "NTIS DEA Controlled Substances Act Registrants Database (Limited Access subscription)",
+      "drives": []
+    },
+    {
+      "id": "F15",
+      "field": "DEA registration expiration and status",
+      "group": "DEA and CDS",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 5",
+        "CAQH ProView"
+      ],
+      "source": "DEA Diversion Control",
+      "cadence": "NTIS subscription",
+      "class": "agreement needed",
+      "detail": "NTIS DEA Controlled Substances Act Registrants Database (Limited Access subscription)",
+      "drives": [
+        "Expired",
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F16",
+      "field": "State controlled substance registration",
+      "group": "DEA and CDS",
+      "standards": [
+        "NCQA CR 3 (where the state issues one)",
+        "CAQH ProView"
+      ],
+      "source": "State CDS agency",
+      "cadence": "Per state",
+      "class": "self-reported",
+      "detail": "Confirmed by single lookup at the state agency; no bulk file found",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F17",
+      "field": "Board certification: board and specialty",
+      "group": "Board certification",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "ABMS member boards; AOA for DOs",
+      "cadence": "Continuous at the board",
+      "class": "agreement needed",
+      "detail": "ABMS Solutions (CertiFACTS) for MDs; AOA Board Certification verification for DOs",
+      "drives": [
+        "Boarded"
+      ]
+    },
+    {
+      "id": "F18",
+      "field": "Board certification status, including continuing certification",
+      "group": "Board certification",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 4 (at recredentialing)"
+      ],
+      "source": "ABMS member boards; AOA for DOs",
+      "cadence": "Continuous at the board",
+      "class": "agreement needed",
+      "detail": "ABMS Solutions (CertiFACTS); AOA Board Certification verification",
+      "drives": [
+        "Boarded",
+        "Expired"
+      ]
+    },
+    {
+      "id": "F19",
+      "field": "Board certification dates (initial and expiration)",
+      "group": "Board certification",
+      "standards": [
+        "NCQA CR 3",
+        "CAQH ProView"
+      ],
+      "source": "ABMS member boards; AOA for DOs",
+      "cadence": "Continuous at the board",
+      "class": "agreement needed",
+      "detail": "ABMS Solutions (CertiFACTS); AOA Board Certification verification",
+      "drives": [
+        "Boarded",
+        "Expired"
+      ]
+    },
+    {
+      "id": "F20",
+      "field": "Board eligibility",
+      "group": "Board certification",
+      "standards": [
+        "NCQA CR 3 (plan policy)",
+        "CAQH ProView"
+      ],
+      "source": "The physician, confirmed with the board",
+      "cadence": "Until certified or eligibility ends",
+      "class": "self-reported",
+      "detail": "Boards confirm eligibility on request; no bulk file",
+      "drives": [
+        "Boarded"
+      ]
+    },
+    {
+      "id": "F21",
+      "field": "Medical school and graduation year",
+      "group": "Education and training",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CMS-855I §2",
+        "CAQH ProView"
+      ],
+      "source": "Medical school",
+      "cadence": "Once",
+      "class": "agreement needed",
+      "detail": "AMA Physician Profile (AMA credentialing services)",
+      "drives": []
+    },
+    {
+      "id": "F22",
+      "field": "ECFMG certification (international graduates)",
+      "group": "Education and training",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "ECFMG",
+      "cadence": "Once",
+      "class": "agreement needed",
+      "detail": "ECFMG Certification Verification Service",
+      "drives": []
+    },
+    {
+      "id": "F23",
+      "field": "Residency and internship",
+      "group": "Education and training",
+      "standards": [
+        "NCQA CR 3 (when not board certified)",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "Training program",
+      "cadence": "Once",
+      "class": "agreement needed",
+      "detail": "AMA Physician Profile (AMA credentialing services)",
+      "drives": [
+        "Boarded"
+      ]
+    },
+    {
+      "id": "F24",
+      "field": "Fellowship",
+      "group": "Education and training",
+      "standards": [
+        "NCQA CR 3 (when not board certified)",
+        "TJC MS.06.01.03",
+        "CAQH ProView"
+      ],
+      "source": "Training program",
+      "cadence": "Once",
+      "class": "agreement needed",
+      "detail": "AMA Physician Profile (AMA credentialing services)",
+      "drives": [
+        "Boarded"
+      ]
+    },
+    {
+      "id": "F25",
+      "field": "Work history, five years, with gaps explained",
+      "group": "Work history",
+      "standards": [
+        "NCQA CR 3",
+        "CAQH ProView"
+      ],
+      "source": "The physician (CV)",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "Gaps of 6 months or more explained, per the plan's policy",
+      "drives": []
+    },
+    {
+      "id": "F26",
+      "field": "Group practice and Medicare reassignment",
+      "group": "Work history",
+      "standards": [
+        "CMS-855R",
+        "CAQH ProView"
+      ],
+      "source": "CMS PECOS",
+      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "class": "public file",
+      "detail": "CMS Revalidation Reassignment List (data.cms.gov; not loaded)",
+      "drives": []
+    },
+    {
+      "id": "F27",
+      "field": "Current hospital privileges",
+      "group": "Privileges",
+      "standards": [
+        "TJC MS.06.01.05",
+        "NCQA CR 3 (application)",
+        "CAQH ProView"
+      ],
+      "source": "The hospital",
+      "cadence": "At reappointment",
+      "class": "self-reported",
+      "detail": "Each hospital confirms on request; no bulk file",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F28",
+      "field": "Loss or limitation of privileges, history",
+      "group": "Privileges",
+      "standards": [
+        "NCQA CR 3 (attestation)",
+        "TJC MS.06.01.05"
+      ],
+      "source": "The physician; NPDB for reported actions",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "NPDB holds the reported ones under agreement (F38)",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F29",
+      "field": "Facility affiliations",
+      "group": "Privileges",
+      "standards": [
+        "CAQH ProView"
+      ],
+      "source": "CMS Care Compare",
+      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "class": "public file",
+      "detail": "CMS Doctors and Clinicians Facility Affiliation file (data.cms.gov; not loaded)",
+      "drives": []
+    },
+    {
+      "id": "F30",
+      "field": "Current malpractice coverage: carrier, policy, limits",
+      "group": "Malpractice",
+      "standards": [
+        "NCQA CR 3 (attestation)",
+        "TJC MS.06.01.05",
+        "CAQH ProView"
+      ],
+      "source": "The carrier",
+      "cadence": "Policy term, usually yearly",
+      "class": "self-reported",
+      "detail": "Certificate of insurance from the carrier; no bulk file",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F31",
+      "field": "Malpractice coverage expiration",
+      "group": "Malpractice",
+      "standards": [
+        "NCQA CR 3",
+        "CAQH ProView"
+      ],
+      "source": "The carrier",
+      "cadence": "Policy term, usually yearly",
+      "class": "self-reported",
+      "detail": "Certificate of insurance from the carrier",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F32",
+      "field": "Malpractice claims history, five years",
+      "group": "Malpractice",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.05"
+      ],
+      "source": "NPDB; the carrier",
+      "cadence": "Per query; NPDB Continuous Query",
+      "class": "agreement needed",
+      "detail": "NPDB query by a registered entity; the garden never resells it",
+      "drives": []
+    },
+    {
+      "id": "F33",
+      "field": "Explanation of pending or settled claims",
+      "group": "Malpractice",
+      "standards": [
+        "NCQA CR 3",
+        "CAQH ProView"
+      ],
+      "source": "The physician",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "Read with F32",
+      "drives": []
+    },
+    {
+      "id": "F34",
+      "field": "OIG LEIE exclusion",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 5",
+        "CMS-855I §3"
+      ],
+      "source": "HHS OIG",
+      "cadence": "Monthly LEIE file",
+      "class": "covered today",
+      "detail": "oig_exclusion receipt",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F35",
+      "field": "SAM.gov exclusion",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 5",
+        "CMS-855I §3"
+      ],
+      "source": "GSA SAM.gov",
+      "cadence": "Daily SAM extract",
+      "class": "covered today",
+      "detail": "sam_exclusion receipt; rows without an NPI are name-only candidates",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F36",
+      "field": "State Medicaid exclusions",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 3",
+        "NCQA CR 5"
+      ],
+      "source": "Each state Medicaid agency",
+      "cadence": "Varies by state",
+      "class": "public file",
+      "detail": "State Medicaid exclusion lists (not yet ingested; in_30_days in roster_coverage)",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F37",
+      "field": "Medicare Preclusion List",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 5 (Medicare sanctions)",
+        "CMS rules for MA plans and Part D sponsors"
+      ],
+      "source": "CMS",
+      "cadence": "Per CMS release to plans",
+      "class": "agreement needed",
+      "detail": "CMS Preclusion List, released to MA organizations and Part D sponsors",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F38",
+      "field": "NPDB reports: licensure, privileges, exclusion actions",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 3",
+        "TJC MS.06.01.05"
+      ],
+      "source": "NPDB",
+      "cadence": "Per query; NPDB Continuous Query",
+      "class": "agreement needed",
+      "detail": "NPDB query by a registered entity; the garden never resells it",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F39",
+      "field": "Felony convictions and final adverse legal actions",
+      "group": "Sanctions and exclusions",
+      "standards": [
+        "NCQA CR 3 (attestation)",
+        "CMS-855I §3",
+        "CAQH ProView"
+      ],
+      "source": "The physician; courts",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "Attested on the application",
+      "drives": [
+        "Sanctioned"
+      ]
+    },
+    {
+      "id": "F40",
+      "field": "Medicare enrollment (approved to bill or to order and refer)",
+      "group": "Medicare and Medicaid enrollment",
+      "standards": [
+        "CMS-855I",
+        "CAQH ProView"
+      ],
+      "source": "CMS PECOS",
+      "cadence": "Quarterly CMS file",
+      "class": "covered today",
+      "detail": "pecos_enrollment receipt, Medicare FFS Public Provider Enrollment file",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F41",
+      "field": "Medicare ordering and referring eligibility",
+      "group": "Medicare and Medicaid enrollment",
+      "standards": [
+        "CMS-855O"
+      ],
+      "source": "CMS PECOS",
+      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "class": "public file",
+      "detail": "CMS Order and Referring file (data.cms.gov; not loaded)",
+      "drives": []
+    },
+    {
+      "id": "F42",
+      "field": "Medicare opt-out",
+      "group": "Medicare and Medicaid enrollment",
+      "standards": [
+        "CMS opt-out affidavit",
+        "NCQA CR 3 (Medicare status)"
+      ],
+      "source": "CMS (Medicare Administrative Contractors)",
+      "cadence": "Monthly CMS file",
+      "class": "covered today",
+      "detail": "medicare_optout receipt, Opt Out Affidavits file",
+      "drives": []
+    },
+    {
+      "id": "F43",
+      "field": "Medicare revalidation due date",
+      "group": "Medicare and Medicaid enrollment",
+      "standards": [
+        "CMS-855I (revalidation)"
+      ],
+      "source": "CMS PECOS",
+      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "class": "public file",
+      "detail": "CMS Revalidation Due Date List (data.cms.gov; not loaded)",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F44",
+      "field": "Medicaid enrollment, by state",
+      "group": "Medicare and Medicaid enrollment",
+      "standards": [
+        "State Medicaid provider enrollment",
+        "CAQH ProView"
+      ],
+      "source": "Each state Medicaid agency",
+      "cadence": "Varies by state",
+      "class": "agreement needed",
+      "detail": "The state's enrolled-provider file under the plan's managed care contract",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F45",
+      "field": "Ability to perform, health status",
+      "group": "Attestations",
+      "standards": [
+        "NCQA CR 3 (attestation)",
+        "TJC MS.06.01.05"
+      ],
+      "source": "The physician",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "Attested on the application",
+      "drives": []
+    },
+    {
+      "id": "F46",
+      "field": "No present illegal drug use",
+      "group": "Attestations",
+      "standards": [
+        "NCQA CR 3 (attestation)"
+      ],
+      "source": "The physician",
+      "cadence": "At each credentialing cycle",
+      "class": "self-reported",
+      "detail": "Attested on the application",
+      "drives": []
+    },
+    {
+      "id": "F47",
+      "field": "Correct and complete, signed and dated",
+      "group": "Attestations",
+      "standards": [
+        "NCQA CR 3 (attestation)",
+        "CMS-855I §15",
+        "CAQH ProView (re-attest every 120 days)"
+      ],
+      "source": "The physician",
+      "cadence": "Every 120 days on CAQH ProView",
+      "class": "self-reported",
+      "detail": "CAQH ProView attestation date, read under a CAQH participating-organization agreement",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F48",
+      "field": "Primary-source verification date per element",
+      "group": "Monitoring metadata",
+      "standards": [
+        "NCQA CR 3 (verification time limits)",
+        "TJC MS.06.01.03"
+      ],
+      "source": "The credentialing organization",
+      "cadence": "Each read",
+      "class": "covered today",
+      "detail": "Every receipt carries source_published_at, retrieved_at and next_check_due_at",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F49",
+      "field": "Credentialing decision and recredentialing due date",
+      "group": "Monitoring metadata",
+      "standards": [
+        "NCQA CR 2",
+        "NCQA CR 4 (at least every 36 months)",
+        "TJC MS.06.01.05"
+      ],
+      "source": "The credentialing committee",
+      "cadence": "Every 36 months at most (NCQA)",
+      "class": "plan-internal",
+      "detail": "Committee minutes and the plan's credentialing system",
+      "drives": [
+        "Expired"
+      ]
+    },
+    {
+      "id": "F50",
+      "field": "Ongoing monitoring reviews",
+      "group": "Monitoring metadata",
+      "standards": [
+        "NCQA CR 5",
+        "TJC MS.08.01.03 (OPPE)"
+      ],
+      "source": "The credentialing organization",
+      "cadence": "Within 30 days of a sanction release (NCQA CR 5)",
+      "class": "plan-internal",
+      "detail": "The plan's monitoring log; FreshRoot's deltas feed is an input to it",
+      "drives": [
+        "Sanctioned"
+      ]
+    }
+  ]
+}

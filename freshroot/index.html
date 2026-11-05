@@ -357,6 +357,33 @@ details.evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font-fami
 .bucket li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .bucket li .k { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
 .bucket li .why { color: var(--ink-2); display: block; }
+
+/* Coverage: Claims | Fields */
+.subnav { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 32px; }
+.subnav a { color: var(--ink-2); text-decoration: none; padding: 6px 12px; border-radius: 999px; font-size: 14px; border: 1px solid var(--line); }
+.subnav a:hover { color: var(--ink); border-color: var(--ink-3); }
+.subnav a[aria-current="page"] { color: var(--ink); background: var(--tq-tint); border-color: transparent; font-weight: 500; }
+@media (min-width: 1040px) { .buckets.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.queues.classes { margin: 40px 0 16px; }
+@media (min-width: 720px) { .queues.classes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1040px) { .queues.classes { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.fhead, .frow {
+  display: grid; gap: 4px 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+  grid-template-columns: 44px minmax(0, 1fr); grid-template-areas: "id name" "id std" "id src" "id cls";
+}
+.fhead { display: none; font-size: 12px; color: var(--ink-3); padding: 10px 0; }
+.frow .f-id { grid-area: id; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+.frow .f-name { grid-area: name; }
+.frow .f-name b { font-weight: 500; font-size: 14px; }
+.frow .f-std { grid-area: std; color: var(--ink-2); }
+.frow .f-src { grid-area: src; color: var(--ink-2); }
+.frow .f-cls { grid-area: cls; }
+.frow .sub, .frow .f-cls .why { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; overflow-wrap: anywhere; }
+.frow .drives { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: 1px; }
+@media (min-width: 1040px) {
+  .fhead, .frow { grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1.3fr); grid-template-areas: "id name std src cls"; align-items: start; }
+  .fhead { display: grid; }
+}
 .meter { height: 4px; background: var(--line-2); border-radius: 2px; margin-top: 6px; }
 .meter i { display: block; height: 100%; background: var(--tq); border-radius: 2px; }
 </style>
@@ -448,6 +475,8 @@ const state = {
   justAdded: null,         // the roster-add response for the NPI just added, shown once on its Provider page
   bulk: { text: "", file: null, job: null, error: null, busy: false, timer: 0 },   // "Add many" and its job
   exp: { busy: false, done: null, error: null },                                    // "Export this roster"
+  fields: null,            // fields.json (docs/field_map_2026-11-04.md), or an Error
+  fieldClass: "",          // the Fields view's class filter
 };
 
 // ---------- small helpers ----------
@@ -697,7 +726,8 @@ function parseRoute() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   const tab = SURFACES.includes(parts[0]) ? parts[0] : "sources";
   const npi = tab === "provider" && /^\d{10}$/.test(parts[1] || "") ? parts[1] : null;
-  return { tab, npi };
+  const view = tab === "coverage" && parts[1] === "fields" ? "fields" : null;
+  return { tab, npi, view };
 }
 window.addEventListener("hashchange", () => { state.route = parseRoute(); render(); window.scrollTo(0, 0); });
 
@@ -1543,10 +1573,15 @@ function deltaRow(r) {
 const fieldVal = (v) => (v == null ? "none" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
 // 5. Coverage
+const coverageNav = (view) => `<nav class="subnav" aria-label="Coverage views">
+    <a href="#/coverage"${view ? "" : ` aria-current="page"`}>Claims</a>
+    <a href="#/coverage/fields"${view === "fields" ? ` aria-current="page"` : ""}>Fields</a></nav>`;
+
 function renderCoverage() {
   const el = $("#s-coverage");
+  if (state.route.view === "fields") return renderFields(el);
   if (!state.coverage) {
-    el.innerHTML = `<p class="eyebrow">Coverage</p><h1>Coverage</h1>` + (errBox(state.errors.coverage, "coverage") || `<p class="loading">Loading coverage</p>`);
+    el.innerHTML = `<p class="eyebrow">Coverage</p><h1>Coverage</h1>${coverageNav(null)}` + (errBox(state.errors.coverage, "coverage") || `<p class="loading">Loading coverage</p>`);
     return;
   }
   const b = state.coverage.buckets || {};
@@ -1561,6 +1596,7 @@ function renderCoverage() {
   el.innerHTML = `
     <p class="eyebrow">Coverage · ${esc(state.coverage.roster_id)}</p>
     <h1>What this roster can be checked against</h1>
+    ${coverageNav(null)}
     <p class="lede">${plural(total, "claim")} sorted into four buckets for a roster of <span class="mono">${esc(size)}</span>. Counts are claims; a claim is covered when at least one roster physician holds a current receipt for it. A state claim counts against the roster physicians whose license board is that state; a federal claim against the whole roster.</p>
     <div class="focal"><div class="fig">${(b.covered_today || []).length}<small>of ${total} claims covered today</small></div></div>
     <div class="buckets">${BUCKETS.map(([k, label, blurb], i) => {
@@ -1574,6 +1610,78 @@ function renderCoverage() {
           ${r.reason ? `<span class="why">${esc(r.reason)}</span>` : ""}</li>`).join("") || `<li class="note">None</li>`}</ul>
       </section>`;
     }).join("")}</div>`;
+}
+
+// Coverage · Fields: the fifty credentialing fields from fields.json, generated from docs/field_map_2026-11-04.md by
+// docs/build_fields_json.py. A static file beside this page: it reads no API and needs no key.
+const FIELD_CLASSES = ["covered today", "public file", "agreement needed", "self-reported", "plan-internal"];
+const FIELD_CHIP = { "covered today": "ok", "public file": "", "agreement needed": "nf", "self-reported": "unk", "plan-internal": "none" };
+const fieldChip = (c) => `<span class="chip ${FIELD_CHIP[c] ?? ""}">${esc(c)}</span>`;
+
+async function loadFields() {
+  try {
+    const resp = await fetch("fields.json", { cache: "no-store" });
+    if (!resp.ok) throw new ApiError(resp.status, resp.statusText || "fields.json not found");
+    state.fields = await resp.json();
+  } catch (e) {
+    state.fields = e instanceof ApiError ? e : new ApiError(0, "fields.json could not be read");
+  }
+  if (state.route.tab === "coverage" && state.route.view === "fields") renderFields($("#s-coverage"));
+}
+
+function renderFields(el) {
+  const head = `<p class="eyebrow">Coverage · fields</p>
+    <h1>Fifty credentialing fields, and where each one comes from</h1>
+    ${coverageNav("fields")}`;
+  const F = state.fields;
+  if (!F) {
+    el.innerHTML = head + `<p class="loading">Loading the field map</p>`;
+    loadFields();
+    return;
+  }
+  if (F instanceof Error) { el.innerHTML = head + errBox(F, "the field map"); return; }
+  const byId = new Map(F.fields.map((f) => [f.id, f]));
+  const total = F.fields.length;
+  const meaning = Object.fromEntries(F.classes.map((c) => [c.key, c.meaning]));
+  const rows = F.fields.filter((f) => !state.fieldClass || f.class === state.fieldClass);
+  el.innerHTML = head + `
+    <p class="lede">What a plan or hospital collects to credential a physician, each field with the standard that asks for it, its primary source and cadence, and where the garden stands on it. Standards are cited at the family level; confirm an element number in the current manual before quoting it.</p>
+    <div class="focal"><div class="fig">${F.counts["covered today"]}<small>of ${total} fields covered today</small></div>
+      <div class="side">${esc(meaning["covered today"])}</div></div>
+    <div class="buckets">${FIELD_CLASSES.slice(1).map((c, i) => `<section class="bucket${i === 0 ? " first" : ""}">
+        <h2>${esc(c[0].toUpperCase() + c.slice(1))}</h2>
+        <div class="n">${F.counts[c]}</div>
+        <p class="note">${esc(meaning[c])}</p>
+      </section>`).join("")}</div>
+
+    <h2 style="margin-top:56px">What drives the three headlines</h2>
+    <p class="note">The fields behind each headline a buyer asks for first, with where each one stands.</p>
+    <div class="buckets three">${F.headline_groups.map((g, i) => `<section class="bucket${i === 0 ? " first" : ""}">
+        <h2>${esc(g.key)}</h2>
+        <div class="n">${g.fields.length}</div>
+        <p class="note">${esc(g.meaning.charAt(0).toUpperCase() + g.meaning.slice(1))}</p>
+        <ul>${g.fields.map((id) => byId.get(id)).map((f) => `<li><span class="k">${esc(f.id)}</span> ${esc(f.field)}
+          <span class="why">${fieldChip(f.class)}</span></li>`).join("")}</ul>
+      </section>`).join("")}</div>
+
+    <div class="queues classes" role="group" aria-label="Filter by coverage class">
+      ${[["", "All fields", total], ...FIELD_CLASSES.map((c) => [c, c, F.counts[c]])].map(([k, label, n]) => {
+        const on = state.fieldClass === k;
+        return `<button type="button" class="queue${on ? " on" : ""}" data-fclass="${esc(k)}" aria-pressed="${on}"><span class="mono">${n}</span> ${esc(label)}</button>`;
+      }).join("")}
+    </div>
+    <p class="count-line" aria-live="polite">Showing ${rows.length} of ${total}${state.fieldClass ? ` · ${esc(state.fieldClass)}` : ""}</p>
+    <div class="rows">
+      <div class="fhead" aria-hidden="true"><span>ID</span><span>Field</span><span>Standards</span><span>Primary source · cadence</span><span>Coverage</span></div>
+      ${rows.map((f) => `<div class="frow">
+        <span class="f-id">${esc(f.id)}</span>
+        <span class="f-name"><b>${esc(f.field)}</b>${f.drives.length ? `<span class="drives">${f.drives.map((d) => `<span class="chip qchip">${esc(d)}</span>`).join("")}</span>` : ""}<span class="sub">${esc(f.group)}</span></span>
+        <span class="f-std">${f.standards.map(esc).join("<br>")}</span>
+        <span class="f-src">${esc(f.source)}<span class="sub">${esc(f.cadence)}</span></span>
+        <span class="f-cls">${fieldChip(f.class)}${f.detail ? `<span class="why">${esc(f.detail)}</span>` : ""}</span>
+      </div>`).join("")}
+    </div>
+    <p class="note" style="margin-top:24px">Source: <span class="mono">${esc(F.source)}</span>, filed ${esc(F.filed || "undated")}; this view reads <span class="mono">fields.json</span>, generated by <span class="mono">${esc(F.generated_by)}</span>.</p>`;
 }
 
 // ---------- events ----------
@@ -1628,6 +1736,8 @@ document.addEventListener("click", (e) => {
   const t = e.target;
   if (t.id === "end-sim" || t.id === "sim-end-inline") { state.sim = null; render(); return; }
   if (t.id === "ex-go") { exportRoster(); return; }
+  const fclass = t.closest?.("[data-fclass]");
+  if (fclass) { state.fieldClass = fclass.dataset.fclass; renderFields($("#s-coverage")); return; }
   const queue = t.closest?.("[data-queue]");
   if (queue) { state.rosterQueue = state.rosterQueue === queue.dataset.queue ? "" : queue.dataset.queue; renderRosterRows(); return; }
   if (t.closest?.("[data-clear-filters]")) {
