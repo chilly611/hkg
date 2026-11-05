@@ -18,7 +18,7 @@ Detection, per source:
                 date a release. Each loader writes receipts for every roster
   Florida       not polled: the MQA portal sits behind an Azure B2C sign-in, so neither the release
                 date nor the files can be read unattended. A signed-in person downloads them and runs
-                boards/fl_mqa.py (PERSON_RUN)
+                boards/fl_mqa.py. data_sources.person_run marks it; PERSON_RUN says how
   any other     rowsUpdatedAt when detection_url is Socrata view metadata (/api/views/<id>.json);
                 else Last-Modified of detection_url; else the body's sha256 against the latest
                 artifact, only when that artifact was downloaded from detection_url itself. ETag is
@@ -53,7 +53,9 @@ source keeps its last clocks, so v_source_status ages it to due and stale on its
 Every source the poller checks, reachable or not, gets data_sources.last_polled_at = the time of the
 check (a dry run stamps nothing). v_source_status reads "poll late" when that stamp is more than 90
 minutes old, so a delayed or dropped GitHub run is never shown as a publisher miss
-(migrations/2026-10-28_poll_late.sql). A failed stamp is logged and never fails the poll.
+(migrations/2026-10-28_poll_late.sql). Until a source's first stamp, the view ages its last completed
+load instead (migrations/2026-11-05_poll_late_fallback.sql). A person_run source is never checked and
+never reads poll late. A failed stamp is logged and never fails the poll.
 
 Exit code 1 if the poller itself fails (an uncaught error, a detector that read a reachable page and
 could not parse it, a loader run that ended failed, a release that failed MAX_FAILED times) or every
@@ -224,6 +226,7 @@ LOADERS = {   # paths relative to scripts/ingestion; each loader accepts --run-i
     ingest_cms_pecos.SOURCE: "ingest_cms_pecos.py",
 }
 # Loaders a person runs: the poller can neither read the release date nor fetch the files unattended.
+# data_sources.person_run decides what is skipped (v_source_status reads the same flag); this says how.
 PERSON_RUN = {
     "Florida MQA licensee data download": (
         "the MQA portal requires a signed-in person; they download the Licensure and profile files "
@@ -332,8 +335,8 @@ def poll(db, source, dry_run):
     res = {"name": source["name"], "outcome": None, "published": None, "known": None, "signal": None,
            "delay_h": None, "run_id": None, "run_status": None, "error": False, "checked": False,
            "unreachable": False}
-    if source["name"] in PERSON_RUN:
-        res["outcome"] = f"not polled: {PERSON_RUN[source['name']]}"
+    if source["person_run"]:
+        res["outcome"] = f"not polled: {PERSON_RUN.get(source['name'], 'a person loads this source')}"
         return res
     if not source.get("detection_url"):
         res["outcome"] = "not polled: no detection_url [CONFIRM] a person sets it"
@@ -423,7 +426,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     db = Rest()
 
-    sources = db.select("data_sources", {"select": "id,name,category,detection_url", "order": "category,name"})
+    sources = db.select("data_sources", {"select": "id,name,category,detection_url,person_run", "order": "category,name"})
     sources = [s for s in sources if s["detection_url"] or s["category"] in STATUS_CATEGORIES]
     if args.source:
         sources = [s for s in sources if s["name"] in args.source]
