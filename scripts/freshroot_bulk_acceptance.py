@@ -15,6 +15,7 @@ freshroot_bulk_acceptance.py · the acceptance run for bulk input and report out
    so its license is checked there), polls GET /v1/jobs/{id} until done or failed, and prints
    the final counts.
 5. GETs /v1/rosters/{id}/export, saves the zip in --out, checks it holds the five files, and prints report.md.
+--export-only skips 1 to 4 for a roster that exists: a key for this run, the export, the key deleted.
 
 Same client and env as the loaders (scripts/ingestion/core_run.py): SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from
 the repo-root .env or the environment. The service role key is used only for the admin steps (roster, tenant,
@@ -96,6 +97,34 @@ def api(base, key, method, path, body=None, content_type=None, raw=False, timeou
         sys.exit(f"error: {method} {path} -> HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:500]}")
 
 
+def run_job(fn, key, args, by_state):
+    """POST the NPIs as CSV (npi, and state: the board file each came from), poll until done or failed."""
+    csv_body = ("npi,state\n" + "".join(f"{n},{st}\n" for st in STATES for n in by_state[st])).encode()
+    t0 = time.time()
+    status, job = api(fn, key, "POST", f"/v1/rosters/{args.roster}/jobs", csv_body, "text/csv")
+    log(f"POST jobs -> {status}: job {job['job_id']}, {job['counts']['input']} input lines, status {job['status']}")
+    last = None
+    while True:
+        _, job = api(fn, key, "GET", f"/v1/jobs/{job['job_id']}")
+        line = (f"{job['status']}: {job['progress']['processed']}/{job['progress']['total']} processed, "
+                f"{job['counts']['added']} added, {job['counts']['receipted']} receipted, "
+                f"{job['counts']['receipts_written']} receipts, {job['counts']['unmatched']} unmatched")
+        if line != last:
+            log(line)
+            last = line
+        if job["status"] in ("done", "failed"):
+            break
+        if time.time() - t0 > args.max_minutes * 60:
+            sys.exit(f"error: job {job['job_id']} still {job['status']} after {args.max_minutes} minutes")
+        time.sleep(args.poll)
+    log(f"job {job['status']} in {time.time() - t0:.0f} s")
+    print("\nFinal job:\n" + json.dumps({k: job[k] for k in (
+        "job_id", "roster_id", "status", "progress", "counts", "guard", "write_failures", "error",
+        "created_at", "started_at", "finished_at")}, indent=2))
+    print("Unmatched:", json.dumps(job["unmatched"], indent=2))
+    return job
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     stamp = datetime.now().strftime("%Y-%m-%d")
@@ -105,24 +134,29 @@ def main():
     ap.add_argument("--out", required=True, help="directory for the export zip (keep it out of the repo)")
     ap.add_argument("--poll", type=float, default=5.0)
     ap.add_argument("--max-minutes", type=float, default=60.0)
+    ap.add_argument("--export-only", action="store_true", help="export an existing --roster; no picking, no job")
     args = ap.parse_args()
 
     db = Rest()
     fn = db.base.replace("/rest/v1", "/functions/v1/freshroot")
-    if db.select("rosters", {"select": "id", "id": f"eq.{args.roster}"}):
+    exists = bool(db.select("rosters", {"select": "id", "id": f"eq.{args.roster}"}))
+    if args.export_only and not exists:
+        sys.exit(f"error: no roster {args.roster}")
+    if exists and not args.export_only:
         sys.exit(f"error: roster {args.roster} exists; pick another --roster (receipts are append-only, so a "
                  "scratch roster is never reused)")
 
-    by_state = pick_npis(db, args.count, args.seed)
-    npis = [n for st in STATES for n in by_state[st]]
-    if len(npis) != args.count:
-        sys.exit(f"error: picked {len(npis)} NPIs, wanted {args.count}")
-    db.insert("rosters", [{
-        "id": args.roster, "name": f"Scratch: bulk job acceptance ({args.roster})", "test": True,
-        "source_file": "TX, FL and CA board snapshots, latest completed runs: "
-                       + ", ".join(f"{st} {len(by_state[st])}" for st in STATES),
-    }])
-    log(f"roster {args.roster} created, test = true, no members")
+    if not args.export_only:
+        by_state = pick_npis(db, args.count, args.seed)
+        npis = [n for st in STATES for n in by_state[st]]
+        if len(npis) != args.count:
+            sys.exit(f"error: picked {len(npis)} NPIs, wanted {args.count}")
+        db.insert("rosters", [{
+            "id": args.roster, "name": f"Scratch: bulk job acceptance ({args.roster})", "test": True,
+            "source_file": "TX, FL and CA board snapshots, latest completed runs: "
+                           + ", ".join(f"{st} {len(by_state[st])}" for st in STATES),
+        }])
+        log(f"roster {args.roster} created, test = true, no members")
 
     tenant = f"scratch-{args.roster}"
     key = "fr_" + secrets.token_urlsafe(32)
@@ -130,30 +164,9 @@ def main():
                                "roster_ids": [args.roster]}])
     log(f"tenant {tenant} created for this run only (key held in memory)")
     try:
-        csv_body = ("npi,state\n" + "".join(f"{n},{st}\n" for st in STATES for n in by_state[st])).encode()
-        t0 = time.time()
-        status, job = api(fn, key, "POST", f"/v1/rosters/{args.roster}/jobs", csv_body, "text/csv")
-        log(f"POST jobs -> {status}: job {job['job_id']}, {job['counts']['input']} input lines, status {job['status']}")
-        last = None
-        while True:
-            _, job = api(fn, key, "GET", f"/v1/jobs/{job['job_id']}")
-            line = (f"{job['status']}: {job['progress']['processed']}/{job['progress']['total']} processed, "
-                    f"{job['counts']['added']} added, {job['counts']['receipted']} receipted, "
-                    f"{job['counts']['receipts_written']} receipts, {job['counts']['unmatched']} unmatched")
-            if line != last:
-                log(line)
-                last = line
-            if job["status"] in ("done", "failed"):
-                break
-            if time.time() - t0 > args.max_minutes * 60:
-                sys.exit(f"error: job {job['job_id']} still {job['status']} after {args.max_minutes} minutes")
-            time.sleep(args.poll)
-        log(f"job {job['status']} in {time.time() - t0:.0f} s")
-        print("\nFinal job:\n" + json.dumps({k: job[k] for k in (
-            "job_id", "roster_id", "status", "progress", "counts", "guard", "write_failures", "error",
-            "created_at", "started_at", "finished_at")}, indent=2))
-        print("Unmatched:", json.dumps(job["unmatched"], indent=2))
-
+        job = None
+        if not args.export_only:
+            job = run_job(fn, key, args, by_state)
         _, blob = api(fn, key, "GET", f"/v1/rosters/{args.roster}/export?include_unaccepted=true", raw=True, timeout=600)
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
@@ -168,7 +181,7 @@ def main():
             sizes = {n: z.getinfo(n).file_size for n in sorted(names)}
         log(f"export saved to {zpath} ({len(blob):,} bytes): {sizes}")
         print("\n" + report)
-        return 0 if job["status"] == "done" else 1
+        return 0 if job is None or job["status"] == "done" else 1
     finally:
         db.delete("api_tenants", name=f"eq.{tenant}")
         log(f"tenant {tenant} deleted; roster {args.roster} and its receipts stay (test = true)")

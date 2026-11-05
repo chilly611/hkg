@@ -1017,7 +1017,7 @@ function buildReport(x: {
     : pendingSources.length ? `Internal review · rights pending on ${pendingSources.length} sources · ${x.shippable} shippable`
     : `${x.shippable} of ${rows.length} rows shippable`;
   const L: string[] = [top, ""];
-  L.push(`# ${roster.name} (${roster.id})`, "");
+  L.push(`# ${String(roster.name).includes(roster.id) ? roster.name : `${roster.name} (${roster.id})`}`, "");
   if (roster.test) {
     L.push("**Test roster.** Built to test the system, not a customer list. The hourly refresh and the CMS loaders " +
       "skip it; the receipts it has are kept (append-only).", "");
@@ -1029,8 +1029,9 @@ function buildReport(x: {
   // Counts by state: the board each member is checked against.
   const lic = new Map(members.map((m) => [m.npi, pickLicense(byNpi.get(m.npi) ?? [], m.state)]));
   const states = [...new Set(members.map((m) => m.state ?? "none"))].sort((a, b) => (a === "none" ? 1 : b === "none" ? -1 : a.localeCompare(b)));
-  L.push("## By state", "", `| State | NPIs | ${LICENSE_COLUMNS.join(" | ")} | other | no board row | no receipt | Rests on |`,
-    `| --- | ---: | ${LICENSE_COLUMNS.map(() => "---:").join(" | ")} | ---: | ---: | ---: | --- |`);
+  // "name match" counts the linked licenses joined by name + state + taxonomy (stage candidate): for review, not findings.
+  L.push("## By state", "", `| State | NPIs | ${LICENSE_COLUMNS.join(" | ")} | other | no board row | no receipt | name match | Rests on |`,
+    `| --- | ---: | ${LICENSE_COLUMNS.map(() => "---:").join(" | ")} | ---: | ---: | ---: | ---: | --- |`);
   for (const st of states) {
     const ms = members.filter((m) => (m.state ?? "none") === st);
     const ls = ms.map((m) => lic.get(m.npi)).filter(Boolean) as Row[];
@@ -1040,7 +1041,8 @@ function buildReport(x: {
     const noRow = ls.filter((r) => r.match_basis === "none").length;
     const label = st === "none" ? "no board" : licenses.has(st) ? st : `${st} (not covered)`;
     const rests = st === "none" ? "NPPES license states: no license on file in " + [...licenses.keys()].sort().join(", ") : restsOn(ls);
-    L.push(`| ${label} | ${ms.length} | ${LICENSE_COLUMNS.map(c).join(" | ")} | ${other} | ${noRow} | ${ms.length - ls.length} | ${rests} |`);
+    const named = linked.filter((r) => r.stage === "candidate").length;
+    L.push(`| ${label} | ${ms.length} | ${LICENSE_COLUMNS.map(c).join(" | ")} | ${other} | ${noRow} | ${ms.length - ls.length} | ${named} | ${rests} |`);
   }
   L.push("");
 
