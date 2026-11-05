@@ -236,6 +236,23 @@ input:hover, select:hover { border-color: var(--ink-3); }
   .cand .c-act { justify-content: flex-end; }
 }
 
+/* Add many, export */
+.tools { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 0 0 40px; }
+.tools > .lookup { margin: 0; }
+@media (min-width: 880px) { .tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; } }
+.bulk textarea {
+  width: 100%; min-height: 104px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  background: var(--white); font: 13px/1.5 var(--mono); color: var(--ink);
+}
+.bulk textarea:hover { border-color: var(--ink-3); }
+.bulk input[type="file"] { font-size: 13px; max-width: 100%; }
+.bk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0 0; }
+.progress { height: 8px; background: var(--line-2); border-radius: 4px; overflow: hidden; margin: 16px 0 8px; }
+.progress i { display: block; height: 100%; width: 0; background: var(--tq); border-radius: 4px; transition: width .4s ease; }
+.progress.failed i { background: var(--shock); }
+.bk-miss { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--ink-2); }
+.bk-miss li { padding: 2px 0; overflow-wrap: anywhere; }
+
 /* Provider */
 .prov-head { display: grid; gap: 8px; margin: 0 0 40px; }
 .summary { font-size: 19px; line-height: 1.5; letter-spacing: -.005em; max-width: 64ch; margin: 0 0 32px; }
@@ -391,7 +408,13 @@ details.evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font-fami
 "use strict";
 
 const API = "https://opbrzaegvfyjpyyrmdfe.supabase.co/functions/v1/freshroot";
-const ROSTER_ID = "first-packet-2026-10-26";
+// The roster this page reads: ?roster=<id> when given (a key reads only its own rosters), else the first packet.
+const ROSTER_ID = (() => {
+  const r = new URLSearchParams(location.search).get("roster");
+  return r && /^[A-Za-z0-9._-]{1,80}$/.test(r) ? r : "first-packet-2026-10-26";
+})();
+const JOB_STORE = `freshroot.job.${ROSTER_ID}`;
+const JOB_MAX = 5000;
 const KEY_STORE = "freshroot.tenantKey";
 const SURFACES = ["sources", "roster", "provider", "changes", "coverage"];
 const PROVIDER_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"];
@@ -423,6 +446,8 @@ const state = {
   lastNpi: null,
   lookup: { q: "", st: "", seq: 0, busy: false, result: null, error: null, errWhat: "", adding: null, timer: 0 },
   justAdded: null,         // the roster-add response for the NPI just added, shown once on its Provider page
+  bulk: { text: "", file: null, job: null, error: null, busy: false, timer: 0 },   // "Add many" and its job
+  exp: { busy: false, done: null, error: null },                                    // "Export this roster"
 };
 
 // ---------- small helpers ----------
@@ -570,22 +595,28 @@ function dropKey() { try { localStorage.removeItem(KEY_STORE); } catch { /* noth
 class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
-async function api(path, params = {}, body) {
+// The response of one API call; an error status becomes an ApiError with the API's own message.
+async function apiFetch(path, params = {}, init = {}) {
   const u = new URL(API + path);
   u.searchParams.set("include_unaccepted", "true");
   for (const [k, v] of Object.entries(params)) if (v != null && v !== "") u.searchParams.set(k, v);
-  const init = { headers: { "X-FreshRoot-Key": state.key }, cache: "no-store" };
-  if (body !== undefined) Object.assign(init, { method: "POST", body: JSON.stringify(body), headers: { ...init.headers, "Content-Type": "application/json" } });
   let resp;
   try {
-    resp = await fetch(u, init);
+    resp = await fetch(u, { cache: "no-store", ...init, headers: { "X-FreshRoot-Key": state.key, ...(init.headers || {}) } });
   } catch {
     throw new ApiError(0, "network error, or the request was blocked by CORS (this page must run on health.theknowledgegardens.com or localhost:5173)");
   }
-  let out = null;
-  try { out = await resp.json(); } catch { /* empty or non-JSON body */ }
-  if (!resp.ok) throw new ApiError(resp.status, out?.error || resp.statusText || "request failed");
-  return out;
+  if (!resp.ok) {
+    let out = null;
+    try { out = await resp.json(); } catch { /* empty or non-JSON body */ }
+    throw new ApiError(resp.status, out?.error || resp.statusText || "request failed");
+  }
+  return resp;
+}
+async function api(path, params = {}, body) {
+  const init = body === undefined ? {} : { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } };
+  const resp = await apiFetch(path, params, init);
+  try { return await resp.json(); } catch { return null; }
 }
 const isAuth = (e) => e instanceof ApiError && (e.status === 401 || e.status === 403);
 function errBox(e, what) {
@@ -839,6 +870,26 @@ function renderRoster() {
         <p class="count-line" id="lk-status" aria-live="polite"></p>
         <div id="lk-results"></div>
       </section>
+      <div class="tools">
+        <section class="lookup bulk" aria-labelledby="bk-h">
+          <h2 id="bk-h">Add many</h2>
+          <p class="note">Paste up to ${JOB_MAX.toLocaleString("en-US")} NPIs (one per line, or separated by commas or spaces), or choose a CSV with an npi column and, if you like, a state column naming the license to check; without one the state comes from NPPES, as in Look up. They are added and receipted in batches of 100 by the same writer as Look up, with the anomaly guard read after every batch; the bar follows the job.</p>
+          <form id="bk-form" autocomplete="off">
+            <div class="field"><label for="bk-text">NPIs</label><textarea id="bk-text" spellcheck="false" placeholder="1063675940&#10;1194773060"></textarea></div>
+            <div class="bk-row">
+              <div class="field"><label for="bk-file">Or a CSV file</label><input id="bk-file" type="file" accept=".csv,text/csv,text/plain"></div>
+              <button class="btn" type="submit" id="bk-go">Add to roster</button>
+            </div>
+          </form>
+          <div id="bk-job" aria-live="polite"></div>
+        </section>
+        <section class="lookup" aria-labelledby="ex-h">
+          <h2 id="ex-h">Export this roster</h2>
+          <p class="note">One zip: receipts.csv, receipts.json, unmatched.csv, coverage.md and report.md, a one-page report with every count and the file and read dates it rests on.</p>
+          <div class="bk-row"><button class="btn ghost" type="button" id="ex-go">Export this roster</button></div>
+          <p class="count-line" id="ex-status" aria-live="polite"></p>
+        </section>
+      </div>
       <section class="this-roster" aria-labelledby="r-h">
         <h2 id="r-h">This roster</h2>
         <div class="queues" id="r-queues" role="group" aria-label="Attention queues"></div>
@@ -855,8 +906,11 @@ function renderRoster() {
     $("#r-sort").value = state.rosterSort;
     $("#lk-q").value = state.lookup.q;
     $("#lk-st").value = state.lookup.st;
+    $("#bk-text").value = state.bulk.text;
   }
   renderLookup();
+  renderBulk();
+  renderExport();
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
@@ -998,6 +1052,122 @@ async function addCandidate(npi) {
     Object.assign(L, { adding: null, error: e, errWhat: "the roster add" });
     renderLookup();
   }
+}
+
+// Add many: POST /v1/rosters/{id}/jobs, then GET /v1/jobs/{id} every 2 s while the job runs. The job id is kept in
+// this browser so a reload picks the bar up again; the job itself runs on the server either way.
+function storedJob() { try { return localStorage.getItem(JOB_STORE); } catch { return null; } }
+function storeJob(id) { try { if (id) localStorage.setItem(JOB_STORE, id); else localStorage.removeItem(JOB_STORE); } catch { /* not kept */ } }
+const fmtN = (n) => Number(n || 0).toLocaleString("en-US");
+
+async function bulkBody() {
+  const B = state.bulk;
+  if (B.file) return { body: await B.file.text(), type: "text/csv", what: B.file.name };
+  const text = B.text.trim();
+  // A pasted CSV with a header naming npi goes as CSV; anything else is a list of tokens.
+  const first = text.split(/\r?\n/, 1)[0] || "";
+  if (/(^|,)\s*"?npi"?\s*(,|$)/i.test(first)) return { body: text, type: "text/csv", what: "the pasted CSV" };
+  const npis = text.split(/[\s,;]+/).filter(Boolean);
+  return { body: JSON.stringify({ npis }), type: "application/json", what: `${fmtN(npis.length)} pasted lines`, count: npis.length };
+}
+async function startBulk() {
+  const B = state.bulk;
+  if (B.busy || (B.job && ["queued", "running"].includes(B.job.status))) return;
+  if (!B.file && !B.text.trim()) { B.error = new ApiError(400, "paste NPIs or choose a CSV first"); return renderBulk(); }
+  Object.assign(B, { busy: true, error: null, job: null });
+  renderBulk();
+  try {
+    const { body, type, count } = await bulkBody();
+    if (count > JOB_MAX) throw new ApiError(400, `at most ${fmtN(JOB_MAX)} NPIs per job; this has ${fmtN(count)}`);
+    const resp = await apiFetch(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}/jobs`, {}, { method: "POST", body, headers: { "Content-Type": type } });
+    B.job = await resp.json();
+    storeJob(B.job.job_id);
+    B.busy = false;
+    renderBulk();
+    pollJob();
+  } catch (e) {
+    Object.assign(B, { busy: false, error: e });
+    renderBulk();
+  }
+}
+async function pollJob() {
+  const B = state.bulk;
+  clearTimeout(B.timer);
+  if (!B.job) return;
+  try {
+    B.job = await api(`/v1/jobs/${encodeURIComponent(B.job.job_id)}`);
+    B.error = null;
+  } catch (e) {
+    B.error = e;
+    if (isAuth(e)) { B.job = null; storeJob(null); renderBulk(); return; }
+  }
+  renderBulk();
+  if (["queued", "running"].includes(B.job.status)) { B.timer = setTimeout(pollJob, 2000); return; }
+  storeJob(null);
+  // Finished: the roster, coverage and the deltas feed now hold the new members and receipts.
+  try {
+    state.roster = await api(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}`);
+    for (const m of state.roster.members || []) if (m.provider) state.people.set(m.npi, m.provider);
+    delete $("#s-roster").dataset.built;
+    if (state.route.tab === "roster") render();
+  } catch { /* the bar already says the job is done; the roster reloads on the next visit */ }
+  Promise.allSettled([api("/v1/coverage", { roster_id: ROSTER_ID }), loadDeltas()]).then(([c, d]) => {
+    if (c.status === "fulfilled") state.coverage = c.value;
+    if (d.status === "fulfilled") { state.deltas = d.value; indexDeltas(); }
+    renderChips();
+  });
+}
+function renderBulk() {
+  const box = $("#bk-job");
+  if (!box) return;
+  const B = state.bulk, j = B.job;
+  const running = B.busy || (j && ["queued", "running"].includes(j.status));
+  $("#bk-go").disabled = !!running;
+  $("#bk-go").textContent = running ? "Working" : "Add to roster";
+  if (!j) {
+    box.innerHTML = B.busy ? `<p class="count-line">Sending the list</p>` : errBox(B.error, "the job");
+    return;
+  }
+  const c = j.counts || {}, p = j.progress || {};
+  const head = j.status === "done" ? "Done" : j.status === "failed" ? "Stopped" : j.status === "queued" ? "Queued" : "Running";
+  const miss = (j.unmatched || []).slice(0, 8);
+  box.innerHTML = `
+    <div class="progress${j.status === "failed" ? " failed" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.percent ?? 0}" aria-label="Job progress"><i style="width:${p.percent ?? 0}%"></i></div>
+    <p class="count-line"><b>${head}</b> · ${fmtN(p.processed)} of ${fmtN(p.total)} NPIs · ${fmtN(c.added)} added${c.already_on_roster ? `, ${fmtN(c.already_on_roster)} already on the roster` : ""} · ${fmtN(c.receipted)} receipted (${fmtN(c.receipts_written)} receipts) · ${fmtN(c.unmatched)} unmatched</p>
+    ${j.error ? `<div class="err" role="alert">${esc(j.error)}</div>` : ""}
+    ${B.error && !isAuth(B.error) ? `<p class="note">Last check failed (${esc(B.error.message)}); trying again.</p>` : ""}
+    ${miss.length ? `<ul class="bk-miss">${miss.map((u) => `<li><span class="mono">${esc(u.npi)}</span> · ${esc(u.reason)}</li>`).join("")}${(j.unmatched || []).length > miss.length ? `<li>${fmtN(j.unmatched.length - miss.length)} more in the export's unmatched.csv</li>` : ""}</ul>` : ""}
+    <p class="note mono">job ${esc(shortId(j.job_id))} · started ${j.started_at ? fmtShort(j.started_at) : "not yet"}${j.finished_at ? ` · finished ${fmtShort(j.finished_at)}` : ""}</p>`;
+}
+
+// Export: GET /v1/rosters/{id}/export answers with a zip; the browser saves it under the API's file name.
+async function exportRoster() {
+  const X = state.exp;
+  if (X.busy) return;
+  Object.assign(X, { busy: true, error: null, done: null });
+  renderExport();
+  try {
+    const resp = await apiFetch(`/v1/rosters/${encodeURIComponent(ROSTER_ID)}/export`);
+    const name = /filename="([^"]+)"/.exec(resp.headers.get("Content-Disposition") || "")?.[1] || `freshroot-${ROSTER_ID}.zip`;
+    const href = URL.createObjectURL(await resp.blob());
+    const a = Object.assign(document.createElement("a"), { href, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 10000);
+    Object.assign(X, { busy: false, done: name });
+  } catch (e) {
+    Object.assign(X, { busy: false, error: e });
+  }
+  renderExport();
+}
+function renderExport() {
+  const btn = $("#ex-go"), status = $("#ex-status");
+  if (!btn) return;
+  const X = state.exp;
+  btn.disabled = X.busy;
+  btn.textContent = X.busy ? "Building the zip" : "Export this roster";
+  status.innerHTML = X.error ? errBox(X.error, "the export") : X.done ? `Saved <span class="mono">${esc(X.done)}</span>` : "";
 }
 
 // 3. Provider
@@ -1427,6 +1597,9 @@ $("#forget").addEventListener("click", () => {
 function resetData() {
   Object.assign(state, { sources: null, roster: null, coverage: null, deltas: null, errors: {}, sim: null, justAdded: null });
   Object.assign(state.lookup, { q: "", st: "", busy: false, result: null, error: null, adding: null });
+  clearTimeout(state.bulk.timer);
+  Object.assign(state.bulk, { text: "", file: null, job: null, error: null, busy: false });
+  Object.assign(state.exp, { busy: false, done: null, error: null });
   state.claims.clear();
   state.evidence.clear();
   state.people.clear();
@@ -1442,6 +1615,9 @@ document.addEventListener("submit", (e) => {
     e.preventDefault();
     clearTimeout(state.lookup.timer);
     runLookup();
+  } else if (e.target.id === "bk-form") {
+    e.preventDefault();
+    startBulk();
   } else if (e.target.id === "npi-jump") {
     e.preventDefault();
     const v = $("#npi-in").value.replace(/\D/g, "");
@@ -1451,6 +1627,7 @@ document.addEventListener("submit", (e) => {
 document.addEventListener("click", (e) => {
   const t = e.target;
   if (t.id === "end-sim" || t.id === "sim-end-inline") { state.sim = null; render(); return; }
+  if (t.id === "ex-go") { exportRoster(); return; }
   const queue = t.closest?.("[data-queue]");
   if (queue) { state.rosterQueue = state.rosterQueue === queue.dataset.queue ? "" : queue.dataset.queue; renderRosterRows(); return; }
   if (t.closest?.("[data-clear-filters]")) {
@@ -1492,6 +1669,7 @@ document.addEventListener("toggle", (e) => {
 }, true);
 document.addEventListener("input", (e) => {
   if (e.target.id === "r-q") { state.rosterQuery = e.target.value; renderRosterRows(); }
+  if (e.target.id === "bk-text") state.bulk.text = e.target.value;
   if (e.target.id === "lk-q" || e.target.id === "lk-st") {
     state.lookup[e.target.id === "lk-q" ? "q" : "st"] = e.target.value;
     clearTimeout(state.lookup.timer);
@@ -1501,6 +1679,7 @@ document.addEventListener("input", (e) => {
 document.addEventListener("change", (e) => {
   if (e.target.id === "r-state") { state.rosterState = e.target.value; renderRosterRows(); }
   if (e.target.id === "r-sort") { state.rosterSort = e.target.value; renderRosterRows(); }
+  if (e.target.id === "bk-file") state.bulk.file = e.target.files?.[0] || null;
   if (e.target.id === "c-kind") { state.changesKind = e.target.value; renderChanges(); }
   if (e.target.id === "c-claim") { state.changesClaim = e.target.value; renderChanges(); }
 });
@@ -1509,7 +1688,12 @@ document.addEventListener("change", (e) => {
 state.route = parseRoute();
 state.key = loadKey();
 render();
-if (state.key) loadAll();
+if (state.key) {
+  loadAll();
+  // A job started before a reload: pick its bar up again.
+  const jobId = storedJob();
+  if (jobId) { state.bulk.job = { job_id: jobId, status: "running", counts: {}, progress: {} }; pollJob(); }
+}
 </script>
 </body>
 </html>
