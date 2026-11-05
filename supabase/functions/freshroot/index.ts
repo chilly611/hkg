@@ -6,7 +6,9 @@
 //   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the five
 //                                            current checks (state license, state board action, NPI, OIG, SAM)
 //   GET  /v1/providers/{npi}/claims          provider facts and current receipts, each with its history; a license
-//                                            receipt that matched more than one license lists them all
+//                                            receipt that matched more than one license lists them all; a board
+//                                            action receipt carries marked_cleared_by_board (the board's own cleared
+//                                            marker on every action it lists; docs/board_action_cleared_markers_2026-11-05.md)
 //   GET  /v1/receipts/{id}/source            the evidence behind one receipt: the source rows it was built from as
 //                                            stored (when retained), the artifact hash, capture time and writer
 //   GET  /v1/deltas?roster_id=&cursor=&limit= receipts created after the cursor, with change_kind (new,
@@ -252,7 +254,46 @@ const CHECK_CLAIMS = ["state_license", "state_board_action", "npi_status", "oig_
 const STATE_CLAIMS = new Set(["state_license", "state_board_action"]);
 const CHECK_FIELDS = "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,stage,source_name," +
   "source_published_at,retrieved_at,next_check_due_at,created_at,match_basis,match_confidence,limitations," +
-  "accepted_for_sale,shippable,rights";
+  "accepted_for_sale,shippable,rights,claim";
+
+// ---------- board actions the board itself marks cleared ----------
+// The rule and the exact strings: docs/board_action_cleared_markers_2026-11-05.md. The receipt stays verbatim
+// (action_on_record, the board's own words); this only reads it. An action is marked cleared when its own text
+// carries the board's cleared marker; a receipt is marked cleared when every action it lists is. A state with no
+// markers listed here never clears (Florida, California).
+type ClearedMarker = { classification: string; field: "description" | "kind"; pattern: RegExp };
+const CLEARED_MARKERS: Record<string, ClearedMarker[]> = {
+  TX: [
+    // Current Board Action Description opening with the board's "STATUS CLEARED" (dated or not), its "STATUS HAS BEEN
+    // CLEARED", or "ON <MONTH> <D>, <YYYY>, STATUS CLEARED".
+    { classification: "Current Board Action", field: "description",
+      pattern: /^(ON [A-Z]+ \d{1,2}, \d{4},\s+)?STATUS (HAS BEEN )?CLEARED\b/ },
+    // The License Status code for the same thing.
+    { classification: "License Status", field: "kind", pattern: /^LICENSURE BOARD ORDER CLEARED$/ },
+  ],
+};
+
+function clearedMarker(state: string | null, a: Row): string | null {
+  for (const m of CLEARED_MARKERS[state ?? ""] ?? []) {
+    if (a?.classification !== m.classification) continue;
+    const hit = String(a[m.field] ?? "").trim().toUpperCase().match(m.pattern);
+    if (hit) return hit[0];
+  }
+  return null;
+}
+
+// Adds marked_cleared_by_board and cleared_markers to a board action receipt, and cleared_by_board_marker to each of
+// its claim.actions. Reads claim; changes nothing stored.
+function markCleared(r: Row) {
+  if (r?.claim_type !== "state_board_action") return r;
+  const actions = (r.claim?.actions ?? []) as Row[];
+  const markers = actions.map((a) => clearedMarker(r.jurisdiction, a));
+  actions.forEach((a, i) => { a.cleared_by_board_marker = markers[i]; });
+  r.marked_cleared_by_board = r.normalized_status === "action_on_record" && actions.length > 0 && markers.every(Boolean);
+  r.latest_action_marked_cleared = !!markers[0];
+  r.cleared_markers = [...new Set(markers.filter(Boolean))];
+  return r;
+}
 
 async function rosterChecks(members: { npi: string; state: string | null }[], includeUnaccepted: boolean) {
   const npis = members.map((m) => m.npi);
@@ -270,7 +311,8 @@ async function rosterChecks(members: { npi: string; state: string | null }[], in
     const checks = out.get(r.npi)!;
     const prev = checks[r.claim_type] as { retrieved_at: string; created_at: string } | null;
     if (prev && (prev.retrieved_at > r.retrieved_at || (prev.retrieved_at === r.retrieved_at && prev.created_at >= r.created_at))) continue;
-    const { id, npi: _npi, accepted_for_sale: _a, ...check } = r;
+    markCleared(r);
+    const { id, npi: _npi, accepted_for_sale: _a, claim: _claim, ...check } = r;
     checks[r.claim_type] = { receipt_id: id, ...check };
   }
   return out;
@@ -1424,6 +1466,7 @@ async function route(req: Request, tenant: Tenant, cors: Record<string, string>)
       providerFacts([npi]),
     ]);
     await addMatchedLicenses(claims.claims ?? []);
+    for (const c of claims.claims ?? []) markCleared(c);
     return { ...claims, provider: facts.get(npi) ?? null };
   }
 
@@ -1441,6 +1484,7 @@ async function route(req: Request, tenant: Tenant, cors: Record<string, string>)
     });
     const page = rows.slice(0, limit);
     await markFieldChanges(page);
+    for (const r of page) markCleared(r);
     const last = page[page.length - 1];
     return {
       roster_id: rosterId,
