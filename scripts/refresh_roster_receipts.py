@@ -15,9 +15,11 @@ are refreshed for it. For each source behind a current roster receipt (v_current
              New file: what the writer does today. The delta (freshroot_deltas) reads status_change or refresh.
 
 The writer is the packet builder's SQL: receipts_for_npi_status, receipts_for_exclusions and, per state,
-receipts_for_state_licenses. Each writes from its sources' latest completed run with retrieved_at = that run's
-completed_at, and one run holds one receipt per claim per NPI (uq_receipts_one_per_run). So an NPI is written only
-when no source of its writer has a latest run already holding its receipt; a source that does is read again first.
+receipts_for_state_licenses and receipts_for_board_actions (both from the same board run: one board file backs two
+claim types, so each has its own writer here, keyed by claim type). Each writes from its sources' latest completed
+run with retrieved_at = that run's completed_at, and one run holds one receipt per claim per NPI
+(uq_receipts_one_per_run). So an NPI is written only when no source of its writer has a latest run already holding
+its receipt of that writer's claim types; a source that does is read again first.
 receipts_for_exclusions writes OIG and SAM in one transaction, so a SAM rewrite reads OIG again too. The CMS loaders
 (opt-out, PECOS) write their own receipts for every roster; their refresh is the loader run itself.
 
@@ -30,8 +32,10 @@ for CMS the flip check, never with --allow-large-diff). A run that fails them is
 
 run_notes: one line per roster and source that had receipts to refresh, on the run the receipts were written from,
 or for a skip on the source's latest run:
-  roster refresh <ts>, roster <id>: <source> <claim>: <n> written (<k> status_change, <m> refresh), <u> unmatched,
-  <s> skipped[: why]
+  roster refresh <ts>, roster <id>: <source> <claim>: <n> written (<k> status_change, <f> field_change, <m> refresh),
+  <u> unmatched, <s> skipped[: why]
+change_kind is the one /v1/deltas serves: new, status_change (normalized_status differs, or a board action receipt
+lists an action the prior one did not), field_change (a canonical claim field differs: see change_kind()), refresh.
 
 Never fails the poll: an error is noted and printed and the exit code stays 0. The workflow step is also
 continue-on-error, so neither the source loads nor the status page depend on it.
@@ -57,25 +61,32 @@ LOADER_WRITES = (poller.ingest_cms_optout.SOURCE, poller.ingest_cms_pecos.SOURCE
 
 
 class Writer:
-    """One receipt writer and the sources it writes from. fn None: the source's loader writes its own receipts."""
+    """One receipt writer, the sources it writes from and the claim types it writes. fn None: the source's loader
+    writes its own receipts."""
 
-    def __init__(self, key, sources, fn=None, extra=None, size=packet.RPC_BATCH):
-        self.key, self.sources, self.fn, self.extra, self.size = key, sources, fn, extra or {}, size
+    def __init__(self, key, sources, claims, fn=None, extra=None, size=packet.RPC_BATCH):
+        self.key, self.sources, self.claims = key, sources, tuple(claims)
+        self.fn, self.extra, self.size = fn, extra or {}, size
 
 
-def writer_for(source, by_name):
+BOARD_WRITERS = {"state_license": "receipts_for_state_licenses", "state_board_action": "receipts_for_board_actions"}
+
+
+def writer_for(source, by_name, claim_type):
+    """The writer of one current receipt, by its source and claim type. A board file backs two writers."""
     name = source["name"]
     if name == "NPI Registry":
-        return Writer("npi_status", [source], "receipts_for_npi_status")
+        return Writer("npi_status", [source], ["npi_status"], "receipts_for_npi_status")
     if name in EXCLUSIONS:
-        return Writer("exclusions", [by_name[n] for n in EXCLUSIONS], "receipts_for_exclusions",
-                      size=packet.EXCLUSIONS_BATCH)
+        return Writer("exclusions", [by_name[n] for n in EXCLUSIONS], ["oig_exclusion", "sam_exclusion"],
+                      "receipts_for_exclusions", size=packet.EXCLUSIONS_BATCH)
     if name in LOADER_WRITES:
-        return Writer(name, [source])
+        return Writer(name, [source], source["claim_types"] or [claim_type])
     if (source["category"] == "licensing" and "state_license" in (source["claim_types"] or [])
-            and (source["format"] or "") != "api" and source["jurisdiction"] in packet.PILOT_STATES):
+            and (source["format"] or "") != "api" and source["jurisdiction"] in packet.PILOT_STATES
+            and claim_type in BOARD_WRITERS):
         st = source["jurisdiction"]
-        return Writer(f"state_license:{st}", [source], "receipts_for_state_licenses", {"p_state": st})
+        return Writer(f"{claim_type}:{st}", [source], [claim_type], BOARD_WRITERS[claim_type], {"p_state": st})
     return None
 
 
@@ -104,31 +115,83 @@ def current_receipts(db, npis):
     return out
 
 
-def held(db, run_id, npis):
-    """NPIs that already hold a receipt from this run."""
+def held(db, run_id, npis, claims):
+    """NPIs that already hold a receipt of these claim types from this run."""
     out = set()
     for batch in chunks(sorted(npis), 200):
         out |= {r["npi"] for r in db.select_all("credential_receipts", "id,npi", run_id=f"eq.{run_id}",
-                                                npi=in_list(batch))}
+                                                claim_type=in_list(claims), npi=in_list(batch))}
     return out
 
 
-def written_with_deltas(db, run_ids, npis):
-    """Receipts these runs hold for these NPIs, each with change_kind as freshroot_deltas reads it. Called only for
-    NPIs the runs held nothing for before the writer ran, so these are exactly the receipts just written."""
+# The canonical claim fields a field_change compares, as supabase/functions/freshroot/index.ts does for /v1/deltas:
+# license_number (the receipt column), issue_date and expiration_date, restrictions when either row carries it; for a
+# board action receipt, the latest action's kind, date and reference, and each action listed on both rows.
+FIELD_CHANGE_FIELDS = (
+    ("license_number", lambda r: r.get("license_number"), lambda r: True),
+    ("issue_date", lambda r: (r.get("claim") or {}).get("issue_date"), lambda r: True),
+    ("expiration_date", lambda r: (r.get("claim") or {}).get("expiration_date"), lambda r: True),
+    ("restrictions", lambda r: (r.get("claim") or {}).get("restrictions"),
+     lambda r: "restrictions" in (r.get("claim") or {})),
+)
+BOARD_ACTION_FIELDS = ("action_kind", "action_date", "reference")
+ACTION_ITEM_FIELDS = ("license_number", "kind", "classification", "date", "effective_date", "reference", "description")
+
+
+def _blank(v):
+    return None if v in (None, "", [], {}) else v
+
+
+def board_actions(r):
+    """A board action receipt's actions by key (receipts_for_board_actions sets claim.actions[].key)."""
+    return {a.get("key"): a for a in ((r.get("claim") or {}).get("actions") or []) if a.get("key")}
+
+
+def change_kind(new, prior):
+    """(change_kind, changes) for a receipt against the one it supersedes."""
+    if prior is None:
+        return "new", []
+    if prior["normalized_status"] != new["normalized_status"]:
+        return "status_change", []
+    changes = []
+    if new["claim_type"] == "state_board_action":
+        now, before = board_actions(new), board_actions(prior)
+        added = [k for k in now if k not in before]
+        if added:  # a new action is a status change, even when the status already read action_on_record
+            return "status_change", [{"field": "actions", "old": None, "new": now[k]} for k in added]
+        for f in BOARD_ACTION_FIELDS:
+            a, b = _blank((prior.get("claim") or {}).get(f)), _blank((new.get("claim") or {}).get(f))
+            if a != b:
+                changes.append({"field": f, "old": a, "new": b})
+        for k in sorted(set(before) - set(now)):
+            changes.append({"field": "actions", "old": before[k], "new": None})
+        for k in sorted(set(now) & set(before)):
+            for f in ACTION_ITEM_FIELDS:
+                a, b = _blank(before[k].get(f)), _blank(now[k].get(f))
+                if a != b:
+                    changes.append({"field": f"actions[{k}].{f}", "old": a, "new": b})
+    else:
+        for f, get, present in FIELD_CHANGE_FIELDS:
+            if (present(new) or present(prior)) and _blank(get(new)) != _blank(get(prior)):
+                changes.append({"field": f, "old": get(prior), "new": get(new)})
+    return ("field_change", changes) if changes else ("refresh", [])
+
+
+def written_with_deltas(db, run_ids, npis, claims):
+    """Receipts of these claim types these runs hold for these NPIs, each with change_kind as /v1/deltas reads it.
+    Called only for NPIs the runs held none of these claim types for before the writer ran, so these are exactly the
+    receipts just written."""
     rows = []
+    fields = "id,npi,claim_type,source_id,normalized_status,license_number,claim,supersedes_id"
     for run_id in run_ids:
         for batch in chunks(sorted(npis), 200):
-            rows += db.select_all("credential_receipts", "id,npi,claim_type,source_id,normalized_status,supersedes_id",
-                                  run_id=f"eq.{run_id}", npi=in_list(batch))
+            rows += db.select_all("credential_receipts", fields, run_id=f"eq.{run_id}", claim_type=in_list(claims),
+                                  npi=in_list(batch))
     prior = {}
     for batch in chunks(sorted({r["supersedes_id"] for r in rows if r["supersedes_id"]}), 200):
-        prior.update({p["id"]: p["normalized_status"] for p in
-                      db.select("credential_receipts", {"select": "id,normalized_status", "id": in_list(batch)})})
+        prior.update({p["id"]: p for p in db.select("credential_receipts", {"select": fields, "id": in_list(batch)})})
     for r in rows:
-        before = prior.get(r["supersedes_id"])
-        r["change_kind"] = ("new" if before is None else "status_change" if before != r["normalized_status"]
-                            else "refresh")
+        r["change_kind"], r["changes"] = change_kind(r, prior.get(r["supersedes_id"]))
     return rows
 
 
@@ -210,14 +273,14 @@ def refresh(db, writer, receipts, rosters, dry_run):
                 # The loader writes its own receipts, or the run would only write receipts already past due.
                 blocked = set(need)
             else:
-                blocked = held(db, run["id"], need)
+                blocked = held(db, run["id"], need, writer.claims)
             if not blocked:
                 continue
             row, why = reread(db, src)
             if row:
                 latest[src["id"]] = row
                 if writer.fn is not None:
-                    still = held(db, row["id"], blocked)
+                    still = held(db, row["id"], blocked, writer.claims)
                     for n in still:
                         skipped[n] = f"re-read run {row['id']} already holds this receipt"
             else:
@@ -234,7 +297,7 @@ def refresh(db, writer, receipts, rosters, dry_run):
             error = f"writer {writer.fn} failed: {e}"
             log(error)
         # Read back from the runs, so a writer that failed part way still reports what it committed.
-        written = written_with_deltas(db, [latest[s["id"]]["id"] for s in writer.sources], todo)
+        written = written_with_deltas(db, [latest[s["id"]]["id"] for s in writer.sources], todo, writer.claims)
         if error:
             got = {w["npi"] for w in written}
             for n in todo:
@@ -245,7 +308,7 @@ def refresh(db, writer, receipts, rosters, dry_run):
     ts = now_iso()
     for src in writer.sources:
         claim = "/".join(sorted({r["claim_type"] for r in receipts if r["source_id"] == src["id"]})
-                         or src["claim_types"] or [])
+                         or writer.claims)
         mine = [w for w in written if w["source_id"] == src["id"]]
         for roster_id, members in sorted(rosters.items()):
             in_roster = members & set(need)
@@ -255,10 +318,12 @@ def refresh(db, writer, receipts, rosters, dry_run):
             got = {x["npi"] for x in w}
             sk = {n: skipped[n] for n in in_roster if n in skipped}
             unmatched = sorted(n for n in in_roster if n not in got and n not in sk)
-            kinds = {k: sum(x["change_kind"] == k for x in w) for k in ("status_change", "refresh", "new")}
+            kinds = {k: sum(x["change_kind"] == k for x in w)
+                     for k in ("status_change", "field_change", "refresh", "new")}
             whys = sorted(set(sk.values()))
             line = (f"roster refresh {ts}, roster {roster_id}: {src['name']} {claim}: {len(w)} written "
-                    f"({kinds['status_change']} status_change, {kinds['refresh']} refresh"
+                    f"({kinds['status_change']} status_change, {kinds['field_change']} field_change, "
+                    f"{kinds['refresh']} refresh"
                     + (f", {kinds['new']} new" if kinds["new"] else "") + f"), {len(unmatched)} unmatched"
                     + (f" {unmatched[:5]}" if unmatched else "")
                     + f", {len(sk)} skipped" + (f": {'; '.join(whys)}" if whys else ""))
@@ -297,9 +362,9 @@ def main(argv=None):
     writers, orphan = {}, set()
     for r in receipts:
         src = sources.get(r["source_id"])
-        w = writer_for(src, by_name) if src else None
+        w = writer_for(src, by_name, r["claim_type"]) if src else None
         if not w:
-            orphan.add(src["name"] if src else r["source_id"])
+            orphan.add(f"{src['name']} {r['claim_type']}" if src else r["source_id"])
             continue
         writers.setdefault(w.key, (w, []))[1].append(r)
 

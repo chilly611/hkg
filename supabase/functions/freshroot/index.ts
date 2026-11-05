@@ -3,14 +3,15 @@
 //   GET  /v1/sources                         v_source_status, each row with lookup_url (the source row's official
 //                                            public lookup, when it carries one) and, for a catalog source, the
 //                                            catalog's release_date and file_period
-//   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the four
-//                                            current checks (state license, NPI, OIG, SAM)
+//   GET  /v1/rosters/{roster_id}             the roster, one summary row per NPI with provider facts and the five
+//                                            current checks (state license, state board action, NPI, OIG, SAM)
 //   GET  /v1/providers/{npi}/claims          provider facts and current receipts, each with its history; a license
 //                                            receipt that matched more than one license lists them all
 //   GET  /v1/receipts/{id}/source            the evidence behind one receipt: the source rows it was built from as
 //                                            stored (when retained), the artifact hash, capture time and writer
 //   GET  /v1/deltas?roster_id=&cursor=&limit= receipts created after the cursor, with change_kind (new,
-//                                            status_change, field_change, refresh)
+//                                            status_change, field_change, refresh). A board action receipt that
+//                                            lists an action its prior one did not is a status_change.
 //   GET  /v1/coverage?roster_id=             roster_coverage(): covered today, in 30 days, under license, never
 //   GET  /v1/lookup?q=&state=&roster_id=     up to 20 individual providers by NPI or name, each marked on_roster.
 //                                            Reads only; it writes nothing.
@@ -244,10 +245,11 @@ function licenseBoard(f: ProviderFacts, licenses: Map<string, string>): string |
 
 const quoteList = (ids: string[]) => `in.(${ids.map((r) => `"${r.replace(/"/g, "")}"`).join(",")})`;
 
-// The four checks a roster row shows, each the current receipt (v_current_receipts) read through
-// v_freshroot_receipts so stage carries "stale" and rights match every other route. The license is the one in
-// the roster state, latest retrieved first, as freshroot_roster picks it.
-const CHECK_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"] as const;
+// The five checks a roster row shows, each the current receipt (v_current_receipts) read through
+// v_freshroot_receipts so stage carries "stale" and rights match every other route. The license and the board
+// action are the ones in the roster state, latest retrieved first, as freshroot_roster picks the license.
+const CHECK_CLAIMS = ["state_license", "state_board_action", "npi_status", "oig_exclusion", "sam_exclusion"] as const;
+const STATE_CLAIMS = new Set(["state_license", "state_board_action"]);
 const CHECK_FIELDS = "id,npi,claim_type,jurisdiction,license_number,normalized_status,raw_status,stage,source_name," +
   "source_published_at,retrieved_at,next_check_due_at,created_at,match_basis,match_confidence,limitations," +
   "accepted_for_sale,shippable,rights";
@@ -264,7 +266,7 @@ async function rosterChecks(members: { npi: string; state: string | null }[], in
   for (const npi of npis) out.set(npi, Object.fromEntries(CHECK_CLAIMS.map((c) => [c, null])));
   for (const r of rows) {
     if (!includeUnaccepted && !r.accepted_for_sale) continue;
-    if (r.claim_type === "state_license" && r.jurisdiction !== stateOf.get(r.npi)) continue;
+    if (STATE_CLAIMS.has(r.claim_type) && r.jurisdiction !== stateOf.get(r.npi)) continue;
     const checks = out.get(r.npi)!;
     const prev = checks[r.claim_type] as { retrieved_at: string; created_at: string } | null;
     if (prev && (prev.retrieved_at > r.retrieved_at || (prev.retrieved_at === r.retrieved_at && prev.created_at >= r.created_at))) continue;
@@ -276,7 +278,8 @@ async function rosterChecks(members: { npi: string; state: string | null }[], in
 
 // ---------- receipts for roster NPIs: the packet builder's writer ----------
 // The writer is the SQL that scripts/build_credential_packet.py --write-receipts calls: receipts_for_npi_status,
-// receipts_for_exclusions (OIG and SAM in one transaction) and receipts_for_state_licenses. This calls the same
+// receipts_for_exclusions (OIG and SAM in one transaction), receipts_for_state_licenses and receipts_for_board_actions
+// (the same board run as the license; migrations/2026-11-05_board_action_receipts.sql). This calls the same
 // functions the same way: the latest completed run per source, NPIs that already hold a receipt of that claim type
 // from that run skipped (one run never writes a claim twice: uq_receipts_one_per_run), and a batch that hits a
 // statement timeout split in half and tried again. Nothing here builds a receipt itself.
@@ -362,9 +365,14 @@ async function writeReceipts(members: { npi: string; state: string | null }[], l
     step("npi_status", npiRun, "npi_status", npis, "receipts_for_npi_status", {}, RPC_BATCH),
     // receipts_for_exclusions writes OIG and SAM in one transaction, so the OIG receipt marks both done.
     step("oig_exclusion+sam_exclusion", oigRun, "oig_exclusion", npis, "receipts_for_exclusions", {}, EXCLUSIONS_BATCH),
-    ...[...licenses].map(([st, runId]) =>
-      step(`state_license:${st}`, runId, "state_license", members.filter((m) => m.state === st).map((m) => m.npi),
-        "receipts_for_state_licenses", { p_state: st }, RPC_BATCH)),
+    ...[...licenses].flatMap(([st, runId]) => {
+      const inState = members.filter((m) => m.state === st).map((m) => m.npi);
+      return [
+        step(`state_license:${st}`, runId, "state_license", inState, "receipts_for_state_licenses", { p_state: st }, RPC_BATCH),
+        step(`state_board_action:${st}`, runId, "state_board_action", inState, "receipts_for_board_actions",
+          { p_state: st }, RPC_BATCH),
+      ];
+    }),
   ]);
   return { ids: written.flat().map((r) => r.receipt_id as string), failed };
 }
@@ -555,7 +563,7 @@ const JOB_LIMIT = 5000;
 const JOB_BATCH = 100;
 const JOB_LEASE_S = 300;        // renewed before every batch; one batch of 100 runs well under this
 const JOB_BUDGET_MS = 240_000;  // no new batch after this; the Edge Function wall clock is 400 s
-const WRITER_CLAIMS = ["npi_status", "oig_exclusion", "sam_exclusion", "state_license"];
+const WRITER_CLAIMS = ["npi_status", "oig_exclusion", "sam_exclusion", "state_license", "state_board_action"];
 
 // The bulk anomaly guard. The loaders' guards (header, row count, parse, status vocabulary, match count, flip check)
 // already stand between a bad file and a completed run, and the writer reads only completed runs. This one watches
@@ -1057,6 +1065,19 @@ function buildReport(x: {
   }
   L.push("");
 
+  // Board actions in the roster state, read only on licenses tied to the NPI by license number.
+  const stateOf = new Map(members.map((m) => [m.npi, m.state]));
+  const acts = rows.filter((r) => r.claim_type === "state_board_action" && r.jurisdiction === stateOf.get(r.npi));
+  L.push("## Board actions", "");
+  if (!acts.length) L.push("No board action receipts.");
+  for (const st of [...new Set(acts.map((r) => r.jurisdiction))].sort()) {
+    const ar = acts.filter((r) => r.jurisdiction === st);
+    const on = ar.filter((r) => r.normalized_status === "action_on_record");
+    L.push(`- **${st}: ${on.length} with an action on record**, ${ar.length - on.length} none in file, of ${ar.length} NPIs read. ` +
+      `${restsOn(ar)}.`);
+  }
+  L.push("", "An action counts only on a license tied to the NPI by license number. none_in_file never means clear.", "");
+
   // Exclusions and NPI status.
   const cur = (ct: string) => rows.filter((r) => r.claim_type === ct);
   const found = (r: Row) => r.match_basis === "npi_exact" && !["not_found", "unknown"].includes(r.normalized_status);
@@ -1279,7 +1300,10 @@ async function addMatchedLicenses(claims: Row[]) {
 
 // field_change: the normalized status is unchanged but a canonical claim field differs from the superseded row.
 // Compared: license_number (the receipt column), and issue_date, expiration_date and restrictions in claim;
-// restrictions only when either row carries the key. Everything else unchanged stays refresh.
+// restrictions only when either row carries the key. For a board action receipt: the latest action's kind, date and
+// reference, and each action both rows list (matched by claim.actions[].key); an action that only the new row lists
+// makes the row a status_change instead (a new action), and one that only the old row lists is a field_change.
+// Everything else unchanged stays refresh. scripts/refresh_roster_receipts.py change_kind() applies the same rules.
 const FIELD_CHANGE_FIELDS: [string, (r: Row) => unknown, (r: Row) => boolean][] = [
   ["license_number", (r) => r.license_number, () => true],
   ["issue_date", (r) => r.claim?.issue_date, () => true],
@@ -1287,6 +1311,29 @@ const FIELD_CHANGE_FIELDS: [string, (r: Row) => unknown, (r: Row) => boolean][] 
   ["restrictions", (r) => r.claim?.restrictions, (r) => !!r.claim && "restrictions" in r.claim],
 ];
 const norm = (v: unknown) => (v === undefined || v === null || v === "" ? null : JSON.stringify(v));
+
+const BOARD_ACTION_FIELDS = ["action_kind", "action_date", "reference"];
+const ACTION_ITEM_FIELDS = ["license_number", "kind", "classification", "date", "effective_date", "reference", "description"];
+const actionsByKey = (r: Row) =>
+  new Map(((r.claim?.actions ?? []) as Row[]).filter((a) => a?.key).map((a) => [a.key as string, a]));
+
+function boardActionChanges(r: Row, p: Row) {
+  const now = actionsByKey(r), before = actionsByKey(p);
+  const added = [...now.keys()].filter((k) => !before.has(k));
+  if (added.length) return { kind: "status_change", changes: added.map((k) => ({ field: "actions", old: null, new: now.get(k) })) };
+  const changes: Row[] = BOARD_ACTION_FIELDS
+    .filter((f) => norm(r.claim?.[f]) !== norm(p.claim?.[f]))
+    .map((f) => ({ field: f, old: p.claim?.[f] ?? null, new: r.claim?.[f] ?? null }));
+  for (const [k, a] of before) if (!now.has(k)) changes.push({ field: "actions", old: a, new: null });
+  for (const [k, a] of now) {
+    const b = before.get(k);
+    if (!b) continue;
+    for (const f of ACTION_ITEM_FIELDS) {
+      if (norm(a[f]) !== norm(b[f])) changes.push({ field: `actions[${k}].${f}`, old: b[f] ?? null, new: a[f] ?? null });
+    }
+  }
+  return { kind: changes.length ? "field_change" : "refresh", changes };
+}
 
 async function markFieldChanges(rows: Row[]) {
   const refresh = rows.filter((r) => r.change_kind === "refresh" && r.supersedes_id);
@@ -1296,6 +1343,14 @@ async function markFieldChanges(rows: Row[]) {
   for (const r of refresh) {
     const p = prior.get(r.supersedes_id);
     if (!p) continue;
+    if (r.claim_type === "state_board_action") {
+      const { kind, changes } = boardActionChanges(r, p);
+      if (kind === "refresh") continue;
+      r.change_kind = kind;
+      r.field_changes = changes;
+      r.prior_receipt_id = r.supersedes_id;
+      continue;
+    }
     const changes = FIELD_CHANGE_FIELDS
       .filter(([, get, present]) => (present(r) || present(p)) && norm(get(r)) !== norm(get(p)))
       .map(([field, get]) => ({ field, old: get(p) ?? null, new: get(r) ?? null }));

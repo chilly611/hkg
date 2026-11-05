@@ -94,8 +94,8 @@
     }
   ],
   "counts": {
-    "covered today": 13,
-    "public file": 8,
+    "covered today": 14,
+    "public file": 7,
     "agreement needed": 13,
     "self-reported": 14,
     "plan-internal": 2
@@ -387,9 +387,9 @@
         "C1"
       ],
       "source": "State medical board",
-      "cadence": "Board file: TX daily, FL daily, CA monthly",
-      "class": "public file",
-      "detail": "Board action rows the TX, FL and CA loaders already write to provider_adverse_actions; no state_board_action receipt yet, so the API does not serve them",
+      "cadence": "Board file: TX daily, FL daily, CA monthly (the CA file carries no actions)",
+      "class": "covered today",
+      "detail": "state_board_action receipt (2026-11-05): action_on_record or none_in_file per physician per state, from the actions the TX and FL files list on a license tied to the NPI by license number, never by name; restrictions arrive as actions (TX license-restricted statuses, FL restriction orders) in claim.actions. The CA DCA file carries no actions, so CA receipts read none_in_file with that limitation and the card links the board's lookup",
       "drives": [
         "Sanctioned"
       ]
