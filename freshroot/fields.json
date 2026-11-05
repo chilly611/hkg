@@ -2,6 +2,75 @@
   "source": "docs/field_map_2026-11-04.md",
   "generated_by": "docs/build_fields_json.py",
   "filed": "2026-11-04",
+  "sources": [
+    {
+      "key": "N1",
+      "document": "NCQA, Proposed Standard Updates to 2025 Accreditation Programs: Health Plan Accreditation (public comment Nov 28, 2023 to Jan 15, 2024)",
+      "url": "https://wpcdn.ncqa.org/www-prod/wp-content/uploads/HPA-2025_Proposed-Standards-Updates.pdf",
+      "read": "2026-11-05",
+      "notes": "149 pages; a redline marked \"Obsolete After January 15, 2024\". Page numbers are the PDF's."
+    },
+    {
+      "key": "N2",
+      "document": "NCQA, Corrections, Clarifications and Policy Changes to the 2025 HPA Standards and Guidelines, November 17, 2025",
+      "url": "https://wpcdn.ncqa.org/www-prod/2025-HPA-Policy-Updates_11-17-25.pdf",
+      "read": "2026-11-05",
+      "notes": "17 pages. Each row also names the standards publication page; this file cites the PDF page."
+    },
+    {
+      "key": "N3",
+      "document": "NCQA, Corrections, Clarifications and Policy Changes to the 2025 CR-PN Standards and Guidelines, November 17, 2025",
+      "url": "https://wpcdn.ncqa.org/www-prod/2025-CRPN-Policy-Updates_11-17-25.pdf",
+      "read": "2026-11-05",
+      "notes": "20 pages. Credentialing Accreditation (CRA) and CVO Certification (CRC) carry the same CR 5 changes as HPA."
+    },
+    {
+      "key": "C1",
+      "document": "CMS-855I, Medicare Enrollment Application: Physicians and Non-Physician Practitioners, edition 05/23, OMB 0938-1355",
+      "url": "https://www.cms.gov/cmsforms/downloads/CMS855I.pdf",
+      "read": "2026-11-05",
+      "notes": "26 pages. Reassignment is now reported on the 855I (p.2)."
+    },
+    {
+      "key": "C2",
+      "document": "CMS, Medicare Fee-For-Service Public Provider Enrollment Files Data Dictionary",
+      "url": "https://data.cms.gov/sites/default/files/2025-10/PPEF_Data_Dictionary.pdf",
+      "read": "2026-11-05",
+      "notes": "10 pages. Enrollment file plus Reassignment, Address, Secondary Specialty and Additional NPIs files; no cadence stated."
+    },
+    {
+      "key": "C3",
+      "document": "data.cms.gov catalog (data.json): accrualPeriodicity, modified and temporal for each release",
+      "url": "https://data.cms.gov/data.json",
+      "read": "2026-11-05",
+      "notes": "Read for the Revalidation Reassignment List, Revalidation Due Date List, Order and Referring, Opt Out Affidavits and Public Provider Enrollment entries."
+    },
+    {
+      "key": "C4",
+      "document": "CMS Provider Data Catalog metastore: Facility Affiliation Data (27ea-46a8)",
+      "url": "https://data.cms.gov/provider-data/api/1/metastore/schemas/dataset/items/27ea-46a8",
+      "read": "2026-11-05",
+      "notes": "No accrualPeriodicity field; modified 2026-10-02, released 2026-10-15, nextUpdateDate 2026-11-12."
+    },
+    {
+      "key": "Q1",
+      "document": "CAQH Provider Data Portal, Provider User Guide, version 43, last updated 08/22/2023",
+      "url": "https://www.caqh.org/sites/default/files/solutions/proview/guide/provider-user-guide.pdf",
+      "read": "2026-11-05",
+      "notes": "172 pages. Section numbers and pages from its table of contents."
+    },
+    {
+      "key": "T1",
+      "document": "Joint Commission Standards FAQ 000001398, Primary Source Verification: Licensed Practitioners Education (Medical Staff; first published Apr 11, 2016, last updated Apr 23, 2026)",
+      "url": "https://www.jointcommission.org/en-us/knowledge-library/support-center/standards-interpretation/standards-faqs/000001398",
+      "read": "2026-11-05",
+      "notes": "Says verification of a current license can suffice for education in some cases. Names no standard or EP on the page."
+    }
+  ],
+  "not_read": [
+    "**FSMB/FCVS note on TJC MS.06.01.03 and MS.06.01.05** (https://preproduction.fsmb.org/siteassets/fcvs/fcvs_tjc_principles-updated-10_2017-1.pdf): 404 in a browser on 2026-11-05, and the same path on www.fsmb.org also returns its 404 page. No Joint Commission element number below comes from it; each carries [CONFIRM].",
+    "**Joint Commission FAQ 000001440** (https://www.jointcommission.org/standards/standard-faqs/critical-access-hospital/medical-staff-ms/000001440): on 2026-11-05 this ID redirects to \"Texting - Use of Secure Text Messaging for Patient Information and Orders\", not a licensure FAQ. A search of the FAQ database for license verification found T1 and no licensure-expiration FAQ."
+  ],
   "classes": [
     {
       "key": "covered today",
@@ -93,9 +162,12 @@
       "field": "Legal name",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "CAQH ProView",
-        "NCQA CR 3 (application)"
+        "CMS-855I §2A Individual Information (C1 p.6)",
+        "CAQH ProView §4.1 Personal Information (Q1 p.34)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "NPPES NPI Registry",
       "cadence": "Weekly NPPES file",
@@ -108,8 +180,12 @@
       "field": "Other names used",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "CAQH ProView"
+        "CMS-855I §2A, Other Name and Type of Other Name (C1 p.6)",
+        "CAQH ProView §4.1 (Q1 p.34)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "NPPES NPI Registry",
       "cadence": "Weekly NPPES file",
@@ -122,8 +198,12 @@
       "field": "Date of birth",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "CAQH ProView"
+        "CMS-855I §2A (C1 p.6)",
+        "CAQH ProView §4.2 Editing SSN and DOB (Q1 p.39)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "The physician; no public source",
       "cadence": "Once",
@@ -136,8 +216,12 @@
       "field": "Social Security number",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "CAQH ProView"
+        "CMS-855I §2A (C1 p.6)",
+        "CAQH ProView §4.2 (Q1 p.39)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "The physician",
       "cadence": "Once",
@@ -150,9 +234,12 @@
       "field": "NPI and NPI status (deactivation)",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "NCQA CR 5 (ongoing monitoring)",
-        "CAQH ProView"
+        "CMS-855I §2A, NPI (Type 1) (C1 p.6)",
+        "CAQH ProView §4.1 (Q1 p.34)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "NPPES NPI Registry",
       "cadence": "Weekly NPPES file",
@@ -167,9 +254,12 @@
       "field": "Practice locations",
       "group": "Identity",
       "standards": [
-        "CMS-855I §4",
-        "NCQA CR 3 (application)",
-        "CAQH ProView"
+        "CMS-855I §4B Practice Location Information (C1 p.13)",
+        "CAQH ProView §4.6 Practice Locations (Q1 p.58)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "NPPES NPI Registry (self-reported to NPPES)",
       "cadence": "Weekly NPPES file",
@@ -182,8 +272,12 @@
       "field": "Primary specialty (taxonomy)",
       "group": "Identity",
       "standards": [
-        "CMS-855I §2",
-        "CAQH ProView"
+        "CMS-855I §2G Physician Specialty (C1 p.8)",
+        "CAQH ProView §4.5 Specialties (Q1 p.54)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "NPPES NPI Registry",
       "cadence": "Weekly NPPES file",
@@ -196,10 +290,15 @@
       "field": "State license number",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CMS-855I §2",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 1, current and valid license, verified with the state agency in every state of care (N1 pp.97-98)",
+        "CMS-855I §2B1 Active License Information (C1 p.6)",
+        "CAQH ProView §4.3 Professional IDs (Q1 p.43)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1"
       ],
       "source": "State medical board",
       "cadence": "Board file: TX daily, FL daily, CA monthly",
@@ -214,9 +313,14 @@
       "field": "State license status",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 5",
-        "TJC MS.06.01.03"
+        "NCQA HPA 2025 CR 3 Element A factor 1 (N1 p.98)",
+        "CR 3 Element B factor 1, state sanctions, restrictions on licensure and limitations on scope (N1 p.102)",
+        "CR 5 Element A, licensure limitations and expiration on the 30-day clock, factor 3 [CONFIRM] (N2 p.15)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "N2"
       ],
       "source": "State medical board",
       "cadence": "Board file: TX daily, FL daily, CA monthly",
@@ -232,8 +336,12 @@
       "field": "License issue date",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3",
-        "CAQH ProView"
+        "CMS-855I §2B1, Effective Date (C1 p.6)",
+        "CAQH ProView §4.3 (Q1 p.43)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "State medical board",
       "cadence": "Board file: TX daily, FL daily, CA monthly",
@@ -246,9 +354,15 @@
       "field": "License expiration date",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 1, credentials current at the committee decision (N1 p.97)",
+        "CR 5 Element A, expiration reviewed at least every 30 calendar days (N2 p.15)",
+        "CAQH ProView §4.3 (Q1 p.43)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "N2",
+        "Q1"
       ],
       "source": "State medical board",
       "cadence": "Board file: TX daily, FL daily, CA monthly",
@@ -263,9 +377,14 @@
       "field": "Board disciplinary actions and orders",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 5 (license sanctions)",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 3 Element B factor 1 (N1 p.102)",
+        "CR 5 Element A, licensure sanctions, factor 3 [CONFIRM] (N2 p.15)",
+        "CMS-855I §3B Exclusions, Revocations or Suspensions (C1 p.11)"
+      ],
+      "read_in": [
+        "N1",
+        "N2",
+        "C1"
       ],
       "source": "State medical board",
       "cadence": "Board file: TX daily, FL daily, CA monthly",
@@ -280,8 +399,15 @@
       "field": "Licenses held in other states",
       "group": "Licensure",
       "standards": [
-        "NCQA CR 3 (all states where the physician treats plan members)",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 1, every state where the practitioner provides care (N1 p.98), with compact licensure accepted when verified in the home state (N2 p.2)",
+        "CMS-855I §2B1, compact license question (C1 p.6)",
+        "CAQH ProView §4.3 (Q1 p.43)"
+      ],
+      "read_in": [
+        "N1",
+        "N2",
+        "C1",
+        "Q1"
       ],
       "source": "Each state medical board",
       "cadence": "Varies by board",
@@ -297,9 +423,15 @@
       "field": "DEA registration number and schedules",
       "group": "DEA and CDS",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 2, valid DEA or CDS certificate, verified before the decision (N1 p.98)",
+        "CMS-855I §2B3 DEA Registration Information (C1 p.6)",
+        "CAQH ProView §4.3 (Q1 p.43)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1"
       ],
       "source": "DEA Diversion Control",
       "cadence": "NTIS subscription",
@@ -312,9 +444,12 @@
       "field": "DEA registration expiration and status",
       "group": "DEA and CDS",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 5",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 2, valid and current in each state of care (N1 p.98)",
+        "CAQH ProView §4.3 (Q1 p.43)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "DEA Diversion Control",
       "cadence": "NTIS subscription",
@@ -330,8 +465,12 @@
       "field": "State controlled substance registration",
       "group": "DEA and CDS",
       "standards": [
-        "NCQA CR 3 (where the state issues one)",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 2, CDS certificate, DEA or CDS agency or state pharmaceutical licensing agency (N1 p.98)",
+        "CAQH ProView §4.3 (Q1 p.43)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "State CDS agency",
       "cadence": "Per state",
@@ -346,9 +485,14 @@
       "field": "Board certification: board and specialty",
       "group": "Board certification",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 4, board certification status, from ABMS or a member board or an official ABMS Display Agent, the AMA Physician Masterfile or the AOA (N1 p.100)",
+        "CMS-855I §2B2, Certifying Entity (C1 p.6)",
+        "CAQH ProView §4.5 Specialties (Q1 p.54)"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1"
       ],
       "source": "ABMS member boards; AOA for DOs",
       "cadence": "Continuous at the board",
@@ -363,8 +507,11 @@
       "field": "Board certification status, including continuing certification",
       "group": "Board certification",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 4 (at recredentialing)"
+        "NCQA HPA 2025 CR 3 Element A factor 4 (N1 p.100)",
+        "verification time limit 90 or 180 calendar days in the redline [CONFIRM] (N1 p.100)"
+      ],
+      "read_in": [
+        "N1"
       ],
       "source": "ABMS member boards; AOA for DOs",
       "cadence": "Continuous at the board",
@@ -380,8 +527,12 @@
       "field": "Board certification dates (initial and expiration)",
       "group": "Board certification",
       "standards": [
-        "NCQA CR 3",
-        "CAQH ProView"
+        "CMS-855I §2B2, Effective Date (C1 p.6)",
+        "CAQH ProView §4.5 (Q1 p.54)"
+      ],
+      "read_in": [
+        "C1",
+        "Q1"
       ],
       "source": "ABMS member boards; AOA for DOs",
       "cadence": "Continuous at the board",
@@ -397,8 +548,12 @@
       "field": "Board eligibility",
       "group": "Board certification",
       "standards": [
-        "NCQA CR 3 (plan policy)",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 4, \"if applicable\" (N1 p.97)",
+        "CAQH ProView §4.5 (Q1 p.54)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The physician, confirmed with the board",
       "cadence": "Until certified or eligibility ends",
@@ -413,10 +568,17 @@
       "field": "Medical school and graduation year",
       "group": "Education and training",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CMS-855I §2",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 3, the highest of board certification, residency or graduation, from the primary source, a licensing agency or board that primary-source verifies, or listed sources including the AMA Physician Masterfile, the AOA and ECFMG (N1 p.99)",
+        "CMS-855I §2A, school and year of graduation (C1 p.6)",
+        "CAQH ProView §4.4 Education & Professional Training (Q1 p.48)",
+        "Joint Commission FAQ on education primary source verification (T1)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1",
+        "T1"
       ],
       "source": "Medical school",
       "cadence": "Once",
@@ -429,9 +591,12 @@
       "field": "ECFMG certification (international graduates)",
       "group": "Education and training",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 3, ECFMG as a source (N1 p.99)",
+        "CAQH ProView §4.3 (Q1 p.47)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "ECFMG",
       "cadence": "Once",
@@ -444,9 +609,13 @@
       "field": "Residency and internship",
       "group": "Education and training",
       "standards": [
-        "NCQA CR 3 (when not board certified)",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 3 (N1 p.99)",
+        "CAQH ProView §4.4 (Q1 p.48)",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "Training program",
       "cadence": "Once",
@@ -461,9 +630,14 @@
       "field": "Fellowship",
       "group": "Education and training",
       "standards": [
-        "NCQA CR 3 (when not board certified)",
-        "TJC MS.06.01.03",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 3 (N1 p.99)",
+        "CR 1 Element A, verification of fellowship component of factor 12 (N2 p.10)",
+        "CAQH ProView §4.4 (Q1 p.48)"
+      ],
+      "read_in": [
+        "N1",
+        "N2",
+        "Q1"
       ],
       "source": "Training program",
       "cadence": "Once",
@@ -478,13 +652,20 @@
       "field": "Work history, five years, with gaps explained",
       "group": "Work history",
       "standards": [
-        "NCQA CR 3",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 5, five years from the application or CV, a gap over 6 months clarified and over 1 year clarified in writing (N1 p.100)",
+        "verification time limit 180 calendar days for files processed on or after July 1, 2025 (N2 p.11; CVOs 120 under CRC 1, N3 p.13)",
+        "CAQH ProView §4.10 Employment Information (Q1 p.136)"
+      ],
+      "read_in": [
+        "N1",
+        "N2",
+        "N3",
+        "Q1"
       ],
       "source": "The physician (CV)",
       "cadence": "At each credentialing cycle",
       "class": "self-reported",
-      "detail": "Gaps of 6 months or more explained, per the plan's policy",
+      "detail": "Gap rule as NCQA states it; the plan's policy may be stricter",
       "drives": []
     },
     {
@@ -492,11 +673,16 @@
       "field": "Group practice and Medicare reassignment",
       "group": "Work history",
       "standards": [
-        "CMS-855R",
-        "CAQH ProView"
+        "CMS-855I §4F, Individual/Organization/Group Receiving the Reassigned Benefits (C1 p.17)",
+        "reassignment is now reported on the CMS-855I (C1 p.2)",
+        "PPEF Reassignment sub-file (C2 p.2)"
+      ],
+      "read_in": [
+        "C1",
+        "C2"
       ],
       "source": "CMS PECOS",
-      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "cadence": "Monthly (C3: Revalidation Reassignment List, latest release 2026-11-01)",
       "class": "public file",
       "detail": "CMS Revalidation Reassignment List (data.cms.gov; not loaded)",
       "drives": []
@@ -506,9 +692,11 @@
       "field": "Current hospital privileges",
       "group": "Privileges",
       "standards": [
-        "TJC MS.06.01.05",
-        "NCQA CR 3 (application)",
-        "CAQH ProView"
+        "CAQH ProView §4.7 Hospital Affiliations (Q1 p.112)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "Q1"
       ],
       "source": "The hospital",
       "cadence": "At reappointment",
@@ -523,8 +711,13 @@
       "field": "Loss or limitation of privileges, history",
       "group": "Privileges",
       "standards": [
-        "NCQA CR 3 (attestation)",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 3 Element C factor 4, history of loss or limitation of privileges or disciplinary actions (N1 p.104)",
+        "CAQH ProView §4.12 Disclosure (Q1 p.144)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The physician; NPDB for reported actions",
       "cadence": "At each credentialing cycle",
@@ -539,12 +732,15 @@
       "field": "Facility affiliations",
       "group": "Privileges",
       "standards": [
-        "CAQH ProView"
+        "CAQH ProView §4.7 (Q1 p.112)"
+      ],
+      "read_in": [
+        "Q1"
       ],
       "source": "CMS Care Compare",
-      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "cadence": "No update frequency in the catalog record; released 2026-10-15, next update 2026-11-12 (C4)",
       "class": "public file",
-      "detail": "CMS Doctors and Clinicians Facility Affiliation file (data.cms.gov; not loaded)",
+      "detail": "CMS Doctors and Clinicians Facility Affiliation Data, 27ea-46a8 (not loaded)",
       "drives": []
     },
     {
@@ -552,9 +748,13 @@
       "field": "Current malpractice coverage: carrier, policy, limits",
       "group": "Malpractice",
       "standards": [
-        "NCQA CR 3 (attestation)",
-        "TJC MS.06.01.05",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element C factor 5, current malpractice insurance coverage (N1 p.104)",
+        "CAQH ProView §4.9 Professional Liability Insurance (Q1 p.123)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The carrier",
       "cadence": "Policy term, usually yearly",
@@ -569,8 +769,12 @@
       "field": "Malpractice coverage expiration",
       "group": "Malpractice",
       "standards": [
-        "NCQA CR 3",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element C factor 5 (N1 p.104)",
+        "CAQH ProView §4.9 (Q1 p.123)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The carrier",
       "cadence": "Policy term, usually yearly",
@@ -585,8 +789,11 @@
       "field": "Malpractice claims history, five years",
       "group": "Malpractice",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 3 Element A factor 6, past 5 years of claims resulting in settlement or judgment, from the carrier or NPDB (N1 pp.97, 101)",
+        "verification time limit 90 or 180 calendar days in the redline [CONFIRM] (N1 p.101)"
+      ],
+      "read_in": [
+        "N1"
       ],
       "source": "NPDB; the carrier",
       "cadence": "Per query; NPDB Continuous Query",
@@ -599,8 +806,12 @@
       "field": "Explanation of pending or settled claims",
       "group": "Malpractice",
       "standards": [
-        "NCQA CR 3",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element A factor 6 (N1 p.101)",
+        "CAQH ProView §4.12 Disclosure [CONFIRM] (Q1 p.144)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The physician",
       "cadence": "At each credentialing cycle",
@@ -613,9 +824,13 @@
       "field": "OIG LEIE exclusion",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 5",
-        "CMS-855I §3"
+        "NCQA HPA 2025 CR 3 Element B factor 3, exclusions, from the state Medicaid agency, the OIG LEIE or NPDB (N2 pp.3, 12)",
+        "CR 5 Element A factor 2 (N2 pp.3, 14)",
+        "CMS-855I §3B (C1 p.11)"
+      ],
+      "read_in": [
+        "N2",
+        "C1"
       ],
       "source": "HHS OIG",
       "cadence": "Monthly LEIE file",
@@ -630,8 +845,13 @@
       "field": "SAM.gov exclusion",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 5",
-        "CMS-855I §3"
+        "NCQA HPA 2025 CR 3 Element B factor 2, SAM.gov an accepted source for Medicare/Medicaid sanctions (N2 pp.3, 11)",
+        "CR 5 Element A factor 1 (N2 pp.3, 13)",
+        "CMS-855I §3B (C1 p.11)"
+      ],
+      "read_in": [
+        "N2",
+        "C1"
       ],
       "source": "GSA SAM.gov",
       "cadence": "Daily SAM extract",
@@ -646,8 +866,10 @@
       "field": "State Medicaid exclusions",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 3",
-        "NCQA CR 5"
+        "NCQA HPA 2025 CR 3 Element B factor 3 and CR 5 Element A factor 2, the state Medicaid agency as a source (N2 p.3)"
+      ],
+      "read_in": [
+        "N2"
       ],
       "source": "Each state Medicaid agency",
       "cadence": "Varies by state",
@@ -662,9 +884,9 @@
       "field": "Medicare Preclusion List",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 5 (Medicare sanctions)",
-        "CMS rules for MA plans and Part D sponsors"
+        "CMS Preclusion List for MA organizations and Part D sponsors [CONFIRM]: not in the documents read"
       ],
+      "read_in": [],
       "source": "CMS",
       "cadence": "Per CMS release to plans",
       "class": "agreement needed",
@@ -678,8 +900,13 @@
       "field": "NPDB reports: licensure, privileges, exclusion actions",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 3",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 3 Element B factors 2 and 3 and CR 5 Element A factors 1 and 2, NPDB an accepted source (N2 p.3)",
+        "CR 3 Element A factor 6 (N1 p.101)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "N2"
       ],
       "source": "NPDB",
       "cadence": "Per query; NPDB Continuous Query",
@@ -694,9 +921,14 @@
       "field": "Felony convictions and final adverse legal actions",
       "group": "Sanctions and exclusions",
       "standards": [
-        "NCQA CR 3 (attestation)",
-        "CMS-855I §3",
-        "CAQH ProView"
+        "NCQA HPA 2025 CR 3 Element C factor 3, history of loss of license and felony convictions (N1 p.104)",
+        "CMS-855I §3A Federal and State Convictions and §3C Final Adverse Legal Action History (C1 p.11)",
+        "CAQH ProView §4.12 Disclosure (Q1 p.144)"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1"
       ],
       "source": "The physician; courts",
       "cadence": "At each credentialing cycle",
@@ -711,11 +943,16 @@
       "field": "Medicare enrollment (approved to bill or to order and refer)",
       "group": "Medicare and Medicaid enrollment",
       "standards": [
-        "CMS-855I",
-        "CAQH ProView"
+        "CMS-855I §1A Reason for Submitting (C1 p.5)",
+        "PPEF Enrollment file (C2 p.1)"
+      ],
+      "read_in": [
+        "C1",
+        "C2",
+        "C3"
       ],
       "source": "CMS PECOS",
-      "cadence": "Quarterly CMS file",
+      "cadence": "Quarterly (C3: Public Provider Enrollment, latest release 2026-10-01)",
       "class": "covered today",
       "detail": "pecos_enrollment receipt, Medicare FFS Public Provider Enrollment file",
       "drives": [
@@ -727,10 +964,15 @@
       "field": "Medicare ordering and referring eligibility",
       "group": "Medicare and Medicaid enrollment",
       "standards": [
-        "CMS-855O"
+        "PPEF provider types 33-xx, Order and Referring Only (C2 p.7)",
+        "CMS-855O [CONFIRM]: not in the documents read"
+      ],
+      "read_in": [
+        "C2",
+        "C3"
       ],
       "source": "CMS PECOS",
-      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "cadence": "Every 3.5 days (C3: R/P3.5D; latest release 2026-11-03)",
       "class": "public file",
       "detail": "CMS Order and Referring file (data.cms.gov; not loaded)",
       "drives": []
@@ -740,11 +982,13 @@
       "field": "Medicare opt-out",
       "group": "Medicare and Medicaid enrollment",
       "standards": [
-        "CMS opt-out affidavit",
-        "NCQA CR 3 (Medicare status)"
+        "CMS opt-out affidavit [CONFIRM]: not in the documents read"
+      ],
+      "read_in": [
+        "C3"
       ],
       "source": "CMS (Medicare Administrative Contractors)",
-      "cadence": "Monthly CMS file",
+      "cadence": "Monthly (C3: Opt Out Affidavits, latest release 2026-09-01)",
       "class": "covered today",
       "detail": "medicare_optout receipt, Opt Out Affidavits file",
       "drives": []
@@ -754,10 +998,14 @@
       "field": "Medicare revalidation due date",
       "group": "Medicare and Medicaid enrollment",
       "standards": [
-        "CMS-855I (revalidation)"
+        "CMS-855I, revalidation on notice (C1 p.2) and §1A (C1 p.5)"
+      ],
+      "read_in": [
+        "C1",
+        "C3"
       ],
       "source": "CMS PECOS",
-      "cadence": "Per the data.cms.gov catalog (not yet read)",
+      "cadence": "Monthly (C3: Revalidation Due Date List, latest release 2026-11-01)",
       "class": "public file",
       "detail": "CMS Revalidation Due Date List (data.cms.gov; not loaded)",
       "drives": [
@@ -769,8 +1017,11 @@
       "field": "Medicaid enrollment, by state",
       "group": "Medicare and Medicaid enrollment",
       "standards": [
-        "State Medicaid provider enrollment",
-        "CAQH ProView"
+        "CAQH ProView §4.3, Medicaid number (Q1 p.43)",
+        "state Medicaid provider enrollment [CONFIRM]: not in the documents read"
+      ],
+      "read_in": [
+        "Q1"
       ],
       "source": "Each state Medicaid agency",
       "cadence": "Varies by state",
@@ -785,8 +1036,13 @@
       "field": "Ability to perform, health status",
       "group": "Attestations",
       "standards": [
-        "NCQA CR 3 (attestation)",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 3 Element C factor 1, reasons for inability to perform the essential functions of the position (N1 p.104)",
+        "CAQH ProView §4.12 Disclosure (Q1 p.144)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The physician",
       "cadence": "At each credentialing cycle",
@@ -799,7 +1055,12 @@
       "field": "No present illegal drug use",
       "group": "Attestations",
       "standards": [
-        "NCQA CR 3 (attestation)"
+        "NCQA HPA 2025 CR 3 Element C factor 2, lack of present illegal drug use (N1 p.104)",
+        "CAQH ProView §4.12 (Q1 p.144)"
+      ],
+      "read_in": [
+        "N1",
+        "Q1"
       ],
       "source": "The physician",
       "cadence": "At each credentialing cycle",
@@ -812,12 +1073,17 @@
       "field": "Correct and complete, signed and dated",
       "group": "Attestations",
       "standards": [
-        "NCQA CR 3 (attestation)",
-        "CMS-855I §15",
-        "CAQH ProView (re-attest every 120 days)"
+        "NCQA HPA 2025 CR 3 Element C factor 7, current and signed attestation of correctness and completeness (N1 p.104)",
+        "CMS-855I §15 Certification Statement and Signature (C1 p.24)",
+        "CAQH ProView §8.2 Re-Attesting, every 120 days, 180 for Illinois providers (Q1 p.162)"
+      ],
+      "read_in": [
+        "N1",
+        "C1",
+        "Q1"
       ],
       "source": "The physician",
-      "cadence": "Every 120 days on CAQH ProView",
+      "cadence": "Every 120 days on CAQH (180 for Illinois providers)",
       "class": "self-reported",
       "detail": "CAQH ProView attestation date, read under a CAQH participating-organization agreement",
       "drives": [
@@ -829,8 +1095,14 @@
       "field": "Primary-source verification date per element",
       "group": "Monitoring metadata",
       "standards": [
-        "NCQA CR 3 (verification time limits)",
-        "TJC MS.06.01.03"
+        "NCQA HPA 2025 CR 3 Element A, NCQA counts back from the decision date to the verification date (N1 p.97)",
+        "factor 5 limit 180 calendar days (N2 p.11)",
+        "other factors' limits [CONFIRM]",
+        "TJC MS.06.01.03 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1",
+        "N2"
       ],
       "source": "The credentialing organization",
       "cadence": "Each read",
@@ -845,12 +1117,15 @@
       "field": "Credentialing decision and recredentialing due date",
       "group": "Monitoring metadata",
       "standards": [
-        "NCQA CR 2",
-        "NCQA CR 4 (at least every 36 months)",
-        "TJC MS.06.01.05"
+        "NCQA HPA 2025 CR 2 Element A, Credentialing Committee (N1 p.83)",
+        "CR 4 Element A, recredentialing at least every 36 months (N1 p.108)",
+        "TJC MS.06.01.05 [CONFIRM]"
+      ],
+      "read_in": [
+        "N1"
       ],
       "source": "The credentialing committee",
-      "cadence": "Every 36 months at most (NCQA)",
+      "cadence": "At least every 36 months (NCQA CR 4)",
       "class": "plan-internal",
       "detail": "Committee minutes and the plan's credentialing system",
       "drives": [
@@ -862,11 +1137,15 @@
       "field": "Ongoing monitoring reviews",
       "group": "Monitoring metadata",
       "standards": [
-        "NCQA CR 5",
-        "TJC MS.08.01.03 (OPPE)"
+        "NCQA HPA 2025 CR 5 Element A factors 1 to 5 (N2 pp.13-15) and Credentialing Accreditation CRA 5 Element A (N3 pp.10, 12): see the CR 5 section above",
+        "TJC MS.08.01.03 (OPPE) [CONFIRM]"
+      ],
+      "read_in": [
+        "N2",
+        "N3"
       ],
       "source": "The credentialing organization",
-      "cadence": "Within 30 days of a sanction release (NCQA CR 5)",
+      "cadence": "At least every 30 calendar days; adverse events at least monthly (N2 p.15)",
       "class": "plan-internal",
       "detail": "The plan's monitoring log; FreshRoot's deltas feed is an input to it",
       "drives": [
