@@ -21,8 +21,8 @@ Usage:
   python build_credential_packet.py roster.csv --origin synthetic    # demo packets are labeled, never shipped
 
 The roster file is a CSV with a column named npi, or a plain text file with one NPI per line. An optional
-state column (TX, FL, CA, UT) asks --write-receipts for that state's license receipt for that NPI; other
-columns are ignored.
+state column (TX, FL, CA, UT) asks --write-receipts for that state's license and board action receipts for that
+NPI; other columns are ignored.
 --write-receipts skips any NPI that already holds a receipt of that claim type from the source's latest
 completed run, so a re-run after a partial failure never writes the same receipt twice.
 Rows from sources with accepted_for_sale = false are included in the packet but flagged; they never ship to a buyer.
@@ -241,8 +241,9 @@ def rpc_receipts(fn, npis, extra, size=RPC_BATCH):
 
 def write_receipts(npis, states, origin):
     """Runs the SQL functions that turn the latest snapshots into receipts for this roster.
-    State license receipts are asked only for the state each roster row names: receipts_for_state_licenses
-    writes a receipt for every NPI it is given, so an NPI asked in the wrong state would get a not_found."""
+    State license and board action receipts are asked only for the state each roster row names:
+    receipts_for_state_licenses and receipts_for_board_actions write a receipt for every NPI they are given, so an
+    NPI asked in the wrong state would get a not_found or a none_in_file."""
     counts = Counter()
     todo = not_yet_written(npis, "npi_status", latest_run_id({"name": "eq.NPI Registry"}), origin)
     for row in rpc_receipts("receipts_for_npi_status", todo, {"p_origin": origin}):
@@ -260,6 +261,10 @@ def write_receipts(npis, states, origin):
         todo = not_yet_written(roster, "state_license", run_id, origin)
         for row in rpc_receipts("receipts_for_state_licenses", todo, {"p_state": st, "p_origin": origin}):
             counts[f"state_license:{st}:{row['normalized_status']}"] += 1
+        # Board actions come from the same board run: the actions the loader stored beside the license rows.
+        todo = not_yet_written(roster, "state_board_action", run_id, origin)
+        for row in rpc_receipts("receipts_for_board_actions", todo, {"p_state": st, "p_origin": origin}):
+            counts[f"state_board_action:{st}:{row['normalized_status']}"] += 1
     print("receipts written:" if counts else "receipts written: none")
     for k, v in sorted(counts.items()):
         print(f"  {k:32s} {v}")
@@ -372,6 +377,8 @@ def build(npis, origin, out_dir):
         "Three clocks: source_published_at is the date on the publisher's file; source_effective_at is when the fact took effect;",
         "retrieved_at is when the garden read it. next_check_due_at is retrieved_at plus the source cadence.",
         "normalized_status = not_found means not present in that source's snapshot on that date. It never means clear.",
+        "state_board_action reads action_on_record when the board file lists an action on a license tied to the NPI by license number,",
+        "and none_in_file otherwise. none_in_file never means clear.",
         "match_basis and match_confidence say how the row was joined to the NPI. name_only rows are candidates for review, not findings.",
         "A row with accepted_for_sale = false comes from a source whose rights or acceptance test are not yet documented and does not ship.",
         "shippable is true only for a real, verified, current row from a source accepted for sale.",
@@ -390,7 +397,8 @@ def main():
     ap.add_argument("--out", help="output directory")
     ap.add_argument("--origin", default="real", choices=["real", "synthetic"], help="label for receipts written in this run")
     ap.add_argument("--write-receipts", action="store_true",
-                    help="run receipts_for_npi_status, receipts_for_exclusions and, per roster state, receipts_for_state_licenses first")
+                    help="run receipts_for_npi_status, receipts_for_exclusions and, per roster state, "
+                         "receipts_for_state_licenses and receipts_for_board_actions first")
     args = ap.parse_args()
 
     npis, states = read_roster(args.roster)

@@ -444,11 +444,14 @@ const JOB_STORE = `freshroot.job.${ROSTER_ID}`;
 const JOB_MAX = 5000;
 const KEY_STORE = "freshroot.tenantKey";
 const SURFACES = ["sources", "roster", "provider", "changes", "coverage"];
-const PROVIDER_CLAIMS = ["state_license", "npi_status", "oig_exclusion", "sam_exclusion"];
-const ADVERSE = new Set(["probation", "revoked", "suspended", "surrendered", "restricted", "cancelled", "excluded", "debarred"]);
+const PROVIDER_CLAIMS = ["state_license", "state_board_action", "npi_status", "oig_exclusion", "sam_exclusion"];
+// Claims read from a state board file: shown only where a board in the physician's state is covered.
+const BOARD_CLAIMS = new Set(["state_license", "state_board_action"]);
+const ADVERSE = new Set(["probation", "revoked", "suspended", "surrendered", "restricted", "cancelled", "excluded", "debarred",
+  "action_on_record"]);
 const CLAIM_LABEL = {
   state_license: "State license", npi_status: "NPI status", oig_exclusion: "OIG exclusion", sam_exclusion: "SAM exclusion",
-  state_board_action: "State board action", medicare_optout: "Medicare opt-out", pecos_enrollment: "PECOS enrollment",
+  state_board_action: "Board action", medicare_optout: "Medicare opt-out", pecos_enrollment: "PECOS enrollment",
   dea_registration: "DEA registration", board_certification: "Board certification", medicaid_exclusion: "Medicaid exclusion",
   nurse_license: "Nurse license", npdb: "NPDB",
 };
@@ -573,22 +576,24 @@ const noBoardShort = (p) => {
   return shown.length && !shown.some(licenseCovered) ? "license not covered yet" : `no ${coveredList()} license on file`;
 };
 // Three attention queues, each a separate fact about a physician's four checks:
-//   adverse     a license read as something other than active (not unknown, not unmatched), an exclusion found, or
-//               an NPI deactivated or inactive. Only this one carries the orange-red mark. Unknown is never adverse.
+//   adverse     a license read as something other than active (not unknown, not unmatched), a board action on record,
+//               an exclusion found, or an NPI deactivated or inactive. Only this one carries the orange-red mark.
+//               Unknown is never adverse, and neither is none_in_file.
 //   unresolved  a check that reads unknown, a license no board row could be linked to, or an identity still pending
 //               human review (stage candidate)
 //   stale       any check past its next check (or offline in the simulation), or a check with no receipt. A license
 //               in a state whose board file we do not hold is not covered, so it is not counted missing.
 const NOT_ADVERSE = new Set(["active", "unknown", "not_found"]);
 const QUEUES = [
-  ["adverse", "Adverse", "license not active, exclusion found, or NPI deactivated or inactive"],
+  ["adverse", "Adverse", "license not active, board action on record, exclusion found, or NPI deactivated or inactive"],
   ["unresolved", "Unresolved", "unknown, unmatched, or identity pending review"],
   ["stale", "Stale or missing", "a check past its next check, or no receipt"],
 ];
 function queuesOf(m) {
   const k = m.checks || {};
   const lic = k.state_license, npi = k.npi_status;
-  const adverse = (!!lic && !NOT_ADVERSE.has(lic.normalized_status)) || exclusionFound(k.oig_exclusion) ||
+  const adverse = (!!lic && !NOT_ADVERSE.has(lic.normalized_status)) || boardActionOnRecord(k.state_board_action) ||
+    exclusionFound(k.oig_exclusion) ||
     exclusionFound(k.sam_exclusion) || (!!npi && ["deactivated", "inactive"].includes(npi.normalized_status));
   const present = CHECKS.map(([t]) => k[t]).filter(Boolean);
   const unresolved = present.some((c) => checkStatus(c) === "unknown" || c.stage === "candidate") ||
@@ -598,6 +603,8 @@ function queuesOf(m) {
   return { adverse, unresolved, stale };
 }
 const isMarked = (m) => queuesOf(m).adverse;
+// A board action counts only when the board file lists one on a license tied to the NPI by license number.
+const boardActionOnRecord = (c) => !!c && c.normalized_status === "action_on_record";
 function checkChip(type, label, c, member) {
   const lbl = `<span class="lbl">${label}</span>`;
   const st = checkStatus(c);
@@ -944,7 +951,7 @@ function renderRoster() {
   $("#roster-focal").innerHTML = `
     <div class="fig">${members.length}<small>physicians</small></div>
     <div class="side mono">${states.map((s) => `${esc(s)} ${byState[s]}`).join(" · ")}</div>
-    <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> adverse: a license read as not active, an exclusion found, or an NPI deactivated or inactive. Unknown is never adverse.</div>
+    <div class="side"><span class="mark" aria-hidden="true"></span> <span class="mono">${marked.length}</span> adverse: a license read as not active, a board action on record, an exclusion found, or an NPI deactivated or inactive. Unknown is never adverse.</div>
     ${state.sim ? `<div class="side"><span class="chip sim">simulation</span> ${simSummary()}</div>` : ""}`;
   renderRosterRows();
 }
@@ -990,7 +997,7 @@ function renderRosterRows() {
       const late = due && Date.parse(due) < Date.now();
       return `<a class="rrow${marked ? " marked" : ""}" href="#/provider/${esc(m.npi)}">
         ${marked ? `<span class="sr">Marked.</span>` : ""}
-        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b>${q.unresolved ? ` <span class="chip qchip">unresolved</span>` : ""}${q.stale ? ` <span class="chip qchip">stale or missing</span>` : ""}<span class="c-sub">${esc(sub)}</span></span>
+        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b>${boardActionOnRecord(m.checks?.state_board_action) ? ` <span class="chip qchip">board action on record</span>` : ""}${q.unresolved ? ` <span class="chip qchip">unresolved</span>` : ""}${q.stale ? ` <span class="chip qchip">stale or missing</span>` : ""}<span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
         <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m)).join("")}</span>
         <span class="c-times">
@@ -1234,13 +1241,14 @@ function renderProvider() {
   const pick = (t) => claims.find((c) => c.claim_type === t);
   // Outside the states we cover there is no license card: the three federal cards and one plain line.
   const showLicense = licenses.length > 0 || licenseCovered(member?.state);
+  const inState = (t) => claims.find((c) => c.claim_type === t && c.jurisdiction === member?.state) || pick(t);
   const marked = isMarked({ state: member?.state, checks: {
-    state_license: claims.find((c) => c.claim_type === "state_license" && c.jurisdiction === member?.state) || pick("state_license"),
+    state_license: inState("state_license"), state_board_action: inState("state_board_action"),
     npi_status: pick("npi_status"), oig_exclusion: pick("oig_exclusion"), sam_exclusion: pick("sam_exclusion"),
   } });
   const added = state.justAdded?.npi === npi ? state.justAdded : null;
   state.justAdded = null;
-  const byType = new Map(PROVIDER_CLAIMS.filter((t) => t !== "state_license" || showLicense).map((t) => [t, []]));
+  const byType = new Map(PROVIDER_CLAIMS.filter((t) => !BOARD_CLAIMS.has(t) || showLicense).map((t) => [t, []]));
   for (const c of claims) {
     if (!byType.has(c.claim_type)) byType.set(c.claim_type, []);
     byType.get(c.claim_type).push(c);
@@ -1294,6 +1302,19 @@ function licenseSentence(c) {
   if (c.normalized_status === "unknown") return `${head} is unknown: ${when} did not settle it.`;
   return `${head} is ${st}${raw} in ${when}.`;
 }
+// Said only when a board file lists an action on a license tied to this NPI by license number.
+function boardActionSentence(c) {
+  const k = c.claim || {};
+  const n = Number(k.actions_on_record) || (k.actions || []).length || 1;
+  const kind = k.action_kind ? `"${k.action_kind}"` : "an action";
+  const on = k.license_number ? ` on license ${k.license_number}` : "";
+  const dated = fmtDM(k.action_date) ? ` dated ${fmtDM(k.action_date)}` : "";
+  const ref = k.reference ? ` (${k.reference})` : "";
+  const more = n > 1 ? `, the latest of ${n} actions listed` : "";
+  const late = notCurrent(c);
+  return `${fileWhen(c, `${STATE_NAMES[c.jurisdiction] || c.jurisdiction || "state"} board file`).replace(/^the /, "The ")} ` +
+    `lists a board action${on}: ${kind}${dated}${ref}${more}${late ? `; ${late}` : ""}.`;
+}
 function npiSentence(c) {
   if (!c) return "No NPI receipt; not checked is not clear.";
   const late = notCurrent(c);
@@ -1326,8 +1347,11 @@ function providerSummary(claims, member, showLicense = true) {
   const lic = claims.filter((c) => c.claim_type === "state_license")
     .sort((a, b) => (b.jurisdiction === member?.state) - (a.jurisdiction === member?.state));
   const pick = (t) => claims.find((c) => c.claim_type === t);
+  const acts = claims.filter((c) => c.claim_type === "state_board_action" && c.normalized_status === "action_on_record")
+    .sort((a, b) => (b.jurisdiction === member?.state) - (a.jurisdiction === member?.state));
   return [
     !showLicense ? null : lic.length ? lic.map(licenseSentence).join(" ") : "No state license receipt; not checked is not clear.",
+    showLicense && acts.length ? acts.map(boardActionSentence).join(" ") : null,
     npiSentence(pick("npi_status")),
     exclusionSentence(pick("oig_exclusion"), pick("sam_exclusion")),
   ].filter(Boolean).join(" ");
@@ -1358,6 +1382,18 @@ function receiptBlock(r) {
   } else if (norm === "not_found") {
     normHtml = `<span class="norm">not found</span>`;
     why = `No matching record in this source on the read date. Not found is not the same as clear.`;
+  } else if (norm === "none_in_file") {
+    normHtml = `<span class="norm">none in file</span>`;
+    why = r.claim?.file_lists_actions === false
+      ? `This board file carries no board actions, so it cannot show discipline. None in file is not the same as clear.`
+      : `This board file lists no action for a license tied to this NPI by license number. None in file is not the same as clear.`;
+  } else if (norm === "action_on_record") {
+    normHtml = `<span class="norm"><span class="hl">action on record</span></span>`;
+    const k = r.claim || {};
+    why = `${esc(k.action_kind || "Board action")}${k.action_date ? ` · ${esc(fmtDay(k.action_date + "T00:00:00Z"))}` : ""}` +
+      `${k.reference ? ` · ${esc(k.reference)}` : " · no order or case number in the file"}` +
+      `${k.license_number ? ` · license <span class="mono">${esc(k.license_number)}</span>` : ""}` +
+      `${Number(k.actions_on_record) > 1 ? ` · latest of ${esc(k.actions_on_record)} listed` : ""}.`;
   } else if (norm === "unknown") {
     normHtml = `<span class="norm">unknown</span>`;
     why = `The source could not settle this claim for this NPI${r.match_basis ? ` (matched by ${esc(words(r.match_basis))})` : ""}.`;
@@ -1367,7 +1403,8 @@ function receiptBlock(r) {
     normHtml = `<span class="norm">${esc(words(norm) || "none")}</span>`;
   }
   const facts = Object.entries(r.claim || {}).filter(([, v]) => v !== null && typeof v !== "object");
-  const actions = Array.isArray(r.claim?.disciplinary_actions) ? r.claim.disciplinary_actions : [];
+  const actions = Array.isArray(r.claim?.disciplinary_actions) ? r.claim.disciplinary_actions
+    : Array.isArray(r.claim?.actions) ? r.claim.actions : [];
   const conf = r.match_confidence == null ? "none" : Number(r.match_confidence).toFixed(2);
   const newer = newerFile(r);
   return `<div class="receipt" id="rcpt-${esc(r.receipt_id)}">
@@ -1440,7 +1477,8 @@ function evidenceRow(r) {
   const tmpl = src?.lookup_url && /^https:\/\//.test(src.lookup_url) ? src.lookup_url : null;
   const npi = r.npi || state.route.npi;
   const deep = !!tmpl && tmpl.includes("{npi}");
-  const paste = r.claim_type === "state_license" && r.license_number ? `${r.jurisdiction || ""} license ${r.license_number}`.trim()
+  const lic = r.license_number || (r.claim_type === "state_board_action" ? r.claim?.license_number : null);
+  const paste = BOARD_CLAIMS.has(r.claim_type) && lic ? `${r.jurisdiction || ""} license ${lic}`.trim()
     : `NPI ${npi}${/exclusion/.test(r.claim_type) && personName(npi) ? ` · ${personName(npi)}` : ""}`;
   const lookup = tmpl
     ? `<a class="evlink" href="${esc(tmpl.replace("{npi}", encodeURIComponent(npi)))}" target="_blank" rel="noopener noreferrer">Open official lookup</a>
@@ -1530,7 +1568,7 @@ function renderChanges() {
   const verdict = moved === 0
     ? `No status moved between these runs.`
     : `<span class="shock">${moved}</span> ${moved === 1 ? "status moved" : "statuses moved"} between these runs.`;
-  const fieldLine = fields ? ` ${plural(fields, "field change")}: same status, a different license number, issue date, expiration date or restrictions.` : "";
+  const fieldLine = fields ? ` ${plural(fields, "field change")}: same status, a different license number, issue date, expiration date, restrictions or board action field.` : "";
   const rows = all.filter((r) => (!state.changesKind || r.change_kind === state.changesKind) && (!state.changesClaim || r.claim_type === state.changesClaim));
   const groups = new Map();
   for (const r of rows) {
@@ -1542,7 +1580,7 @@ function renderChanges() {
     <p class="eyebrow">Changes · /v1/deltas</p>
     <h1>What moved</h1>
     <p class="verdict">${verdict}${esc(fieldLine)}</p>
-    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs; a field change when the status is the same but the license number, issue date, expiration date or restrictions (where the row carries them) differ; a refresh when none of those differ.</p>
+    <p class="lede">${plural(all.length, "receipt")} on this roster, written across ${plural(days.length, "day")}: ${esc(kindSummary || "none")}. A row is a status change only when it names the receipt it replaces and the normalized status differs, or when a board action receipt lists an action the one it replaces did not; a field change when the status is the same but the license number, issue date, expiration date, restrictions (where the row carries them) or a board action's fields differ; a refresh when none of those differ.</p>
     <div class="controls">
       <div class="field"><label for="c-kind">Change kind</label><select id="c-kind"><option value="">All kinds</option>${Object.keys(kinds).sort().map((k) => `<option value="${esc(k)}" ${k === state.changesKind ? "selected" : ""}>${esc(words(k))} (${kinds[k]})</option>`).join("")}</select></div>
       <div class="field"><label for="c-claim">Claim</label><select id="c-claim"><option value="">All claims</option>${claimTypes.map((c) => `<option value="${esc(c)}" ${c === state.changesClaim ? "selected" : ""}>${esc(CLAIM_LABEL[c] || words(c))}</option>`).join("")}</select></div>
@@ -1558,7 +1596,7 @@ function renderChanges() {
     }).join("") || `<p class="note">No rows match these filters.</p>`}`;
 }
 function deltaRow(r) {
-  const fc = r.change_kind === "field_change" && (r.field_changes || []).length;
+  const fc = (r.change_kind === "field_change" || r.change_kind === "status_change") && (r.field_changes || []).length;
   return `<a class="drow" href="#/provider/${esc(r.npi)}">
     <span><span class="who">${esc(personName(r.npi) || "Name not on file")}</span> <span class="mono faint" style="font-size:12px">${esc(r.npi)}</span></span>
     <span class="what">${esc(claimName(r.claim_type, r.jurisdiction))} · ${esc(r.source_name)}</span>
@@ -1570,7 +1608,10 @@ function deltaRow(r) {
   </a>`;
 }
 
-const fieldVal = (v) => (v == null ? "none" : typeof v === "object" ? JSON.stringify(v) : String(v));
+// A board action item (claim.actions[]) reads as its kind and date; any other object as JSON.
+const fieldVal = (v) => (v == null ? "none" : typeof v === "object"
+  ? (v.key && "kind" in v ? `${v.kind || "action"}${v.date ? " " + v.date : ""}${v.reference ? " (" + v.reference + ")" : ""}` : JSON.stringify(v))
+  : String(v));
 
 // 5. Coverage
 const coverageNav = (view) => `<nav class="subnav" aria-label="Coverage views">
