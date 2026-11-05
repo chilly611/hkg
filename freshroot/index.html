@@ -576,17 +576,18 @@ const noBoardShort = (p) => {
   return shown.length && !shown.some(licenseCovered) ? "license not covered yet" : `no ${coveredList()} license on file`;
 };
 // Three attention queues, each a separate fact about a physician's four checks:
-//   adverse     a license read as something other than active (not unknown, not unmatched), a board action on record,
-//               an exclusion found, or an NPI deactivated or inactive. Only this one carries the orange-red mark.
-//               Unknown is never adverse, and neither is none_in_file.
-//   unresolved  a check that reads unknown, a license no board row could be linked to, or an identity still pending
-//               human review (stage candidate)
+//   adverse     a license read as something other than active (not unknown, not unmatched), a board action on record
+//               that the board does not mark cleared, an exclusion found, or an NPI deactivated or inactive. Only this
+//               one carries the orange-red mark. Unknown is never adverse, and neither is none_in_file.
+//   unresolved  a check that reads unknown, a license no board row could be linked to, an identity still pending
+//               human review (stage candidate), or a board action on record that the board itself marks cleared
+//               (marked_cleared_by_board from the API; docs/board_action_cleared_markers_2026-11-05.md)
 //   stale       any check past its next check (or offline in the simulation), or a check with no receipt. A license
 //               in a state whose board file we do not hold is not covered, so it is not counted missing.
 const NOT_ADVERSE = new Set(["active", "unknown", "not_found"]);
 const QUEUES = [
   ["adverse", "Adverse", "license not active, board action on record, exclusion found, or NPI deactivated or inactive"],
-  ["unresolved", "Unresolved", "unknown, unmatched, or identity pending review"],
+  ["unresolved", "Unresolved", "unknown, unmatched, identity pending review, or a board action the board marks cleared"],
   ["stale", "Stale or missing", "a check past its next check, or no receipt"],
 ];
 function queuesOf(m) {
@@ -597,14 +598,18 @@ function queuesOf(m) {
     exclusionFound(k.sam_exclusion) || (!!npi && ["deactivated", "inactive"].includes(npi.normalized_status));
   const present = CHECKS.map(([t]) => k[t]).filter(Boolean);
   const unresolved = present.some((c) => checkStatus(c) === "unknown" || c.stage === "candidate") ||
-    (!!lic && (lic.normalized_status === "not_found" || lic.match_basis === "none"));
+    (!!lic && (lic.normalized_status === "not_found" || lic.match_basis === "none")) ||
+    boardActionCleared(k.state_board_action);
   const stale = present.some((c) => checkStatus(c) === "stale") ||
     CHECKS.some(([t]) => !k[t] && (t !== "state_license" || licenseCovered(m.state)));
   return { adverse, unresolved, stale };
 }
 const isMarked = (m) => queuesOf(m).adverse;
-// A board action counts only when the board file lists one on a license tied to the NPI by license number.
-const boardActionOnRecord = (c) => !!c && c.normalized_status === "action_on_record";
+// A board action counts only when the board file lists one on a license tied to the NPI by license number. One the
+// board itself marks cleared on every action it lists is unresolved, not adverse; the receipt still reads
+// action_on_record in the board's own words.
+const boardActionCleared = (c) => !!c && c.normalized_status === "action_on_record" && c.marked_cleared_by_board === true;
+const boardActionOnRecord = (c) => !!c && c.normalized_status === "action_on_record" && !boardActionCleared(c);
 function checkChip(type, label, c, member) {
   const lbl = `<span class="lbl">${label}</span>`;
   const st = checkStatus(c);
@@ -997,7 +1002,8 @@ function renderRosterRows() {
       const late = due && Date.parse(due) < Date.now();
       return `<a class="rrow${marked ? " marked" : ""}" href="#/provider/${esc(m.npi)}">
         ${marked ? `<span class="sr">Marked.</span>` : ""}
-        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b>${boardActionOnRecord(m.checks?.state_board_action) ? ` <span class="chip qchip">board action on record</span>` : ""}${q.unresolved ? ` <span class="chip qchip">unresolved</span>` : ""}${q.stale ? ` <span class="chip qchip">stale or missing</span>` : ""}<span class="c-sub">${esc(sub)}</span></span>
+        <span class="c-name"><b>${esc(personName(m.npi) || "Name not on file")}</b>${boardActionOnRecord(m.checks?.state_board_action) ? ` <span class="chip qchip">board action on record</span>`
+          : boardActionCleared(m.checks?.state_board_action) ? ` <span class="chip qchip">board action, marked cleared by board</span>` : ""}${q.unresolved ? ` <span class="chip qchip">unresolved</span>` : ""}${q.stale ? ` <span class="chip qchip">stale or missing</span>` : ""}<span class="c-sub">${esc(sub)}</span></span>
         <span class="c-npi mono">${esc(m.npi)}</span>
         <span class="c-checks">${CHECKS.map(([t, label]) => checkChip(t, label, m.checks?.[t], m)).join("")}</span>
         <span class="c-times">
@@ -1311,9 +1317,11 @@ function boardActionSentence(c) {
   const dated = fmtDM(k.action_date) ? ` dated ${fmtDM(k.action_date)}` : "";
   const ref = k.reference ? ` (${k.reference})` : "";
   const more = n > 1 ? `, the latest of ${n} actions listed` : "";
+  const cleared = c.marked_cleared_by_board ? (n > 1 ? "; the board marks them all cleared" : "; the board marks it cleared")
+    : c.latest_action_marked_cleared ? "; the board marks that one cleared" : "";
   const late = notCurrent(c);
   return `${fileWhen(c, `${STATE_NAMES[c.jurisdiction] || c.jurisdiction || "state"} board file`).replace(/^the /, "The ")} ` +
-    `lists a board action${on}: ${kind}${dated}${ref}${more}${late ? `; ${late}` : ""}.`;
+    `lists a board action${on}: ${kind}${dated}${ref}${more}${cleared}${late ? `; ${late}` : ""}.`;
 }
 function npiSentence(c) {
   if (!c) return "No NPI receipt; not checked is not clear.";
@@ -1382,18 +1390,23 @@ function receiptBlock(r) {
   } else if (norm === "not_found") {
     normHtml = `<span class="norm">not found</span>`;
     why = `No matching record in this source on the read date. Not found is not the same as clear.`;
+  } else if (norm === "none_in_file" && r.claim?.file_lists_actions === false) {
+    normHtml = `<span class="norm">this file cannot show discipline</span>`;
+    why = `${esc(r.source_name)} carries no board actions, so it cannot show discipline. Check the board's own lookup.`;
   } else if (norm === "none_in_file") {
     normHtml = `<span class="norm">none in file</span>`;
-    why = r.claim?.file_lists_actions === false
-      ? `This board file carries no board actions, so it cannot show discipline. None in file is not the same as clear.`
-      : `This board file lists no action for a license tied to this NPI by license number. None in file is not the same as clear.`;
+    why = `This board file lists no action for a license tied to this NPI by license number. None in file is not the same as clear.`;
   } else if (norm === "action_on_record") {
-    normHtml = `<span class="norm"><span class="hl">action on record</span></span>`;
+    normHtml = r.marked_cleared_by_board
+      ? `<span class="norm">action on record · marked cleared by board</span>`
+      : `<span class="norm"><span class="hl">action on record</span></span>`;
     const k = r.claim || {};
     why = `${esc(k.action_kind || "Board action")}${k.action_date ? ` · ${esc(fmtDay(k.action_date + "T00:00:00Z"))}` : ""}` +
       `${k.reference ? ` · ${esc(k.reference)}` : " · no order or case number in the file"}` +
       `${k.license_number ? ` · license <span class="mono">${esc(k.license_number)}</span>` : ""}` +
-      `${Number(k.actions_on_record) > 1 ? ` · latest of ${esc(k.actions_on_record)} listed` : ""}.`;
+      `${Number(k.actions_on_record) > 1 ? ` · latest of ${esc(k.actions_on_record)} listed` : ""}` +
+      `${r.marked_cleared_by_board ? `. The board marks it cleared ("${esc((r.cleared_markers || []).join('", "'))}")`
+        : r.latest_action_marked_cleared ? `. The board marks the latest one cleared; not every action listed is` : ""}.`;
   } else if (norm === "unknown") {
     normHtml = `<span class="norm">unknown</span>`;
     why = `The source could not settle this claim for this NPI${r.match_basis ? ` (matched by ${esc(words(r.match_basis))})` : ""}.`;
