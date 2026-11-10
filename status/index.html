@@ -142,7 +142,7 @@
           <td class="mono">${fmtDate(s.last_run_at)}</td>
           <td class="mono">${fmtDate(s.next_due_at)}</td>
           <td class="num">${fmtAge(s.age_hours)}</td>
-          <td><span class="f f-${esc(String(s.freshness).replace(/\s+/g, "-"))}">${esc(s.freshness)}</span>${s.freshness === "poll late" ? `<small>checked ${fmtAge(hoursSince(s.last_polled_at))} ago</small>` : ""}</td>
+          <td><span class="f f-${esc(String(s.freshness).replace(/\s+/g, "-"))}">${esc(s.freshness)}</span>${s.freshness === "poll late" ? `<small>${s.last_polled_at ? `checked ${fmtAge(hoursSince(s.last_polled_at))} ago` : "not checked yet"}</small>` : ""}</td>
           <td><span class="rights${rightsOk ? " ok" : ""}">${esc(rights)}</span></td>
         </tr>`);
     }
